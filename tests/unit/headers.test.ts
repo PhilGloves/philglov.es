@@ -37,5 +37,5 @@ test("every response carries the security and TDM headers", () => {
   assert.equal(h["Cross-Origin-Opener-Policy"], "same-origin");
   assert.equal(h["tdm-reservation"], "1");
   for (const feature of ["camera", "microphone", "geolocation", "payment"])
-    assert.match(h["Permissions-Policy"] ?? "", new RegExp(`${feature}=\(\)`));
+    assert.match(h["Permissions-Policy"] ?? "", new RegExp(String.raw`${feature}=\(\)`));
 });

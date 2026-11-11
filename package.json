@@ -20,7 +20,8 @@
     "test:lighthouse": "lhci autorun",
     "test": "pnpm test:unit && pnpm test:e2e",
     "translate:pr": "node scripts/translate-pr.ts",
-    "deploy:staging": "wrangler deploy --env staging"
+    "deploy:staging": "wrangler deploy --env staging",
+    "translate": "node scripts/translate.ts"
   },
   "dependencies": {
     "astro": "7.4.8"
