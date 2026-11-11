@@ -103,12 +103,21 @@ pnpm build && pnpm exec wrangler deploy --env staging
 pnpm exec wrangler deploy --env preview
 ```
 
-Then for **each** of `philglov-staging` and `philglov-preview`: Workers & Pages → the Worker → Settings → Domains &
-Routes → workers.dev → **Access** → "Protect this Worker behind Access" → **All traffic**. For `philglov-preview`, also
-turn Access on for **Preview URLs**. Allow only your own email address; login method **One-time PIN**.
+Then turn on Access (as the dashboard looked on 2026-11-11):
 
-Check in a private browser window that both addresses now ask for the one-time code. Note each Access application's
-**Audience (AUD) tag** and your **team domain** (`<team>.cloudflareaccess.com`) for step 9.
+1. **Once per account:** Access needs a Zero Trust organization. Workers & Pages → `philglov-staging` → **Access** tab
+   → **Set up Zero Trust** opens the checkout for **Zero Trust Free** ($0/month, up to 50 users). Tick the Terms box
+   and the overage-authorization box yourself and click **Activate Zero Trust Free**. Cloudflare picks a team name
+   (`<team>.cloudflareaccess.com`); you can rename it later under Zero Trust → Settings.
+2. For **each** of `philglov-staging` and `philglov-preview`: the Worker → **Access** tab → **Protect this Worker behind
+   Access** → Scope **All traffic** (not "Previews only") → Authentication policy **Cloudflare account** (only members
+   of this Cloudflare account, i.e. you) → session 24 hours → **Apply Access**. The second Worker can reuse the
+   policy, listed as "Cloudflare account members". Never choose **Email domain**: with a gmail.com address it would let
+   in anyone with a Gmail account. "All traffic" covers the workers.dev address and preview URLs.
+
+Check with a request that carries no cookies (a private window, or `curl -I`) that every address answers with a 302
+to `https://<team>.cloudflareaccess.com/cdn-cgi/access/login/…`. The Worker's Access tab shows its **AUD tag** and the
+team's **JWKS** URL, which step 9 needs.
 
 ### 8. Turn on CI deploys
 
