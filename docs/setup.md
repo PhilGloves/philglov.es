@@ -85,7 +85,7 @@ The EU bucket endpoint the photo script uses is `https://<ACCOUNT_ID>.eu.r2.clou
 ### 6. Cloudflare API token for CI deploys
 
 1. Cloudflare → My Profile → **API Tokens** → Create Token → template **Edit Cloudflare Workers**. Add **Account → D1 →
-   Edit**. Restrict it to your account; no zone access is needed before launch.
+   Edit**. Restrict it to your account; no zone access is needed before launch (it is added at launch, step 12).
 2. GitHub Actions secrets (also as Dependabot secrets if you want previews for Dependabot pull requests later):
    - `CLOUDFLARE_API_TOKEN`
    - `CLOUDFLARE_ACCOUNT_ID`
@@ -210,6 +210,13 @@ Paste the D1 ID over `REPLACE_WITH_PRODUCTION_D1_ID`. Create a new read-only R2 
 replace the two R2 secrets, and set `R2_ORIGINALS_BUCKET` = `philglov-originals`. Add the production Worker secrets
 (step 9 with `--env production`, fresh values) and the GitHub App key (step 10).
 
+**Give the CI deploy token zone access for philglov.es.** `CLOUDFLARE_API_TOKEN` was created during staging with no
+zone access. Before the first production deploy, edit it (or replace it and update the secret) to add zone permissions
+limited to the **philglov.es** zone only: the zone part of the "Edit Cloudflare Workers" template (**Zone → Workers
+Routes → Edit**, plus **Zone → Zone → Read**). Without them the production deploy cannot attach the custom domain
+`philglov.es`. If that first deploy still reports an authorization error for the custom domain, the error names the
+missing zone permission; add only that one.
+
 ### 13. Cloudflare Access for /admin
 
 Zero Trust → Access → Applications → Add → **Self-hosted**: domain `philglov.es`, path `admin` (covers `/admin/*`),
@@ -235,8 +242,10 @@ production `ACCESS_AUD` var. The Worker also verifies the token itself.
 
 ### 16. Switch production on
 
-1. GitHub Variables: `PRODUCTION_DEPLOY` = `on`; `STAGING_DEPLOY` = `off` if staging should stop following `main`.
-2. Merge to `main` (or re-run the latest `main` workflow). The production job rebuilds with `SITE_ENV=production`, so
+1. Check that the deploy token has zone access for philglov.es (end of step 12). Then GitHub Variables:
+   `PRODUCTION_DEPLOY` = `on`; `STAGING_DEPLOY` = `off` if staging should stop following `main`.
+2. Merge a pull request to `main` **after** setting the variable: a run keeps the variables it started with, so a run
+   created earlier, or a re-run of it, may skip production. The production job rebuilds with `SITE_ENV=production`, so
    pages lose `X-Robots-Tag: noindex`; the Worker gets the custom domain `philglov.es` and no workers.dev route.
 3. QA's live-site check runs against `https://philglov.es`.
 

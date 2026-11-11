@@ -49,10 +49,9 @@ Merged: #1 scaffold, #2 D1 IDs, #3 setup state. Decisions 0001–0012 are in `do
 
 **For the owner**
 
-1. **Add back the Actions secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.** They existed and worked
-   (staging deployed from CI at 13:27) but were gone from the Actions secrets at 13:45. Without them every preview and
-   staging deploy fails. The token to use is the account token `philglov.es_token` (or a new one with the same
-   permissions: the "Edit Cloudflare Workers" set plus D1 Write).
+1. **At launch, give the deploy token zone access for philglov.es** (`docs/setup.md`, end of step 12). The Actions
+   secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` were briefly missing on 2026-11-11 and were added back
+   with a new token that deliberately has no zone access until launch.
 2. Confirm passkeys (or hardware keys) on GitHub and Cloudflare, with no SMS fallback. Nobody else can check this.
 3. Placeholders for the rights and privacy pages and About (TICKETS.md, O1): contact email, city, launch date,
    profiles for `sameAs`, bio, About photo.

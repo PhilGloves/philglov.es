@@ -76,9 +76,8 @@ WAY OF WORKING
 - `main` is protected (ruleset "Protect main", 2026-11-11): every change goes through a pull request, the `Test`
   check must pass, no force pushes, no deletion, nobody can bypass. Read [docs/handover.md](docs/handover.md) first.
 - Placeholder home in both languages; everything else is in `TICKETS.md`.
-- `docs/setup.md` Part 1 is done (2026-11-11), with two exceptions noted in the handover: passkeys (owner to confirm)
-  and the Actions secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`, which were present at 13:27 and missing at
-  13:45; previews and staging deploys fail until the owner adds them again. Steps 9 and 10 wait for the backend agent.
+- `docs/setup.md` Part 1 is done (2026-11-11) except passkeys (owner to confirm). The CI deploy token has no zone
+  access until launch (setup.md step 12). Steps 9 and 10 wait for the backend agent.
 - CI deploys: every pull request gets `pr-<n>-philglov-preview.philglov-es.workers.dev`; every merge to `main` deploys
   `philglov-staging.philglov-es.workers.dev`. Both Workers are behind Cloudflare Access (team `gentle-hall-eae9`).
 - 2026-11-11: AI translation dropped by the owner. Both languages are hand-written; there is no `translation`
