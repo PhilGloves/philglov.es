@@ -4,20 +4,12 @@
       "startServerCommand": "pnpm preview",
       "startServerReadyPattern": "Ready on",
       "startServerReadyTimeout": 60000,
-      "url": [
-        "http://127.0.0.1:8787/",
-        "http://127.0.0.1:8787/it"
-      ],
+      "url": ["http://127.0.0.1:8787/", "http://127.0.0.1:8787/it"],
       "numberOfRuns": 1,
       "settings": {
         "formFactor": "mobile",
         "throttlingMethod": "simulate",
-        "onlyCategories": [
-          "performance",
-          "accessibility",
-          "best-practices",
-          "seo"
-        ],
+        "onlyCategories": ["performance", "accessibility", "best-practices", "seo"],
         "chromeFlags": "--headless=new"
       }
     },
