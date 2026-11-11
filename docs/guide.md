@@ -1,6 +1,6 @@
 # Personal Hub Website — Decision Guide & Agent Prompts
 
-Build guide for philglov.es · exported 11 November 2026
+Build guide for philglov.es · exported 11 November 2026 (no AI translation)
 
 ## TL;DR
 
@@ -8,10 +8,10 @@ Build a fully static site with Astro, write every page as a Markdown file in a G
 
 - **Look:** the v3 prototype ("Index × v1"): a Swiss-style grid with section labels on the left, Archivo for interface and headings, Source Serif 4 for reading, JetBrains Mono for metadata, and moss green as the one accent, on a near-white light theme and a #141513 dark theme.
 - **Weight:** a text page under \~180 KB on first visit, about 1 KB of JavaScript (only the theme toggle), and everything still works with JavaScript off.
-- **Languages:** English at `/`, Italian at `/it/`. Every page says which language you wrote it in and whether the other version is an AI translation you reviewed.
+- **Languages:** English at `/`, Italian at `/it/`. Every page says which language you wrote it in and links to the other version once you've written it. You translate by hand; nothing is translated by AI.
 - **Comments:** a Sivers-style form (name, email, comment) that posts to your own Worker. You approve each comment before it appears. No CAPTCHA, no Disqus, no external widget.
 - **Safety:** a strict Content Security Policy that only allows your own files, passkeys on every account, and no plugins. This closes the door ClickFix attacks usually walk through.
-- **Cost:** €0/month on Cloudflare's free tier for a personal site's traffic, plus the domain, a small AI-translation charge per entry, and GitHub Pro if you keep the repository private.
+- **Cost:** €0/month on Cloudflare's free tier for a personal site's traffic, plus the domain, and GitHub Pro only if you make the repository private.
 
 ## What to take from the three reference sites
 
@@ -39,7 +39,7 @@ Every pick below favours fewer moving parts over features; each "why" names the 
 | 6 | Footer error form | Mailto link · third-party form service · own endpoint | **Same Worker, `/api/report`** | Inside a `<details>` disclosure so it costs nothing until opened. Sends the page URL automatically; email optional. No IP stored, only a salted hash for rate limiting, deleted after 30 days. |
 | 7 | Light/dark | CSS only · CSS + toggle | **CSS follows the system; a \~1 KB inline script adds the toggle and remembers the choice** | The script runs in `<head>` so there is no flash of the wrong theme. With JS off, the system setting still works. |
 | 8 | Languages | Subdomains · `/en/` + `/it/` · English at root + `/it/` | **English at `/`, Italian at `/it/`** | Shortest URLs for the wider audience, clean `hreflang` pairs. Never auto-redirect by browser language: it traps people and confuses search engines. |
-| 9 | Translation | Live translate widget · build-time AI · manual | **A script that calls an AI API, run by GitHub on each pull request or by hand on the laptop; you review** | The public site never talks to an AI service; the script runs in GitHub Actions or on your laptop, with the key kept in GitHub's secrets. Each translation carries a status (`machine` or `reviewed`) shown on the page. |
+| 9 | Translation | Live translate widget · build-time AI · manual | **You translate by hand, when you choose to** | No AI and no outside service touches your words. An entry can stay in one language for as long as you like; the other language's index still lists it, marked as not translated. |
 | 10 | Photos | Flickr/500px embeds · lightbox library · own pages | **Build-time AVIF/WebP/JPEG with `srcset`; each photo has its own page** | No lightbox JS; every photo gets a shareable URL with large image, caption, and camera data. GPS is stripped from files (privacy); originals stay in private storage, and published files carry your copyright and a no-AI-training mark. |
 | 11 | Analytics | Google Analytics · Plausible · Cloudflare Web Analytics · none | **None on the page; use Cloudflare's server-side traffic stats** | No beacon script, no cookies, so no cookie banner. Even Cloudflare's own Web Analytics injects a script, so skip it. |
 | 12 | Search | Algolia · Pagefind · none | **None at launch; add Pagefind later** | Pagefind builds a static index and loads its small script only on `/search`. |
@@ -74,7 +74,7 @@ Chosen in the v3 prototype ("Index × v1"), all free under the SIL Open Font Lic
 - **Interface and headings:** Archivo (variable, with a width axis). Navbar, section labels, the journal table, and the home statement set slightly wide (110%).
 - **Reading:** Source Serif 4. Entry bodies, excerpts, the Now paragraph, the intro line.
 - **Metadata only:** JetBrains Mono, small and muted. Dates, IT→EN markers, camera data, captions, the domain under your name.
-- Budget: 3 files, about 120 KB total, Latin subset (covers à è é ì ò ù), `font-display: swap`, Archivo and Source Serif preloaded.
+- Budget: 4 files (Archivo upright, Source Serif upright and italic, JetBrains Mono; no Archivo italic, which the prototypes never use), about 120 KB total, Latin subset (covers à è é ì ò ù), `font-display: swap`, Archivo and Source Serif preloaded.
 - Sizes: body 17 px desktop / 16 px phone; Source Serif text 18–20 px; latest-entry title 36 px; home statement up to 56 px; sections spaced about 72 px apart (56 px tablet, 44 px phone).
 
 ### Colour
@@ -141,7 +141,7 @@ QA treats every row as a failing test, not a goal.
 | HTML per text page | ≤ 30 KB compressed |
 | CSS, whole site | 1 file, ≤ 20 KB compressed |
 | JavaScript | ≤ 1.5 KB (theme toggle only); 0 KB needed for any content or form |
-| Fonts | ≤ 3 files, ≤ 120 KB (Archivo, Source Serif 4, JetBrains Mono; Latin subset) |
+| Fonts | ≤ 4 files, ≤ 120 KB (Archivo upright, Source Serif 4 upright and italic, JetBrains Mono; Latin subset; the italic is not preloaded) |
 | Text page, first visit total | ≤ 180 KB |
 | Photo page, first screen on a phone | ≤ 400 KB |
 | Largest Contentful Paint | < 2.0 s on throttled "Slow 4G", mid-range Android profile |
@@ -235,20 +235,22 @@ lang: it                 # language of THIS file
 originalLang: it         # language you actually wrote it in
 description: "Una frase per i risultati di ricerca e le anteprime dei link"
 # no key needed: it/lisbona.md and en/lisbona.md are twins because they share a file name
-translation: original    # original | machine | reviewed
+# original or translation is worked out from lang and originalLang; there is no translation field
 tags: [travel, photography]
 comments: true
 ```
 
 ### The "originally written in" label
 
-Shown under the title in monospace, muted, on every page that has a twin:
+Shown under the title in monospace, muted, on every entry:
 
 | This page is… | English page shows | Italian page shows |
 | --- | --- | --- |
-| Your original | Written in English · Leggi in italiano → | Scritto in italiano · Read in English → |
-| AI translation, reviewed | Originally written in Italian · AI translation, reviewed by me · Read the original → | Scritto originariamente in inglese · Tradotto con l'IA, rivisto da me · Leggi l'originale → |
-| AI translation, not yet reviewed | Originally written in Italian · AI translation, not yet reviewed · Read the original → | Scritto originariamente in inglese · Tradotto con l'IA, non ancora rivisto · Leggi l'originale → |
+| Your original, and you've written the other language too | Written in English · Leggi in italiano → | Scritto in italiano · Read in English → |
+| Your own translation | Originally written in Italian · Read the original → | Scritto originariamente in inglese · Leggi l'originale → |
+| Your original, not translated yet | Written in English · Not yet available in Italian | Scritto in italiano · Non ancora disponibile in inglese |
+
+An entry that exists in one language only still appears in the other language's journal index, marked `IT only` or `solo EN`, and links to the version that exists. Search engines are told about the pair (`hreflang`) only when both versions exist.
 
 A small marker before the label, `IT→EN` or `EN→IT`, lets you scan the journal list and see at a glance which "you" was writing. Avoid flags: they stand for countries, not languages.
 
@@ -275,7 +277,7 @@ Run eight agents in the order below, each starting from the shared brief; the QA
 1. **Lead** sets up the repo and breaks work into tickets.
 2. **Design system** produces tokens, type, and the four art-directed layouts.
 3. **Frontend** builds templates and pages on those tokens.
-4. **Content & i18n** wires collections, the language label and the translation script. (Runs alongside 3.)
+4. **Content & i18n** wires collections, the language label and the checks that keep the two languages in step. (Runs alongside 3.)
 5. **Backend** builds the Worker, D1, forms, moderation, backups and the phone writing page. (Runs alongside 3.)
 6. **Photo pipeline** handles image processing and photo pages.
 7. **QA** tests everything; **Security audit** runs last. Failures go back to the owning agent, then QA re-runs in full.
@@ -310,7 +312,6 @@ Sonnet at medium effort does most of this work. Opus earns its higher cost only 
 | 7 QA | Sonnet | high | Edge cases matter when writing tests; the tests then run in CI and cost no tokens. |
 | 8 Security audit | Opus | xhigh | One short session with the highest stakes. `max` exists for this kind of hunt but tends to overthink; keep it for a second pass. |
 | Later small fixes | Haiku or Sonnet | low | Typos, renames, dependency bumps. |
-| Translating entries (API, per entry) | Haiku or Sonnet | — | Short texts; choose by how the Italian reads to you. |
 
 Habits that save the most tokens, from Claude's own guidance ([model configuration](https://code.claude.com/docs/en/model-config), [models and usage](https://support.claude.com/en/articles/14552983-models-usage-and-limits-in-claude-code)):
 
@@ -331,10 +332,10 @@ NON-NEGOTIABLES
 2. Zero third-party requests. No CDNs, no Google Fonts, no analytics, no embeds, no CAPTCHA, no external widgets. Every byte comes from philglov.es.
 3. JavaScript budget on public pages: ≤ 1.5 KB total, only for the light/dark toggle. Every public feature, including both forms, must work with JavaScript disabled. Only the private /admin pages may use more.
 4. Strict CSP, sent as an HTTP header by the Worker (default-src 'self'; no 'unsafe-inline' for scripts or styles; hash the one inline theme script; no inline style attributes anywhere).
-5. Bilingual: English at /<slug>, Italian at /it/<slug>, the SAME short slug in both languages and no section folders in entry URLs (philglov.es/alps, philglov.es/it/alps). No trailing slashes. Never redirect by browser language. Every page has lang, originalLang and translation (original | machine | reviewed) in frontmatter; twins are the files with the same name in the en and it folders. Every page shows the "originally written in" label.
+5. Bilingual: English at /<slug>, Italian at /it/<slug>, the SAME short slug in both languages and no section folders in entry URLs (philglov.es/alps, philglov.es/it/alps). No trailing slashes. Never redirect by browser language. Every page has lang and originalLang in frontmatter; twins are the files with the same name in the en and it folders, and a page is a translation when its lang differs from its originalLang. Both versions are written by hand: no AI translation, no translation script, API or key, anywhere. An entry may exist in one language only. Every page shows the "originally written in" label.
 6. Accessibility: WCAG 2.2 AA, AAA body-text contrast, semantic HTML, skip link, visible focus, full keyboard use, descriptive alt text.
 7. Responsive and art-directed separately at 1440, 1024, 768 and 390 px, and fluid in between down to 320 px.
-8. Performance budget: text page ≤ 180 KB first visit; CSS ≤ 20 KB; fonts ≤ 3 files / 120 KB; LCP < 2 s on Slow 4G; CLS < 0.05.
+8. Performance budget: text page ≤ 180 KB first visit; CSS ≤ 20 KB; fonts ≤ 4 files / 120 KB; LCP < 2 s on Slow 4G; CLS < 0.05.
 9. Hosting: Cloudflare Workers with Static Assets; one Worker that runs first on every HTML request (it adds form tokens and comments) and serves /api/* and /admin; D1 for comments, reports and drafts; R2 for photo originals and backups; D1 and R2 created in the EU jurisdiction; Cloudflare Access protects /admin.
 10. Fewer than 10 direct dependencies. Justify each new one in the PR description. pnpm, lockfile committed.
 11. Zero console errors or warnings on any page, any theme, any language, any width.
@@ -362,16 +363,16 @@ ROLE: You are the technical lead. Set up the project so the other agents can wor
 DELIVER
 1. Repo scaffold: Astro, current stable release (static output), TypeScript strict, pnpm, ESLint + Prettier, html-validate, a /worker folder for the Cloudflare Worker, wrangler config with static assets pointed at Astro's dist/. Emit every CSS, JS, font and image file under /_assets/ (Astro build.assets: "_assets"; fonts and other public files go in public/_assets/) and set run_worker_first to ["/*", "!/_assets/*"], adding ! patterns for the other non-HTML files (robots.txt, sitemap, feeds, favicon, /.well-known/*), so the Worker can add form tokens to every page and comments to entry pages; it passes everything else straight to env.ASSETS. Pages are served without trailing slashes or .html: Astro trailingSlash: "never" and build.format: "file", Cloudflare html_handling: "drop-trailing-slash". Set build.inlineStylesheets: "never" and turn Markdown syntax highlighting off (or make it class-based), because inline <style> blocks and Shiki's inline styles break the CSP. Do not use <ClientRouter />. Two wrangler environments: staging (a workers.dev address, its own D1 and R2, deployed from main until launch) and production (philglov.es only, no workers.dev route, switched on at launch).
 2. Folder layout: src/content/{journal,pages}/{en,it}, src/content/photos/<series>/photos.json, src/components, src/layouts, src/styles/tokens.css, worker/src, tests/{e2e,unit}, docs/guide.md (the full guide) and docs/design/ (the two approved prototype files); the owner provides these three files at the start, so save them first.
-3. Content collection schemas (zod) enforcing: title, date, lang, originalLang, translation, tags, comments, description; twins are files with the same name in the en and it folders. Photo series use one photos.json per series (file, alt.en, alt.it, caption.en, caption.it, takenAt); camera, lens, focal length, aperture, shutter and ISO are read from the file at build, with optional overrides.
+3. Content collection schemas (zod) enforcing: title, date, lang, originalLang, tags, comments, description; twins are files with the same name in the en and it folders. Photo series use one photos.json per series (file, alt.en, alt.it, caption.en, caption.it, takenAt); camera, lens, focal length, aperture, shutter and ISO are read from the file at build, with optional overrides.
 4. Astro i18n config: defaultLocale "en", locales ["en", "it"], routing.prefixDefaultLocale false, no automatic redirects.
-5. CI (GitHub Actions): install → lint → typecheck → build → unit tests → Playwright e2e → Lighthouse CI → deploy to staging only on main and only if all pass; production deploys begin at launch. Preview deploys on pull requests, bound to a separate preview database and never to production data. Translation runs as the first job of the same workflow (see the content agent), because a commit pushed with the default GITHUB_TOKEN does not start a new run. The build needs read access to the R2 originals: store those credentials as GitHub Actions secrets and as Dependabot secrets.
-6. A README explaining: how to add a page, how to translate, how to moderate comments, how to deploy, how to roll back.
+5. CI (GitHub Actions): install → lint → typecheck → build → unit tests → Playwright e2e → Lighthouse CI → deploy to staging only on main and only if all pass; production deploys begin at launch. Preview deploys on pull requests, bound to a separate preview database and never to production data. There is no translation step: both language versions are written by hand. The build needs read access to the R2 originals: store those credentials as GitHub Actions secrets and as Dependabot secrets.
+6. A README explaining: how to add a page, how to add its other-language version, how to moderate comments, how to deploy, how to roll back.
 7. A TICKETS.md listing every task for the other agents with acceptance criteria copied from the shared brief.
 8. CLAUDE.md at the repo root: the shared brief, the folder map, the commands, and the rule to update it whenever anything changes. Keep it under about 200 lines and point to docs/guide.md for detail.
 9. docs/decisions/0001-*.md onward: one short record per decision in the guide (Astro, Cloudflare, URL scheme, no CAPTCHA, R2 for photos, phone publishing), with reason and rejected options.
 10. Dependabot for npm and GitHub Actions (weekly), and branch protection on main requiring every CI check. Branch protection on a private repository needs a paid GitHub plan: ask the owner which applies. If the repo is private on GitHub Free during the build phase, continue, but list branch protection first among the launch blockers in docs/setup.md: production must not go live, and phone publishing must not be used for real, without it.
 11. Two private R2 buckets in the EU jurisdiction: philglov-originals (photo originals) and philglov-backups (database exports). The owner creates every Cloudflare and GitHub resource; write the exact commands and dashboard steps in docs/setup.md, in two parts, "Now: staging, no domain needed" and "At launch: domain and production" (D1 with --jurisdiction=eu; R2 activated in the dashboard, then buckets created with --jurisdiction eu and bound with "jurisdiction": "eu"; Access on the whole staging Worker now (Workers & Pages → the Worker → Access → Protect this Worker behind Access → All traffic) and, at launch, an Access application for philglov.es/admin with a 7-day session; the send_email binding with a verified destination address; the GitHub App, its private key converted to PKCS#8; all secrets; under Security → Settings → Bot traffic, AI training crawlers disallowed and Bot Preference Sync on; Email Address Obfuscation, Bot Fight Mode, Web Analytics automatic setup, Speed Brain, Rocket Loader, Zaraz and Cloudflare Fonts off). The build reads originals from R2 and caches resized images in CI keyed by file hash.
-12. The translation job in CI, built with the content agent: adds machine translations to pull requests before the build and tests run.
+12. No translation tooling: do not add a translation script, CI job, API key or dependency.
 
 DONE WHEN: `pnpm build` produces a deployable dist/ with a placeholder home page in both languages, CI is green, and TICKETS.md, CLAUDE.md and docs/setup.md exist.
 ```
@@ -385,7 +386,7 @@ FIRST: study docs/design/Home.dc.html and docs/design/Article.dc.html (the v3 ho
 
 DELIVER
 1. src/styles/tokens.css: colour tokens for light and dark (bg, surface, text, muted, rule, accent, focus), applied via [data-theme] on <html> with prefers-color-scheme as the default. Verify every text/background pair with a contrast checker; body text ≥ 7:1, everything else ≥ 4.5:1. Record the measured ratios in a comment.
-2. Typography: Archivo (with its width axis), Source Serif 4 and JetBrains Mono as self-hosted WOFF2, subset to Latin + Latin Extended-A, at most 3 files and 120 KB; font-display: swap; preload Archivo and Source Serif; fallback stacks with size-adjust to minimise layout shift. Sizes as in the prototypes: interface 17 px (16 px on phones), reading text 18–20 px in Source Serif, measure about 66 characters.
+2. Typography: Archivo (with its width axis), Source Serif 4 and JetBrains Mono as self-hosted WOFF2, subset to Latin + Latin Extended-A, at most 4 files and 120 KB (Archivo upright only, because the prototypes never use Archivo italic; Source Serif 4 upright and italic; JetBrains Mono). If the variable files exceed the budget, pin unused axes, narrow axis ranges to what the design uses, or use static instances, and report the real sizes before asking to raise the budget; font-display: swap; preload Archivo and Source Serif; fallback stacks with size-adjust to minimise layout shift. Sizes as in the prototypes: interface 17 px (16 px on phones), reading text 18–20 px in Source Serif, measure about 66 characters.
 3. Spacing scale (4 px base), radius tokens as in the prototypes (pill buttons, 5 px inputs, 0 for photos), motion tokens (150 / 250 ms, ease-out) disabled under prefers-reduced-motion.
 4. Layout primitives as in the prototypes: a 12-column grid with section labels and entry details in the left 3 columns and content in the right 9; below about 1040 px the labels move above their content; one column on phones.
 5. Component specs + CSS: header/nav (one row on desktop; name and controls above the four links from tablet down; no menu button), theme toggle, language switch, language label (mono, muted, with IT→EN marker), the numbered journal table with its stacked phone layout, the latest-entry feature, the Now band, article body styles (headings, quotes, code, figures, footnotes), photo grid (3 columns with one wide image per row; 1 column on phones), single-photo page, comment list (numbered like sive.rs, with author replies set off), comment form, footer with <details> error-report form, focus and error states for every control.
@@ -408,7 +409,7 @@ DONE WHEN: /styleguide renders every component at 1440, 1024, 768 and 390 in bot
 ROLE: You are a senior frontend engineer obsessed with semantic HTML, accessibility and performance. Build every page using the design system's tokens and components — do not invent new styles.
 
 BUILD
-1. Base layout: <html lang>, meta (description, canonical, hreflang pairs for en/it/x-default, Open Graph), skip link, header, main#main, footer. Inline the theme script in <head> (≤ 1 KB) so there is no theme flash; it reads localStorage in a try/catch and falls back to the system setting. No inline style attributes anywhere (the CSP blocks them). At build, write the SHA-256 of the inline theme script to a small file the Worker reads, so the Worker can put it in the CSP header; Astro's own CSP feature only emits a <meta> tag, which cannot carry frame-ancestors.
+1. Base layout: <html lang>, meta (description, canonical, hreflang pairs for en/it/x-default only when the other-language version exists, Open Graph), skip link, header, main#main, footer. Inline the theme script in <head> (≤ 1 KB) so there is no theme flash; it reads localStorage in a try/catch and falls back to the system setting. No inline style attributes anywhere (the CSP blocks them). At build, write the SHA-256 of the inline theme script to a small file the Worker reads, so the Worker can put it in the CSP header; Astro's own CSP feature only emits a <meta> tag, which cannot carry frame-ancestors.
 2. Pages in both languages: Home, Journal index (/journal) with one static page per topic (/journal/<tag>), Journal entry, Photos index, Photo series, Single photo, Now (shows "Updated <date>"), About, Rights, Privacy, 404 (bilingual, helpful links). Entry numbers (No. 042) come from publication order and reading time from word count, both computed at build.
 3. Journal entry: title, date, language label, body, sign-off, approved comments placeholder <section id="comments" data-slug> (the Worker injects comments here), then the "Your thoughts? Please leave a reply:" form as a plain HTML POST to /api/comment with fields name, email, comment, a hidden honeypot field, an empty hidden token field that the Worker fills as it serves the page, and the slug/lang. Under the Send button, the consent line from the guide with a link to /privacy. Leave marked slots where the Worker writes its thank-you and error messages next to the form and its fields.
 4. Footer on every page: the bilingual error-report text and a <details> disclosure containing a POST form to /api/report (message required, email optional, page URL hidden, honeypot, and the same empty token field).
@@ -425,17 +426,17 @@ DONE WHEN: every page passes html-validate, keyboard-only walkthrough, works wit
 ### 4. Content & i18n
 
 ```text
-ROLE: You own the content model, the bilingual logic and the translation workflow.
+ROLE: You own the content model, and the bilingual logic. Both language versions are written by hand; there is no machine translation.
 
 BUILD
-1. Helpers that, given any page, find its twin (the file with the same name in the other language folder) and return the correct label text from the table in the spec (original / machine / reviewed × en / it), plus the IT→EN or EN→IT marker.
+1. Helpers that, given any page, find its twin (the file with the same name in the other language folder) and return the correct label text from the table in the guide (original with a twin, translation, original without a twin × en / it), plus the marker (IT, EN, IT→EN, EN→IT, "IT only", "solo EN").
 2. A build check that fails if: an entry uses a reserved slug or one already taken; a translation has no original twin; a translation's originalLang doesn't match its twin's lang; a page lacks alt text in its own language for any image.
-3. scripts/translate.ts, run by hand (`pnpm translate <path>`) or by CI: reads a Markdown file, sends the body to an AI translation API using a key from a git-ignored local .env file or, in CI, from GitHub secrets, writes the twin file in the other language folder with translation: machine, keeps frontmatter, code blocks, links and image paths untouched, translates alt text and captions. Prompt the model to preserve my voice and not add or remove content. Never call it from the public website. Also wire it into CI as the first job of the pull-request workflow: when a pull request adds or changes an original-language file whose twin is missing or older, run the script, commit the twin to the same branch with translation: machine, and let the build, tests and preview that follow in the same run use the updated branch (a commit pushed with the default GITHUB_TOKEN does not start a new run). Never overwrite a twin marked reviewed; flag it in the pull request instead. Also fill missing alt text and captions for the other language in photos.json. This is what makes phone publishing work without a laptop.
-4. `pnpm review <path>`: flips translation: machine → reviewed after I've read it.
-5. Seed content: one sample entry written in Italian with its English machine translation, one Now page, one About page, so every template can be tested.
+3. Entries in one language only: list them in the other language's journal index and topic pages with the "IT only" or "solo EN" marker, linking to the version that exists with the right lang attribute. They get no hreflang pair and appear only in the feed of their own language. Alt text and captions in the other language are also written by hand; a photo may carry alt text in one language until its entry is translated.
+4. `pnpm new <slug> --lang it|en`: creates a correctly filled Markdown file for a new entry; when the slug already exists in the other language, it creates that entry's other-language version with originalLang set from the existing file.
+5. Seed content: one sample entry written in Italian with a hand-written English version, one entry that exists in English only, one Now page, one About page, so every template can be tested.
 6. All interface strings (nav, buttons, form labels, errors, footer) in src/i18n/{en,it}.json; no hard-coded UI text in templates.
 
-DONE WHEN: the sample entry shows the correct label on both language versions, the build check catches a deliberately broken twin, and translate.ts produces a valid file from a test input.
+DONE WHEN: the sample entry shows the correct label on both language versions, the build check catches a deliberately broken twin, and the English-only entry is listed correctly in the Italian index.
 ```
 
 ### 5. Backend (Worker + D1)
@@ -457,7 +458,7 @@ BUILD
 5. Notifications, behind a config switch that is off on staging because sending needs the domain (when off, log only "notification skipped"): on each new comment or report, send me an email through Cloudflare's send_email binding (destination_address set to my verified address, sender on philglov.es). The email contains only the page title and a link to /admin: no name, no email address, no comment text, and never one-click approve links.
 6. Retention: a scheduled job deletes ip_hash values older than 30 days, rejected comments older than 30 days, and error reports 12 months after they are marked done. /admin has a Delete action that permanently removes a comment with its name and email, for deletion requests.
 7. All responses carry the security headers from the spec, plus tdm-reservation: 1; the CSP header carries the theme-script hash the build wrote. The /admin pages get X-Robots-Tag: noindex and their own CSP, which also allows their one script. Secrets (HMAC key, salt, GitHub App private key) only in wrangler secrets.
-8. Phone publishing at /admin/write, behind the same Access + JWT check: a phone-first form with title, slug (suggested from the title, editable, reserved slugs refused), language, topics, Markdown body with a short cheat sheet, and photos each with alt text and caption. Photos upload one at a time to R2 (philglov-originals/<slug>/) with progress and automatic retry; JPEG and PNG only (the file input's accept must be exactly image/jpeg,image/png, never image/*, so iPhones convert HEIC), checked by file signature, max 25 MB each, streamed to R2 without buffering; text can be published first and photos added later. Drafts autosave in the browser and, on Save draft, in D1. Publish writes the entry as a Markdown file (photos as Markdown images with their alt text and caption) on a new branch and opens a pull request through a GitHub App installed on this repo only (Contents and Pull requests: write; its private key converted to PKCS#8 so jose can sign with it); branch protection keeps it off main. Add a Mark reviewed action that opens a pull request flipping translation: machine to reviewed. The admin pages may load one small script of their own under their own CSP; public pages keep only the theme script.
+8. Phone publishing at /admin/write, behind the same Access + JWT check: a phone-first form with title, slug (suggested from the title, editable, reserved slugs refused), language, topics, Markdown body with a short cheat sheet, and photos each with alt text and caption. Photos upload one at a time to R2 (philglov-originals/<slug>/) with progress and automatic retry; JPEG and PNG only (the file input's accept must be exactly image/jpeg,image/png, never image/*, so iPhones convert HEIC), checked by file signature, max 25 MB each, streamed to R2 without buffering; text can be published first and photos added later. Drafts autosave in the browser and, on Save draft, in D1. Publish writes the entry as a Markdown file (photos as Markdown images with their alt text and caption) on a new branch and opens a pull request through a GitHub App installed on this repo only (Contents and Pull requests: write; its private key converted to PKCS#8 so jose can sign with it); branch protection keeps it off main. When the slug already exists in the other language, treat the new text as that entry's other-language version: set originalLang from the existing file and show the existing text under the form for reference. The admin pages may load one small script of their own under their own CSP; public pages keep only the theme script.
 9. Backups: a weekly cron exports comments and reports to philglov-backups as JSON and keeps 12 weeks.
 10. Monitoring: Workers Logs on and an alert email when the error rate rises.
 
@@ -495,7 +496,7 @@ AUTOMATED SUITES (Playwright unless stated)
 2. Accessibility: axe-core on every page in both themes — zero violations allowed. Keyboard test: Tab through each page, assert the skip link comes first, focus is always visible (screenshot the focus ring), the theme toggle, language switch, error-report disclosure and both forms are operable.
 3. Visual regression: full-page screenshots at the 4 design widths in both themes; review diffs before accepting baselines. Also assert no horizontal scroll at 320 px and at 200% zoom.
 4. Theme: toggle persists across navigation and reload, no flash of the wrong theme (screenshot the first paint), system preference is respected when no choice was made.
-5. i18n: every page has a twin or a graceful fallback; the language switch goes to the twin; lang attribute, hreflang tags and the "originally written in" label are correct for original / machine / reviewed.
+5. i18n: every page has a twin or a graceful fallback; the language switch goes to the twin; lang attribute, hreflang tags and the "originally written in" label are correct for originals, translations and entries that exist in one language only.
 6. Forms (against a local Worker with a test D1): valid comment → 303 + confirmation; empty name/comment, bad email, too long, 3 links, filled honeypot, submission under 3 s, replayed old token, 6th submission in 10 min → each rejected with the right visible message and the typed text preserved. Same for the report form. XSS payloads render as text after approval. /admin without Access → 403.
 7. HTML validity: html-validate on all built pages. Broken links: crawl the built site (internal links, anchors, feeds, sitemap) — zero 404s.
 8. Performance: Lighthouse CI on home, a journal entry, the photo grid and a single photo, mobile profile with Slow 4G throttling. Fail below 95 in any category, LCP ≥ 2 s, CLS ≥ 0.05, or any budget in the spec exceeded (check transfer sizes from the network log).
@@ -503,7 +504,7 @@ AUTOMATED SUITES (Playwright unless stated)
 10. Images: no output image contains EXIF GPS; every <img> has width, height and non-empty alt (or alt="" with role justification).
 11. SEO: every page has a unique <title> containing "Filippo Guanti", a meta description, a canonical, correct hreflang pairs, and Open Graph tags; JSON-LD validates (Person on home and About, BlogPosting on entries); sitemap.xml lists every page in both languages; no page is accidentally noindex.
 
-12. Phone publishing (local Worker, test repo): /admin/write returns 403 without Access; at 390 px every control works by touch and keyboard; a draft survives a reload and a dropped connection; a non-image file renamed .jpg is refused; Publish opens a pull request and never touches main; the translate workflow adds a twin marked machine; Mark reviewed opens the right pull request.
+12. Phone publishing (local Worker, test repo): /admin/write returns 403 without Access; at 390 px every control works by touch and keyboard; a draft survives a reload and a dropped connection; a non-image file renamed .jpg is refused; Publish opens a pull request and never touches main; writing the other-language version of an existing entry creates its twin with the right originalLang.
 13. Print and cookies: an entry prints without nav, forms or footer; no page sets any cookie; favicon and share image exist for every entry.
 14. Rights and privacy: the served robots.txt disallows every bot in ai-bots.json and still allows Googlebot and Bingbot; tdmrep.json is valid; tdm-reservation is present on a page and on an image, and X-Robots-Tag: noai, noimageai on images only; every output image carries the copyright and Data Mining metadata and no GPS; /rights and /privacy exist in both languages with no unfilled placeholder; notification emails contain no personal data; the retention job deletes what the privacy notice says it deletes.
 15. Live-site check after every deploy: run the console, network, cookie and header tests against the deployed site as well (staging through an Access service token until launch, https://philglov.es after it), to catch anything Cloudflare adds on its side (injected scripts, cookies).
@@ -525,7 +526,7 @@ CHECK
 2. Forms: fuzz every field (Unicode tricks, very long input, HTML/JS/SVG payloads, header injection in email, SQL-like strings), test rate limiting, token replay and CSRF on /admin/action.
 3. /admin: unreachable without a valid Access JWT, including via path tricks (/admin/, /ADMIN, /admin%2f, trailing dots).
 4. Dependencies: pnpm audit, review every package's install scripts, confirm lockfile is committed and CI uses a frozen lockfile.
-5. Secrets: none in the repo or its history; .env is git-ignored; wrangler secrets used for the HMAC key, the salt and the GitHub App key; the translation API key and R2 credentials only in GitHub secrets.
+5. Secrets: none in the repo or its history; .env is git-ignored; wrangler secrets used for the HMAC key, the salt and the GitHub App key; R2 credentials only in GitHub secrets; no AI or translation API key exists anywhere.
 6. Account checklist for the owner: passkeys/2FA on GitHub, Cloudflare, registrar; branch protection; DNSSEC on; security.txt present.
 7. Privacy: confirm no raw IPs are stored, retention job works, privacy page matches reality.
 8. Phone publishing: fuzz /admin/write and its upload endpoint like the public forms; confirm the GitHub App sees only this repo with only Contents and Pull requests permissions, and that branch protection stops it reaching main; confirm both R2 buckets are private and no original with GPS is ever served publicly.
@@ -540,17 +541,17 @@ DELIVER: SECURITY-REPORT.md with findings ranked by severity, each with a reprod
 
 You publish from the laptop or the phone; both paths end in the same pull request, tests and preview.
 
-1. Write the entry. On the laptop: a Markdown file such as `src/content/journal/it/lisbona.md`, with `lang` and `originalLang` the same and `translation: original`. On the phone: the writing page described in the next section.
+1. Write the entry in whichever language feels right. On the laptop, `pnpm new lisbona --lang it` creates `src/content/journal/it/lisbona.md` ready to fill in. On the phone, use the writing page described in the next section.
 2. Send it. Push a branch from the laptop, or tap Publish on the phone. Either way a pull request opens.
-3. CI adds the machine translation to the pull request, then builds the site and runs every test.
-4. Open the preview link, read both versions, and fix anything that doesn't sound like you.
+3. CI builds the site and runs every test.
+4. Open the preview link and read it.
 5. Merge. The site updates in about two minutes; if any test fails, nothing changes on the live site.
-6. Once you've reviewed the translation, mark it reviewed: `pnpm review <path>` on the laptop, or Mark reviewed in `/admin` on the phone.
+6. Translate by hand whenever you want: write the other-language version the same way, with the same slug. Until then the entry appears in the other language's index marked "IT only" or "solo EN".
 7. Comments and error reports arrive by email. Open `/admin` to approve, reject or reply; approved comments appear within a minute, no rebuild needed.
 
 ## Publishing from your phone
 
-You publish from the phone through a private writing page on your own site, `philglov.es/admin/write`. It turns what you type and the photos you pick into a pull request on GitHub; the tests and the translation run by themselves, and you tap Merge when the preview looks right.
+You publish from the phone through a private writing page on your own site, `philglov.es/admin/write`. It turns what you type and the photos you pick into a pull request on GitHub; the tests run by themselves, and you tap Merge when the preview looks right.
 
 | Option | How it works | Verdict |
 | --- | --- | --- |
@@ -566,9 +567,9 @@ You publish from the phone through a private writing page on your own site, `phi
 3. Add photos from the camera roll, each with alt text and a caption. The page accepts JPEG and PNG; iPhones normally convert their HEIC photos to JPEG when a page asks for those formats.
 4. Drafts save as you type (on the phone) and when you tap Save draft (on the server). A dropped connection loses nothing; you can also write offline in Notes and paste later.
 5. Tap Publish. The Worker uploads the photos to R2 and opens a pull request named after the entry.
-6. GitHub Actions adds the machine translation to the same pull request, then builds the site and runs every test.
-7. GitHub notifies you with a preview link. Read both languages on the phone.
-8. Tap Merge in the GitHub app. The entry is live in about two minutes, labelled "AI translation, not yet reviewed" until you tap Mark reviewed in `/admin`.
+6. GitHub Actions builds the site and runs every test.
+7. GitHub notifies you with a preview link. Read the entry on the phone.
+8. Tap Merge in the GitHub app. The entry is live in about two minutes. To write the other language later, use the same slug on the writing page under `/admin`.
 
 **On bad connections:** photos upload one at a time with a progress bar and automatic retry, so one failure doesn't lose the rest. On very slow networks, publish the text first and add photos to the same entry later.
 
@@ -827,7 +828,7 @@ Nine choices only you can make; the recommended default is in brackets so the ag
 - [ ] Pre-moderate every comment, or publish instantly and remove later. \[pre-moderate\]
 - [ ] Hosting: Cloudflare, with the database and photo storage in its EU jurisdiction, or an EU-only VPS. \[Cloudflare\]
 - [ ] Show camera data under photos. \[yes, in monospace\]
-- [ ] AI-translation honesty note wording: Sivers states his site is "100% me, no AI"; you'll state the opposite for translations, which is just as honest. \[use the label table above\]
+- [ ] Translation: by hand, with no AI (decided). Like Sivers, you can say every word on the site is yours.
 - [ ] Newsletter later (e.g. email on new posts). \[not at launch; RSS first\]
 
 Decided since: all rights reserved with AI training refused; AI-training crawlers blocked; privacy notice written; data stored in Cloudflare's EU jurisdiction; brand identity and favicon chosen later, with a neutral placeholder until then. Still open: whether AI assistants may open a page to answer a question about you \[allowed\]; and whether the repository is private on a paid GitHub Pro plan \[recommended\] or public on the free plan.
