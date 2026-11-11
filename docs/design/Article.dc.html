@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Journal entry — v3</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400..600;1,8..60,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+.bx{--bg:#FBFBF8;--ink:#141414;--muted:#5B5B57;--hair:#E0DFD9;--moss:#4A5D23;--soft:#F1F2EC;--sans:Archivo,'Helvetica Neue',Arial,sans-serif;--serif:'Source Serif 4',Georgia,serif;--mono:'JetBrains Mono',ui-monospace,Menlo,monospace;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.55;min-height:100vh;container-type:inline-size;transition:background-color .2s ease-out,color .2s ease-out}
+.bx.dark{--bg:#141513;--ink:#ECECE7;--muted:#A3A49D;--hair:#2D2F2A;--moss:#A9BF78;--soft:#1C1E1A}
+.bx *{box-sizing:border-box}
+.bx a{color:inherit;text-decoration:none}
+.bx a:hover{color:var(--moss)}
+.bx :focus-visible{outline:2px solid var(--moss);outline-offset:3px}
+.skip{position:absolute;left:12px;top:-50px;background:var(--ink);color:var(--bg)!important;padding:8px 12px;z-index:5}
+.skip:focus{top:8px}
+.page{max-width:1320px;margin:0 auto;padding:0 48px}
+.g{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:32px}
+.lab{grid-column:1/span 3}
+.con{grid-column:4/span 9;min-width:0}
+.small{font-size:14px;line-height:1.5}
+.mono{font-family:var(--mono);font-size:13px;letter-spacing:.01em;line-height:1.5}
+.up{font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.muted{color:var(--muted)}
+.linkbtn{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;min-height:24px}
+.linkbtn:hover{color:var(--moss)}
+
+/* navbar (same as v3 home) */
+.head{align-items:center;padding:24px 0;border-bottom:1px solid var(--ink)}
+.name{grid-column:1/span 3;margin:0;line-height:1.2}
+.name a{display:inline-flex;flex-direction:column}
+.name b{font-weight:700;font-size:18px;letter-spacing:-.01em}
+.name span{font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:400;margin-top:2px}
+.nav{grid-column:4/span 6}
+.nav ul{list-style:none;margin:0;padding:0;display:flex;gap:32px;flex-wrap:wrap}
+.nav a{font-size:16px;font-weight:500}
+.nav a[aria-current="page"]{border-bottom:2px solid var(--moss);padding-bottom:2px}
+.tools{grid-column:10/span 3;display:flex;justify-content:flex-end;align-items:center;gap:18px}
+.tools .linkbtn{font-size:15px;font-weight:500}
+.tbtn{font:inherit;font-size:13px;font-weight:600;background:none;color:var(--ink);border:1px solid var(--ink);border-radius:999px;padding:0 16px;min-height:36px;cursor:pointer}
+.tbtn[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+/* article head */
+.top{padding:72px 0 40px}
+.crumb{margin:0 0 22px}
+.crumb a{color:var(--muted)}
+.crumb a:hover{color:var(--moss)}
+.meta{margin:0}
+.meta div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:12px;padding:9px 0;border-top:1px solid var(--hair)}
+.meta div:last-child{border-bottom:1px solid var(--hair)}
+.meta dt{color:var(--muted)}
+.meta dd{margin:0}
+.meta .moss{color:var(--moss)}
+.title{margin:0 0 22px;font-stretch:110%;font-weight:600;font-size:clamp(2.2rem,4cqi,3.5rem);line-height:1.06;letter-spacing:-.022em;text-wrap:balance;max-width:20ch}
+.label{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 30px;color:var(--muted)}
+.marker{color:var(--moss);border:1px solid currentColor;border-radius:4px;padding:1px 7px;font-weight:500}
+.label .linkbtn{font-family:var(--mono);font-size:13px;color:var(--ink);text-decoration:underline;text-decoration-color:var(--hair);text-underline-offset:.22em}
+.label .linkbtn:hover{color:var(--moss);text-decoration-color:var(--moss)}
+.stand{margin:0;font-family:var(--serif);font-size:23px;line-height:1.45;max-width:36ch}
+
+/* body */
+.prose{font-family:var(--serif);font-size:20px;line-height:1.65;max-width:38rem}
+.prose p{margin:0 0 1.1em}
+.fig{margin:22px 0 44px}
+.fig .ph{aspect-ratio:16/9;background:#2F4550}
+.ph{display:grid;place-items:center;width:100%}
+.ph span{font-family:var(--mono);font-size:12px;background:var(--bg);color:var(--ink);padding:5px 10px;border-radius:4px}
+.fig figcaption{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:12px;color:var(--muted)}
+.pull{margin:10px 0 40px;padding:0;max-width:30ch;font-family:var(--sans);font-stretch:108%;font-weight:500;font-size:30px;line-height:1.2;letter-spacing:-.015em}
+.pull p{margin:0}
+.pull p::before{content:"“";color:var(--moss)}
+.pull p::after{content:"”";color:var(--moss)}
+.sign{font-family:var(--serif);font-style:italic;color:var(--muted);margin:6px 0 0;font-size:19px}
+
+/* prev / next */
+.pn{padding:56px 0 0}
+.pn-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--ink);border-bottom:1px solid var(--hair)}
+.pn-grid a{display:block;padding:20px 24px 22px 0}
+.pn-grid a+a{padding-left:24px;border-left:1px solid var(--hair);text-align:right}
+.pn-grid .k{display:block;color:var(--muted);margin-bottom:6px}
+.pn-grid .v{font-size:20px;font-weight:600;line-height:1.3;letter-spacing:-.01em}
+
+/* comments */
+.sec{padding:72px 0 0}
+.sec h2{margin:0 0 8px;font-size:18px;font-weight:700}
+.sec .lab p{margin:0}
+.clist{list-style:none;margin:0;padding:0;border-top:1px solid var(--ink)}
+.c{display:grid;grid-template-columns:5rem minmax(0,1fr);column-gap:16px;padding:22px 0;border-bottom:1px solid var(--hair)}
+.c-n{font-stretch:75%;font-weight:700;font-size:22px;font-variant-numeric:tabular-nums}
+.c-who{margin:0;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.c-who b{font-weight:600}
+.c-body{margin:8px 0 0;font-family:var(--serif);font-size:18px;line-height:1.6;max-width:38rem}
+.c-reply{margin:14px 0 0;padding:12px 16px;background:var(--soft);border-radius:6px;max-width:38rem}
+.c-reply p{margin:0;font-family:var(--serif);font-size:17px;line-height:1.55}
+.c-reply .mono{display:block;color:var(--moss);margin-bottom:4px}
+
+/* reply form */
+.reply h2.big{margin:0 0 6px;font-stretch:108%;font-weight:600;font-size:28px;line-height:1.15;letter-spacing:-.015em}
+.reply .intro{margin:0 0 22px;color:var(--muted)}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:18px 24px;max-width:46rem}
+.full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-weight:600;font-size:15px}
+.hint{color:var(--muted)}
+.bx input,.bx textarea{font:inherit;font-size:16px;background:var(--bg);color:var(--ink);border:1px solid var(--muted);border-radius:5px;padding:11px 12px;width:100%}
+.bx textarea{min-height:150px;resize:vertical;font-family:var(--serif);font-size:17px}
+.send{font:inherit;font-size:14px;font-weight:600;background:var(--moss);color:var(--bg);border:0;border-radius:999px;padding:0 24px;min-height:46px;cursor:pointer}
+.ffoot{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.thanks{margin:0;padding:16px 18px;background:var(--soft);border-radius:6px;max-width:46rem;font-weight:500}
+
+/* footer (same as v3 home) */
+.foot{margin-top:88px;border-top:1px solid var(--ink);padding:48px 0 56px;row-gap:24px}
+.foot .lab h2{margin:0;font-size:18px;font-weight:700}
+.foot .txt{grid-column:4/span 5}
+.foot .txt p{margin:0 0 10px;font-size:16px}
+.foot .links{grid-column:10/span 3}
+.foot .links ul{list-style:none;margin:0 0 14px;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:15px;font-weight:500}
+.foot summary{cursor:pointer;display:inline-flex;align-items:center;min-height:40px;font-weight:600;color:var(--moss);list-style:none}
+.foot summary::-webkit-details-marker{display:none}
+.rform{display:grid;gap:12px;margin-top:10px}
+.rform textarea{min-height:96px;font-family:var(--sans);font-size:16px}
+
+@container (max-width: 1040px){
+.lab,.con,.foot .txt,.foot .links{grid-column:1/-1}
+.top{padding:56px 0 32px}
+.top .lab{order:2;margin-top:28px}
+.meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px}
+.meta div:last-child{border-bottom:0}
+.sec .lab,.foot .lab{margin-bottom:16px}
+.nav{grid-column:1/-1;order:3;margin-top:14px}
+.name{grid-column:1/span 6}
+.tools{grid-column:7/span 6}
+}
+@container (max-width: 640px){
+.page{padding:0 20px}
+.bx{font-size:16px}
+.nav ul{gap:22px}
+.top{padding:40px 0 24px}
+.meta{grid-template-columns:1fr}
+.stand{font-size:20px}
+.prose{font-size:18px}
+.fig{margin-left:-20px;margin-right:-20px}
+.fig .ph{aspect-ratio:4/5}
+.fig figcaption{padding:0 20px;flex-direction:column;gap:2px}
+.pull{font-size:24px}
+.pn-grid{grid-template-columns:1fr}
+.pn-grid a+a{padding-left:0;border-left:0;border-top:1px solid var(--hair);text-align:left}
+.sec{padding-top:52px}
+.c{grid-template-columns:1fr;row-gap:4px}
+.form{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion: reduce){.bx{transition:none}}
+</style>
+</helmet>
+<div class="bx {{themeClass}}" lang="{{lang}}">
+<a class="skip" href="#main">{{t.skip}}</a>
+<div class="page">
+<header class="g head">
+<p class="name"><a href="Home.dc.html"><b>Filippo Guanti</b><span>philglov.es</span></a></p>
+<nav class="nav" aria-label="{{t.navLabel}}">
+<ul>
+<li><a href="Home.dc.html" aria-current="page">{{t.journal}}</a></li>
+<li><a href="Home.dc.html">{{t.photos}}</a></li>
+<li><a href="Home.dc.html">{{t.now}}</a></li>
+<li><a href="Home.dc.html">{{t.about}}</a></li>
+</ul>
+</nav>
+<div class="tools">
+<button type="button" class="linkbtn" lang="{{otherLang}}" onClick="{{switchLang}}">{{t.otherLangName}}</button>
+<button type="button" class="tbtn" aria-pressed="{{darkPressed}}" onClick="{{toggleDark}}">{{t.dark}}</button>
+</div>
+</header>
+
+<main id="main">
+<article aria-labelledby="h-entry">
+<div class="g top">
+<aside class="lab" aria-label="{{t.aboutEntry}}">
+<p class="crumb mono"><a href="Home.dc.html">{{t.journal}}</a> / <a href="Home.dc.html">{{t.topic}}</a></p>
+<dl class="meta mono">
+<div><dt>No.</dt><dd>042</dd></div>
+<div><dt>{{t.mPublished}}</dt><dd>2026-10-21</dd></div>
+<div><dt>{{t.mWritten}}</dt><dd>{{t.mWrittenVal}}</dd></div>
+<div><dt>{{t.mVersion}}</dt><dd class="moss">{{t.mVersionVal}}</dd></div>
+<div><dt>{{t.mRead}}</dt><dd>{{t.mReadVal}}</dd></div>
+<div><dt>{{t.mComments}}</dt><dd><a href="#comments">2 →</a></dd></div>
+</dl>
+</aside>
+<header class="con">
+<h1 id="h-entry" class="title">{{t.title}}</h1>
+<p class="label mono"><span class="marker" aria-hidden="true">{{marker}}</span><span>{{t.labelText}}</span><span aria-hidden="true">·</span><button type="button" class="linkbtn" lang="{{otherLang}}" onClick="{{switchLang}}">{{t.labelLink}}</button></p>
+<p class="stand">{{t.stand}}</p>
+</header>
+</div>
+
+<div class="g">
+<div class="con">
+<div class="prose">
+<p>{{t.p1}}</p>
+<p>{{t.p2}}</p>
+</div>
+<figure class="fig">
+<div class="ph" role="img" aria-label="{{t.figAlt}}"><span aria-hidden="true">{{t.figTag}}</span></div>
+<figcaption class="mono"><span>{{t.figCap}}</span><span>[camera] · 35mm · f/8 · 1/250 s · ISO 200</span></figcaption>
+</figure>
+<blockquote class="pull"><p>{{t.quote}}</p></blockquote>
+<div class="prose">
+<p>{{t.p3}}</p>
+<p>{{t.p4}}</p>
+<p class="sign">— Filippo, {{t.place}}</p>
+</div>
+
+<nav class="pn" aria-label="{{t.pnLabel}}">
+<div class="pn-grid">
+<a href="Home.dc.html"><span class="k mono">← {{t.prev}} · No. 041</span><span class="v">{{t.prevTitle}}</span></a>
+<a href="Home.dc.html"><span class="k mono">{{t.allLabel}} →</span><span class="v">{{t.allTitle}}</span></a>
+</div>
+</nav>
+</div>
+</div>
+</article>
+
+<section id="comments" class="g sec" aria-labelledby="h-comments">
+<div class="lab">
+<h2 id="h-comments">{{t.commentsTitle}}</h2>
+<p class="small muted">{{t.commentsNote}}</p>
+</div>
+<div class="con">
+<ol class="clist">
+<li class="c">
+<span class="c-n" aria-hidden="true">001</span>
+<div>
+<p class="c-who"><b>Marta</b><span class="mono muted">2026-10-21</span></p>
+<p class="c-body" lang="en">The bit about hills being a negotiation is exactly how it felt to me too. Did you make it up to Graça at sunrise?</p>
+<div class="c-reply"><span class="mono">{{t.replyFrom}}</span><p lang="en">Twice. Worth every step.</p></div>
+</div>
+</li>
+<li class="c">
+<span class="c-n" aria-hidden="true">002</span>
+<div>
+<p class="c-who"><b>Luca</b><span class="mono muted">2026-10-22</span></p>
+<p class="c-body" lang="it">Bellissimo. Anch’io viaggio così: niente programma, solo scarpe comode.</p>
+</div>
+</li>
+</ol>
+</div>
+</section>
+
+<section class="g sec reply" aria-labelledby="h-reply">
+<div class="lab">
+<h2>{{t.replyLab}}</h2>
+</div>
+<div class="con">
+<h2 id="h-reply" class="big">{{t.formTitle}}</h2>
+<p class="intro">{{t.formIntro}}</p>
+<sc-if value="{{commentSent}}" hint-placeholder-val="{{ false }}">
+<p class="thanks" role="status">{{t.fThanks}}</p>
+</sc-if>
+<sc-if value="{{commentFormVisible}}" hint-placeholder-val="{{ true }}">
+<form class="form" onSubmit="{{submitComment}}">
+<div class="field"><label for="c-name">{{t.fName}}</label><input id="c-name" name="name" type="text" autocomplete="name" required="required"></div>
+<div class="field"><label for="c-email">{{t.fEmail}}</label><input id="c-email" name="email" type="email" autocomplete="email" required="required" aria-describedby="c-email-hint"><span id="c-email-hint" class="hint mono">{{t.fEmailHint}}</span></div>
+<div class="field full"><label for="c-body">{{t.fComment}}</label><textarea id="c-body" name="comment" rows="6" required="required"></textarea></div>
+<div class="ffoot full"><button type="submit" class="send">{{t.fSend}}</button><span class="mono muted">{{t.fNote}}</span></div>
+</form>
+</sc-if>
+</div>
+</section>
+</main>
+
+<footer class="g foot">
+<div class="lab"><h2>{{t.errata}}</h2></div>
+<div class="txt">
+<p>{{t.reportText}}</p>
+<details>
+<summary>{{t.reportSummary}}</summary>
+<sc-if value="{{reportSent}}" hint-placeholder-val="{{ false }}"><p class="thanks" role="status" style="margin-top: 10px">{{t.rThanks}}</p></sc-if>
+<sc-if value="{{reportFormVisible}}" hint-placeholder-val="{{ true }}">
+<form class="rform" onSubmit="{{submitReport}}">
+<div class="field"><label class="small" for="r-msg">{{t.rMessage}}</label><textarea id="r-msg" name="message" required="required"></textarea></div>
+<div class="field"><label class="small" for="r-mail">{{t.rEmail}}</label><input id="r-mail" name="email" type="email"></div>
+<button type="submit" class="send" style="justify-self: start">{{t.rSend}}</button>
+</form>
+</sc-if>
+</details>
+</div>
+<div class="links">
+<ul>
+<li><a href="Home.dc.html">{{t.journal}}</a></li>
+<li><a href="Home.dc.html">{{t.photos}}</a></li>
+<li><a href="Home.dc.html">{{t.now}}</a></li>
+<li><a href="Home.dc.html">{{t.about}}</a></li>
+<li><a href="#main">RSS</a></li>
+<li><a href="#main">{{t.privacy}}</a></li>
+</ul>
+<p class="small muted">© 2026 Filippo Guanti · philglov.es<br>{{t.colophon}}</p>
+</div>
+</footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var s = this.state || {};
+    var lang = s.lang || "en";
+    var dark = !!s.dark;
+    var STR = {
+      en: {
+        skip: "Skip to content", navLabel: "Main", journal: "Journal", photos: "Photos", now: "Now", about: "About",
+        otherLangName: "Italiano", dark: "Dark", topic: "Travel", aboutEntry: "About this entry",
+        mPublished: "Published", mWritten: "Written in", mWrittenVal: "Italian", mVersion: "This version", mVersionVal: "AI translation, reviewed", mRead: "Reading", mReadVal: "8 min", mComments: "Comments",
+        title: "Three weeks in Lisbon, mostly on foot",
+        labelText: "Originally written in Italian · AI translation, reviewed by me", labelLink: "Read the original →",
+        stand: "I had a plan when I arrived and none when I left. On hills, trams, and taking fewer photographs.",
+        p1: "The plan was a list of viewpoints; what I actually did was walk until my feet chose the route.",
+        p2: "Lisbon is built on hills, so every walk is a negotiation. Uphill is slow and short of breath; downhill is quick and full of light. After three days I stopped checking the map and started following trams, cats and the smell of grilled sardines.",
+        figTag: "[ photo ]", figAlt: "[Describe this photograph: what is in it and why it matters]", figCap: "[Photo title] · Lisbon, 2026",
+        quote: "A city tells you where to look only once you stop asking it.",
+        p3: "I shot less than I expected: two or three frames a day, never more. Without the pressure of filling a card, I looked for longer before lifting the camera, and the photographs are better for it.",
+        p4: "What I’m bringing home is a habit, not a souvenir: walk first, decide later.",
+        place: "Lisbon",
+        pnLabel: "More entries", prev: "Previous", prevTitle: "Why I shoot one roll a week", allLabel: "All entries", allTitle: "Back to the journal",
+        commentsTitle: "Comments (2)", commentsNote: "Comments appear after I’ve read them. I sometimes reply.", replyFrom: "Filippo replied",
+        replyLab: "Reply", formTitle: "Your thoughts? Please leave a reply:", formIntro: "Write in English or Italian, whichever comes naturally.",
+        fName: "Name", fEmail: "Email", fEmailHint: "Never shown — only so I can reply.", fComment: "Comment", fSend: "Send",
+        fNote: "I read every comment before it appears here.", fThanks: "Thanks! I read every comment before it appears, so yours will show up soon.",
+        errata: "Errata", reportText: "Spotted a typo, a wrong fact or anything else? Tell me with this anonymous form — add your email only if you’d like a reply. I’d be grateful.",
+        reportSummary: "Report an error →", rMessage: "What’s wrong?", rEmail: "Email (optional)", rSend: "Send", rThanks: "Thank you — your report is on its way to me.",
+        privacy: "Privacy", colophon: "No trackers, no cookies."
+      },
+      it: {
+        skip: "Vai al contenuto", navLabel: "Principale", journal: "Diario", photos: "Foto", now: "Now", about: "Chi sono",
+        otherLangName: "English", dark: "Scuro", topic: "Viaggi", aboutEntry: "Informazioni su questa voce",
+        mPublished: "Pubblicato", mWritten: "Scritto in", mWrittenVal: "italiano", mVersion: "Questa versione", mVersionVal: "originale", mRead: "Lettura", mReadVal: "8 min", mComments: "Commenti",
+        title: "Tre settimane a Lisbona, quasi sempre a piedi",
+        labelText: "Scritto in italiano", labelLink: "Read in English →",
+        stand: "Avevo un piano all’arrivo e nessuno alla partenza. Di colline, tram e del fotografare meno.",
+        p1: "Il piano era una lista di belvedere; quello che ho fatto davvero è stato camminare finché i piedi non sceglievano la strada.",
+        p2: "Lisbona è costruita sulle colline, quindi ogni passeggiata è una trattativa. In salita si va piano e col fiato corto; in discesa si va veloci e pieni di luce. Dopo tre giorni ho smesso di guardare la mappa e ho iniziato a seguire i tram, i gatti e l’odore delle sardine alla griglia.",
+        figTag: "[ foto ]", figAlt: "[Descrivi questa foto: cosa mostra e perché conta]", figCap: "[Titolo] · Lisbona, 2026",
+        quote: "Una città ti dice dove guardare solo quando smetti di chiederglielo.",
+        p3: "Ho scattato meno di quanto pensassi: due o tre fotogrammi al giorno, mai di più. Senza l’ansia di riempire la scheda, guardavo più a lungo prima di alzare la macchina, e le foto ne hanno guadagnato.",
+        p4: "Quello che porto a casa è un’abitudine, non un souvenir: prima cammina, poi decidi.",
+        place: "Lisbona",
+        pnLabel: "Altre voci", prev: "Precedente", prevTitle: "Perché scatto un rullino a settimana", allLabel: "Tutte le voci", allTitle: "Torna al diario",
+        commentsTitle: "Commenti (2)", commentsNote: "I commenti compaiono dopo che li ho letti. A volte rispondo.", replyFrom: "Filippo ha risposto",
+        replyLab: "Rispondi", formTitle: "Che ne pensi? Lascia una risposta:", formIntro: "Scrivi in italiano o in inglese, come ti viene più naturale.",
+        fName: "Nome", fEmail: "Email", fEmailHint: "Non verrà mostrata, serve solo per risponderti.", fComment: "Commento", fSend: "Invia",
+        fNote: "Leggo ogni commento prima che compaia qui.", fThanks: "Grazie! Leggo ogni commento prima che compaia, quindi il tuo arriverà presto.",
+        errata: "Errata", reportText: "Hai notato un refuso, un’informazione sbagliata o altro? Segnalalo con questo modulo anonimo — lascia la tua email solo se vuoi una risposta. Te ne sarò grato.",
+        reportSummary: "Segnala un errore →", rMessage: "Cosa non va?", rEmail: "Email (facoltativa)", rSend: "Invia", rThanks: "Grazie — la segnalazione mi è arrivata.",
+        privacy: "Privacy", colophon: "Nessun tracker, nessun cookie."
+      }
+    };
+    var self = this;
+    return {
+      t: STR[lang], lang: lang,
+      otherLang: lang === "en" ? "it" : "en",
+      marker: lang === "en" ? "IT→EN" : "IT",
+      themeClass: dark ? "dark" : "light",
+      darkPressed: dark ? "true" : "false",
+      commentSent: !!s.commentSent, commentFormVisible: !s.commentSent,
+      reportSent: !!s.reportSent, reportFormVisible: !s.reportSent,
+      switchLang: function () { self.setState({ lang: lang === "en" ? "it" : "en" }); },
+      toggleDark: function () { self.setState({ dark: !dark }); },
+      submitComment: function (ev) { if (ev && ev.preventDefault) { ev.preventDefault(); } self.setState({ commentSent: true }); },
+      submitReport: function (ev) { if (ev && ev.preventDefault) { ev.preventDefault(); } self.setState({ reportSent: true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
