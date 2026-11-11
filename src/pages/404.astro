@@ -1,0 +1,24 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { t } from "../i18n";
+---
+
+<BaseLayout
+  locale="en"
+  path="/404"
+  title={`${t("en", "notFoundTitle")} · Filippo Guanti`}
+  description={t("en", "notFoundBody")}
+  hasTwin={false}
+  noindex
+>
+  <h1>{t("en", "notFoundTitle")}</h1>
+  <p>
+    {t("en", "notFoundBody")} <a href="/">{t("en", "goHome")}</a>
+  </p>
+  <div lang="it">
+    <h2>{t("it", "notFoundTitle")}</h2>
+    <p>
+      {t("it", "notFoundBody")} <a href="/it">{t("it", "goHome")}</a>
+    </p>
+  </div>
+</BaseLayout>

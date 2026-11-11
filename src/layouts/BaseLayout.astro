@@ -1,0 +1,68 @@
+---
+/**
+ * Placeholder base layout set up by the lead. The frontend agent owns it
+ * from here (TICKETS.md, F1): header, nav, footer, theme script, Open Graph.
+ */
+import "../styles/tokens.css";
+import { t, twinPath, type Locale } from "../i18n";
+
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  /** This page's path without a trailing slash, e.g. "/" or "/it/alps". */
+  path: string;
+  /** Whether the other-language twin exists (adds hreflang + alternate). */
+  hasTwin?: boolean;
+  noindex?: boolean;
+}
+
+const { locale, title, description, path, hasTwin = true, noindex = false } = Astro.props;
+const site = Astro.site ?? new URL("https://philglov.es");
+const canonical = new URL(path, site).href;
+const other: Locale = locale === "en" ? "it" : "en";
+const otherPath = twinPath(locale, path);
+const enHref = new URL(locale === "en" ? path : otherPath, site).href;
+const itHref = new URL(locale === "it" ? path : otherPath, site).href;
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {hasTwin && (
+      <>
+        <link rel="alternate" hreflang="en" href={enHref} />
+        <link rel="alternate" hreflang="it" href={itHref} />
+        <link rel="alternate" hreflang="x-default" href={enHref} />
+      </>
+    )}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="tdm-reservation" content="1" />
+    {noindex && <meta name="robots" content="noindex" />}
+  </head>
+  <body>
+    <a class="skip" href="#main">
+      {t(locale, "skipLink")}
+    </a>
+    <header>
+      <p>
+        <a href={locale === "en" ? "/" : "/it"}>Filippo Guanti</a>
+        <br />
+        <span class="meta">philglov.es</span>
+      </p>
+      <nav aria-label={locale === "en" ? "Language" : "Lingua"}>
+        <a href={otherPath} hreflang={other} lang={other}>
+          {t(locale, "otherLanguageName")}
+        </a>
+      </nav>
+    </header>
+    <main id="main">
+      <slot />
+    </main>
+  </body>
+</html>
