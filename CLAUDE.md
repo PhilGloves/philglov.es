@@ -75,6 +75,8 @@ WAY OF WORKING
 - Build phase. No domain yet; deploy only to the private staging Worker on workers.dev. Repository is **public**;
   branch protection is the first launch blocker (`docs/setup.md`).
 - Placeholder home in both languages; everything else is in `TICKETS.md`.
+- Owner setup (`docs/setup.md` Part 1): D1 `philglov-staging` and `philglov-preview` exist (EU jurisdiction, IDs in
+  `wrangler.jsonc`). R2 buckets, first deploy and Access are next.
 - 2026-11-11: AI translation dropped by the owner. Both languages are hand-written; there is no `translation`
   frontmatter field ([0012](docs/decisions/0012-hand-written-translations.md)).
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.

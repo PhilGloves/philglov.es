@@ -50,7 +50,7 @@
         {
           "binding": "DB",
           "database_name": "philglov-staging",
-          "database_id": "REPLACE_WITH_STAGING_D1_ID",
+          "database_id": "f9316d32-65a5-4754-a860-359685786990",
         },
       ],
       "r2_buckets": [
@@ -70,7 +70,7 @@
         {
           "binding": "DB",
           "database_name": "philglov-preview",
-          "database_id": "REPLACE_WITH_PREVIEW_D1_ID",
+          "database_id": "fd31ac04-4cde-4480-8b3a-48d0c38e1c17",
         },
       ],
       "r2_buckets": [
