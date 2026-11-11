@@ -157,6 +157,9 @@ every page × en/it × light/dark × 1440/1024/768/390/320 × JS on/off in Chrom
       a local Worker. Q7 html-validate + link crawl. Q8 Lighthouse (95 floor, LCP < 2 s, CLS < 0.05, budgets) and an SEO
       run against a `SITE_ENV=production` build. Q9 headers. Q10 images. Q11 SEO. Q12 phone publishing. Q13 print and
       cookies. Q14 rights and privacy. Q15 live-site check through an Access service token.
+- [ ] Q16 Lighthouse stability: on the Lead's Windows laptop about 2 in 9 `lhci autorun` runs died with Lighthouse's
+      `NO_NAVSTART` trace error (no assertion failed). Confirm CI on Linux is stable, or fix the cause; do not paper
+      over it with retries.
 - _Done when: the full matrix passes twice in a row with no flaky tests; `QA-REPORT.md` written._
 
 ## 8 · Security audit (S) — Opus, xhigh — runs last
