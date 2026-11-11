@@ -1,0 +1,41 @@
+{
+  "name": "philglov-es",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.18.0",
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && node scripts/postbuild.ts",
+    "preview": "wrangler dev --port 8787 --ip 127.0.0.1",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "wrangler types worker/worker-configuration.d.ts && astro check && tsc -p worker",
+    "validate:html": "html-validate \"dist/**/*.html\"",
+    "test:unit": "node --test \"tests/unit/**/*.test.ts\"",
+    "test:e2e": "playwright test",
+    "test:lighthouse": "lhci autorun",
+    "test": "pnpm test:unit && pnpm test:e2e",
+    "deploy:staging": "wrangler deploy --env staging"
+  },
+  "dependencies": {
+    "astro": "7.4.8"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.12",
+    "@lhci/cli": "0.16.0",
+    "@playwright/test": "1.65.0",
+    "@types/node": "26.6.6",
+    "eslint": "10.14.0",
+    "eslint-plugin-astro": "3.2.1",
+    "html-validate": "11.21.0",
+    "prettier": "3.9.10",
+    "prettier-plugin-astro": "1.1.2",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.2",
+    "wrangler": "4.159.0"
+  }
+}

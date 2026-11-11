@@ -1,0 +1,27 @@
+# Weekly updates; merge only when CI is green. Astro majors get their own PR
+# and a full QA run (docs/guide.md, "Keeping the site maintainable").
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 3
+    open-pull-requests-limit: 10
+    groups:
+      dev-tooling-minor:
+        dependency-type: development
+        update-types: [minor, patch]
+    ignore:
+      # Major versions of the framework are handled by hand.
+      - dependency-name: astro
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 3

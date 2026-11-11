@@ -1,0 +1,20 @@
+---
+import { t, twinPath, type Locale } from "../i18n";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const other: Locale = locale === "en" ? "it" : "en";
+const otherHome = twinPath(locale, locale === "en" ? "/" : "/it");
+---
+
+<h1>Filippo Guanti</h1>
+<p class="meta">
+  {t(locale, "writtenIn")} ·{" "}
+  <a href={otherHome} hreflang={other} lang={other}>
+    {t(locale, "readOther")}
+  </a>
+</p>
+<p>{t(locale, "placeholder")}</p>

@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home — Index × v1 balance</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400..600;1,8..60,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+.bx{--bg:#FBFBF8;--ink:#141414;--muted:#5B5B57;--hair:#E0DFD9;--moss:#4A5D23;--band:#4A5D23;--band-ink:#F4F6EE;--band-muted:#D3DCC0;--sans:Archivo,'Helvetica Neue',Arial,sans-serif;--serif:'Source Serif 4',Georgia,serif;--mono:'JetBrains Mono',ui-monospace,Menlo,monospace;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.55;min-height:100vh;container-type:inline-size;transition:background-color .2s ease-out,color .2s ease-out}
+.bx.dark{--bg:#141513;--ink:#ECECE7;--muted:#A3A49D;--hair:#2D2F2A;--moss:#A9BF78;--band:#232C17;--band-ink:#E6ECD6;--band-muted:#A9BF78}
+.bx *{box-sizing:border-box}
+.bx a{color:inherit;text-decoration:none}
+.bx a:hover{color:var(--moss)}
+.bx :focus-visible{outline:2px solid var(--moss);outline-offset:3px}
+.skip{position:absolute;left:12px;top:-50px;background:var(--ink);color:var(--bg)!important;padding:8px 12px;z-index:5}
+.skip:focus{top:8px}
+.page{max-width:1320px;margin:0 auto;padding:0 48px}
+.g{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:32px}
+.lab{grid-column:1/span 3}
+.con{grid-column:4/span 9}
+.small{font-size:14px;line-height:1.5}
+.mono{font-family:var(--mono);font-size:13px;letter-spacing:.01em;line-height:1.5}
+.up{font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.muted{color:var(--muted)}
+
+/* Index navbar */
+.head{align-items:center;padding:24px 0;border-bottom:1px solid var(--ink)}
+.name{grid-column:1/span 3;margin:0;line-height:1.2}
+.name a{display:inline-flex;flex-direction:column}
+.name b{font-weight:700;font-size:18px;letter-spacing:-.01em}
+.name span{font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:400;margin-top:2px}
+.nav{grid-column:4/span 6}
+.nav ul{list-style:none;margin:0;padding:0;display:flex;gap:32px;flex-wrap:wrap}
+.nav a{font-size:16px;font-weight:500}
+.nav a[aria-current="page"]{border-bottom:2px solid var(--moss);padding-bottom:2px}
+.tools{grid-column:10/span 3;display:flex;justify-content:flex-end;align-items:center;gap:18px}
+.tools a{font-size:15px;font-weight:500}
+.tbtn{font:inherit;font-size:13px;font-weight:600;background:none;color:var(--ink);border:1px solid var(--ink);border-radius:999px;padding:0 16px;min-height:36px;cursor:pointer}
+.tbtn[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+/* hero */
+.hero{padding:88px 0 56px}
+.hero .lab p{margin:0 0 6px}
+.state{grid-column:4/span 9;margin:0;font-stretch:110%;font-weight:500;font-size:clamp(2.2rem,4cqi,3.5rem);line-height:1.07;letter-spacing:-.022em;text-wrap:balance}
+.state .kick{display:block;font-family:var(--mono);font-stretch:100%;font-size:13px;font-weight:400;letter-spacing:.02em;color:var(--muted);margin-bottom:18px}
+.state em{font-style:normal;color:var(--moss)}
+.lede{grid-column:4/span 6;margin:28px 0 0;font-family:var(--serif);font-size:20px;line-height:1.55}
+.lede a{text-decoration:underline;text-decoration-color:var(--hair);text-underline-offset:.2em}
+.lede a:hover{text-decoration-color:var(--moss)}
+
+/* photograph (from v1) */
+.photo{margin:0 0 8px}
+.ph{display:grid;place-items:center;width:100%}
+.ph span{font-family:var(--mono);font-size:12px;background:var(--bg);color:var(--ink);padding:5px 10px;border-radius:4px}
+.ph-hero{aspect-ratio:21/9;background:#4E5847}
+.cap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:12px;color:var(--muted)}
+
+/* sections */
+.sec{padding:72px 0;border-bottom:1px solid var(--hair)}
+.sec h2,.band h2{margin:0 0 8px;font-size:18px;font-weight:700}
+.sec .lab p{margin:0}
+.latest{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));column-gap:32px;padding-bottom:40px;margin-bottom:8px;border-bottom:1px solid var(--ink)}
+.latest .meta{grid-column:1/-1;margin:0 0 14px;display:flex;gap:18px;flex-wrap:wrap;color:var(--muted)}
+.latest .meta b{font-weight:500;color:var(--moss)}
+.latest h3{grid-column:1/span 5;margin:0;font-stretch:108%;font-weight:600;font-size:36px;line-height:1.1;letter-spacing:-.018em}
+.latest .ex{grid-column:6/span 4;margin:0;font-family:var(--serif)}
+.latest .ex p{margin:0 0 14px;font-size:18px;line-height:1.6}
+.go{color:var(--moss);font-weight:600}
+.idx{width:100%;border-collapse:collapse}
+.idx caption{text-align:left;padding:22px 0 4px;color:var(--muted)}
+.idx th{text-align:left;padding:12px 16px 10px 0;border-bottom:1px solid var(--hair);color:var(--muted)}
+.idx td{padding:16px 16px 16px 0;border-bottom:1px solid var(--hair);vertical-align:baseline}
+.idx tbody tr{transition:background-color .15s ease-out}
+.idx tbody tr:hover{background:color-mix(in srgb, var(--moss) 7%, transparent)}
+.idx tbody tr:hover .t a{color:var(--moss)}
+.n{font-stretch:75%;font-weight:700;font-size:22px;width:5rem;font-variant-numeric:tabular-nums}
+.dt{width:9rem;color:var(--muted)}
+.t{font-size:19px;font-weight:500;line-height:1.35}
+.tp,.ln,.mn{font-size:15px;color:var(--muted);white-space:nowrap}
+.ln{font-family:var(--mono);font-size:12.5px}
+.ln span{color:var(--moss);font-weight:500}
+.mn{text-align:right}
+.idx-more{margin:22px 0 0}
+
+/* now band */
+.band{background:var(--band);color:var(--band-ink);padding:64px 0}
+.band .lab p{margin:0;color:var(--band-muted)}
+.band .con p{margin:0 0 14px;font-family:var(--serif);font-size:25px;line-height:1.45;max-width:36ch}
+.band a{color:var(--band-ink);text-decoration:underline;text-underline-offset:.2em}
+.band a:hover{color:var(--band-ink);opacity:.8}
+
+/* photos (v1 rhythm) */
+.shots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px 20px}
+.shots figure{margin:0}
+.w2{grid-column:span 2}
+.w2 .ph{aspect-ratio:16/9}
+.w1 .ph{aspect-ratio:4/5}
+.shots figcaption{margin-top:10px;color:var(--muted)}
+
+/* Index footer */
+.foot{padding:48px 0 56px;row-gap:24px}
+.foot .lab h2{margin:0;font-size:18px;font-weight:700}
+.foot .txt{grid-column:4/span 5}
+.foot .txt p{margin:0 0 10px;font-size:16px}
+.foot .links{grid-column:10/span 3}
+.foot .links ul{list-style:none;margin:0 0 14px;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:15px;font-weight:500}
+.foot summary{cursor:pointer;display:inline-flex;align-items:center;min-height:40px;font-weight:600;color:var(--moss);list-style:none}
+.foot summary::-webkit-details-marker{display:none}
+.rform{display:grid;gap:12px;margin-top:10px}
+.field{display:flex;flex-direction:column;gap:4px}
+.bx input,.bx textarea{font:inherit;font-size:16px;background:var(--bg);color:var(--ink);border:1px solid var(--muted);border-radius:5px;padding:10px 12px;width:100%}
+.bx textarea{min-height:96px;resize:vertical}
+.send{justify-self:start;font:inherit;font-size:14px;font-weight:600;background:var(--moss);color:var(--bg);border:0;border-radius:999px;padding:0 22px;min-height:44px;cursor:pointer}
+.thanks{margin:10px 0 0;font-weight:500}
+
+@container (max-width: 1040px){
+.lab,.con,.state,.lede,.foot .txt,.foot .links{grid-column:1/-1}
+.hero .lab,.sec .lab,.band .lab,.foot .lab{margin-bottom:18px}
+.hero{padding:64px 0 44px}
+.latest h3,.latest .ex{grid-column:1/-1}
+.latest h3{margin-bottom:16px}
+.tp{display:none}
+.nav{grid-column:1/-1;order:3;margin-top:14px}
+.name{grid-column:1/span 6}
+.tools{grid-column:7/span 6}
+.sec{padding:56px 0}
+}
+@container (max-width: 640px){
+.page{padding:0 20px}
+.bx{font-size:16px}
+.nav ul{gap:22px}
+.hero{padding:44px 0 32px}
+.photo{margin:0 -20px 8px}
+.ph-hero{aspect-ratio:4/5}
+.photo .cap{padding:0 20px;flex-direction:column;gap:2px}
+.lede{font-size:18px}
+.latest h3{font-size:27px}
+.idx thead{display:none}
+.idx tr{display:grid;grid-template-columns:auto 1fr auto;column-gap:12px;padding:14px 0;border-bottom:1px solid var(--hair)}
+.idx td{border:0;padding:0}
+.idx .t{grid-column:1/-1;order:5;margin-top:4px;font-size:18px}
+.mn{display:none}
+.band{padding:48px 0}
+.band .con p{font-size:20px}
+.shots{grid-template-columns:1fr;gap:28px}
+.w2{grid-column:auto}
+.w2 .ph{aspect-ratio:3/2}
+.sec{padding:44px 0}
+}
+@media (prefers-reduced-motion: reduce){.bx,.idx tbody tr{transition:none}}
+</style>
+</helmet>
+<div class="bx {{themeClass}}">
+<a class="skip" href="#main">Skip to content</a>
+<div class="page">
+<header class="g head">
+<p class="name"><a href="Home.dc.html"><b>Filippo Guanti</b><span>philglov.es</span></a></p>
+<nav class="nav" aria-label="Main">
+<ul>
+<li><a href="#journal" aria-current="page">Journal</a></li>
+<li><a href="#photos">Photos</a></li>
+<li><a href="#now">Now</a></li>
+<li><a href="#main">About</a></li>
+</ul>
+</nav>
+<div class="tools">
+<a href="#main" lang="it">Italiano</a>
+<button type="button" class="tbtn" aria-pressed="{{darkPressed}}" onClick="{{toggleDark}}">Dark</button>
+</div>
+</header>
+</div>
+
+<main id="main">
+<div class="page">
+<section class="g hero" aria-labelledby="h1">
+<div class="lab small">
+<p><strong>Photographer and developer</strong></p>
+<p class="muted">Based in [City]. Writing in English and Italian.</p>
+</div>
+<h1 id="h1" class="state"><span class="kick">Filippo Guanti — journal, photographs, notes</span>Writing about photography, software, and <em>the places in between.</em></h1>
+<p class="lede">Everything I do lives here. See what I’m focused on <a href="#now">now</a>, read <a href="#main">about me</a>, or start with the latest entry below.</p>
+</section>
+
+<figure class="photo">
+<div class="ph ph-hero" role="img" aria-label="[Describe this photograph: what is in it and why it matters]"><span aria-hidden="true">[ your best photograph ]</span></div>
+<figcaption class="cap mono"><span>[Photo title] · [Place], [Year]</span><a href="#photos">All photos →</a></figcaption>
+</figure>
+
+<section id="journal" class="g sec" aria-labelledby="j-h">
+<div class="lab">
+<h2 id="j-h">Journal</h2>
+<p class="small muted">42 entries since 2025.</p>
+<p class="small muted" style="margin-top: 10px"><span class="mono" style="color: var(--moss)">IT→EN</span> marks entries I wrote in Italian and translated myself.</p>
+</div>
+<div class="con">
+<article class="latest" aria-labelledby="lt-h">
+<p class="meta mono"><span>No. 042</span><span>2026-10-21</span><span>Travel</span><b>IT→EN</b></p>
+<h3 id="lt-h"><a href="Article.dc.html">Three weeks in Lisbon, mostly on foot</a></h3>
+<div class="ex">
+<p>I had a plan when I arrived and none when I left. The plan was a list of viewpoints; what I actually did was walk until my feet chose the route.</p>
+<a class="go" href="Article.dc.html">Read · 8 min →</a>
+</div>
+</article>
+<table class="idx">
+<caption class="up">Earlier entries</caption>
+<thead class="up">
+<tr><th scope="col">No.</th><th scope="col">Date</th><th scope="col">Title</th><th scope="col">Topic</th><th scope="col">Lang</th><th scope="col" style="text-align: right">Min</th></tr>
+</thead>
+<tbody>
+<sc-for list="{{rows}}" as="e" hint-placeholder-count="7">
+<tr>
+<td class="n">{{e.n}}</td>
+<td class="dt mono">{{e.date}}</td>
+<td class="t"><a href="Article.dc.html">{{e.title}}</a></td>
+<td class="tp">{{e.topic}}</td>
+<td class="ln"><span>{{e.mark}}</span></td>
+<td class="mn">{{e.min}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+<p class="idx-more"><a class="go" href="#journal">Full index, by year and topic →</a></p>
+</div>
+</section>
+</div>
+
+<section id="now" class="band" aria-labelledby="now-h">
+<div class="page g">
+<div class="lab">
+<h2 id="now-h">Now</h2>
+<p class="small mono">Updated 2026-10-29</p>
+</div>
+<div class="con">
+<p>[Where you are and what you’re making this month, in one or two sentences.] Reading [book]. Shooting [project] on [camera].</p>
+<a class="small" href="#now">More on /now →</a>
+</div>
+</div>
+</section>
+
+<div class="page">
+<section id="photos" class="g sec" aria-labelledby="p-h">
+<div class="lab">
+<h2 id="p-h">Photos</h2>
+<p class="small muted">4 series · <a class="go" href="#photos">See all →</a></p>
+</div>
+<div class="con shots">
+<sc-for list="{{shots}}" as="p" hint-placeholder-count="4">
+<figure class="{{p.cls}}">
+<div class="ph" style="background: {{p.tone}}" role="img" aria-label="[Describe this photograph]"><span aria-hidden="true">[ photo ]</span></div>
+<figcaption class="mono">{{p.cap}}</figcaption>
+</figure>
+</sc-for>
+</div>
+</section>
+</div>
+</main>
+
+<div class="page">
+<footer class="g foot">
+<div class="lab"><h2>Errata</h2></div>
+<div class="txt">
+<p>Spotted a typo, a wrong fact or anything else? Tell me with this anonymous form — add your email only if you’d like a reply. I’d be grateful.</p>
+<details>
+<summary>Report an error →</summary>
+<sc-if value="{{sent}}" hint-placeholder-val="{{ false }}"><p class="thanks" role="status">Thank you — your report is on its way to me.</p></sc-if>
+<sc-if value="{{formVisible}}" hint-placeholder-val="{{ true }}">
+<form class="rform" onSubmit="{{submit}}">
+<div class="field"><label class="small" for="h-msg">What’s wrong?</label><textarea id="h-msg" name="message" required="required"></textarea></div>
+<div class="field"><label class="small" for="h-mail">Email (optional)</label><input id="h-mail" name="email" type="email"></div>
+<button type="submit" class="send">Send</button>
+</form>
+</sc-if>
+</details>
+</div>
+<div class="links">
+<ul>
+<li><a href="#journal">Journal</a></li>
+<li><a href="#photos">Photos</a></li>
+<li><a href="#now">Now</a></li>
+<li><a href="#main">About</a></li>
+<li><a href="#main">RSS</a></li>
+<li><a href="#main">Privacy</a></li>
+</ul>
+<p class="small muted">© 2026 Filippo Guanti · philglov.es<br>No trackers, no cookies.</p>
+</div>
+</footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3400}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var s = this.state || {};
+    var dark = !!s.dark;
+    var self = this;
+    return {
+      themeClass: dark ? "dark" : "light",
+      darkPressed: dark ? "true" : "false",
+      toggleDark: function () { self.setState({ dark: !dark }); },
+      sent: !!s.sent,
+      formVisible: !s.sent,
+      submit: function (ev) { if (ev && ev.preventDefault) { ev.preventDefault(); } self.setState({ sent: true }); },
+      rows: [
+        { n: "041", date: "2026-10-09", title: "Why I shoot one roll a week", topic: "Photography", mark: "EN", min: "5" },
+        { n: "040", date: "2026-09-27", title: "Rebuilding this site with almost no JavaScript", topic: "Projects", mark: "EN", min: "11" },
+        { n: "039", date: "2026-09-12", title: "Notes on getting lost on purpose", topic: "Thoughts", mark: "IT→EN", min: "4" },
+        { n: "038", date: "2026-08-30", title: "A month without a phone camera", topic: "Photography", mark: "EN", min: "6" },
+        { n: "037", date: "2026-08-14", title: "My grandmother’s recipe book and version control", topic: "Projects", mark: "IT→EN", min: "7" },
+        { n: "036", date: "2026-07-28", title: "Night train to Vienna", topic: "Travel", mark: "IT→EN", min: "9" },
+        { n: "035", date: "2026-07-03", title: "Things I stopped buying", topic: "Thoughts", mark: "EN", min: "3" }
+      ],
+      shots: [
+        { cls: "w2", tone: "#2F4550", cap: "Lisbon · 2026" },
+        { cls: "w1", tone: "#6B5B4A", cap: "Vienna · 2026" },
+        { cls: "w1", tone: "#3A3F36", cap: "Apennines · 2026" },
+        { cls: "w2", tone: "#5A4636", cap: "Rome · 2025" }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

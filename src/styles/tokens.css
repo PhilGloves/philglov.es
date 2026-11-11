@@ -1,0 +1,59 @@
+/*
+ * Placeholder tokens from docs/guide.md ("Colour"). The design-system agent
+ * replaces this file (TICKETS.md, D1) with measured contrast ratios.
+ */
+:root {
+  color-scheme: light dark;
+  --bg: #fbfbf8;
+  --text: #141414;
+  --muted: #5b5b57;
+  --rule: #e0dfd9;
+  --accent: #4a5d23;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141513;
+    --text: #ecece7;
+    --muted: #a3a49d;
+    --rule: #2d2f2a;
+    --accent: #a9bf78;
+  }
+}
+
+body {
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  max-width: 66ch;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    1.0625rem/1.6 Georgia,
+    serif;
+}
+
+a {
+  color: var(--accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.skip {
+  position: absolute;
+  inset-inline-start: 0.75rem;
+  inset-block-start: -3rem;
+}
+
+.skip:focus {
+  inset-block-start: 0.5rem;
+}
+
+.meta {
+  color: var(--muted);
+  font:
+    0.8125rem/1.5 ui-monospace,
+    monospace;
+}
