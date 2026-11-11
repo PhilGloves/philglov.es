@@ -72,19 +72,14 @@ WAY OF WORKING
 
 ## Current state (update as it changes)
 
-- Build phase. No domain yet; deploy only to the private staging Worker on workers.dev. Repository is **public**;
-  branch protection is the first launch blocker (`docs/setup.md`).
+- Build phase. No domain yet; deploy only to the private staging Worker on workers.dev. Repository is **public**.
+- `main` is protected (ruleset "Protect main", 2026-11-11): every change goes through a pull request, the `Test`
+  check must pass, no force pushes, no deletion, nobody can bypass. Read [docs/handover.md](docs/handover.md) first.
 - Placeholder home in both languages; everything else is in `TICKETS.md`.
-- Owner setup (`docs/setup.md` Part 1), done 2026-11-11: D1 `philglov-staging` and `philglov-preview` (EU, IDs in
-  `wrangler.jsonc`); R2 `philglov-originals-staging` and `philglov-backups-staging` (EU, private); first deploy of
-  `philglov-staging` and `philglov-preview` on the `philglov-es` workers.dev subdomain; Zero Trust Free (team
-  `gentle-hall-eae9`) with Access on all traffic of both Workers, verified (anonymous requests get a 302 to the
-  login). Also done: security settings and fork-PR approval for all outside collaborators (step 1), the Actions
-  secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (step 6) and the variables `R2_ORIGINALS_BUCKET`,
-  `PREVIEW_DEPLOY` and `STAGING_DEPLOY` (steps 5, 8). Still open: passkeys (owner to confirm) and the read-only R2
-  token secrets `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` for Actions and Dependabot (step 5, needed by the photo
-  pipeline). Steps 9 and 10 wait for the backend agent. GitHub fixes repository variables when a run starts, so a run
-  created before a variable changes does not see the change.
+- `docs/setup.md` Part 1 is done (2026-11-11) except passkeys (owner to confirm). The CI deploy token has no zone
+  access until launch (setup.md step 12). Steps 9 and 10 wait for the backend agent.
+- CI deploys: every pull request gets `pr-<n>-philglov-preview.philglov-es.workers.dev`; every merge to `main` deploys
+  `philglov-staging.philglov-es.workers.dev`. Both Workers are behind Cloudflare Access (team `gentle-hall-eae9`).
 - 2026-11-11: AI translation dropped by the owner. Both languages are hand-written; there is no `translation`
   frontmatter field ([0012](docs/decisions/0012-hand-written-translations.md)).
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
@@ -109,6 +104,7 @@ tests/unit/ tests/e2e/        node:test unit tests; Playwright e2e
 docs/guide.md docs/design/    owner's guide and prototypes — never edit
 docs/decisions/               one record per architectural decision
 docs/setup.md                 steps only the owner can do
+docs/handover.md              state, open items and lessons, one section per finished agent
 ```
 
 ## Commands
