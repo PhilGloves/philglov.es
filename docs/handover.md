@@ -32,6 +32,9 @@ Merged: #1 scaffold, #2 D1 IDs, #3 setup state. Decisions 0001–0012 are in `do
   (`minimumReleaseAge: 1440`); pin an older release rather than adding an exclusion.
 - **Run what CI runs before pushing:** `pnpm lint && pnpm typecheck && pnpm build && pnpm validate:html && pnpm test:unit && pnpm test:e2e`.
 - Never deploy by hand without `--env`; CI is the normal path now.
+- **A green deploy job is not proof of a deploy.** Until PR #4 the workflow ran without `pipefail`, and a preview upload
+  that failed for lack of a token reported success. The workflow now defaults to `shell: bash` (`-eo pipefail`). Check
+  the log for "Uploaded philglov-…" and the version ID, or `wrangler deployments list`.
 
 ## Owner decisions taken during the Lead session
 
