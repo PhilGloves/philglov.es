@@ -21,12 +21,14 @@ NON-NEGOTIABLES
    the one inline theme script; no inline style attributes anywhere).
 5. Bilingual: English at /<slug>, Italian at /it/<slug>, the SAME short slug in both languages and no section folders in
    entry URLs (philglov.es/alps, philglov.es/it/alps). No trailing slashes. Never redirect by browser language. Every
-   page has lang, originalLang and translation (original | machine | reviewed) in frontmatter; twins are the files with
-   the same name in the en and it folders. Every page shows the "originally written in" label.
+   page has lang and originalLang in frontmatter; twins are the files with the same name in the en and it folders, and a
+   page is a translation when its lang differs from its originalLang. Both versions are written by hand: no AI
+   translation, no translation script, API or key, anywhere. An entry may exist in one language only. Every page shows
+   the "originally written in" label.
 6. Accessibility: WCAG 2.2 AA, AAA body-text contrast, semantic HTML, skip link, visible focus, full keyboard use,
    descriptive alt text.
 7. Responsive and art-directed separately at 1440, 1024, 768 and 390 px, and fluid in between down to 320 px.
-8. Performance budget: text page ≤ 180 KB first visit; CSS ≤ 20 KB; fonts ≤ 3 files / 120 KB; LCP < 2 s on Slow 4G;
+8. Performance budget: text page ≤ 180 KB first visit; CSS ≤ 20 KB; fonts ≤ 4 files / 120 KB; LCP < 2 s on Slow 4G;
    CLS < 0.05.
 9. Hosting: Cloudflare Workers with Static Assets; one Worker that runs first on every HTML request (it adds form tokens
    and comments) and serves /api/\* and /admin; D1 for comments, reports and drafts; R2 for photo originals and backups;
@@ -73,6 +75,8 @@ WAY OF WORKING
 - Build phase. No domain yet; deploy only to the private staging Worker on workers.dev. Repository is **public**;
   branch protection is the first launch blocker (`docs/setup.md`).
 - Placeholder home in both languages; everything else is in `TICKETS.md`.
+- 2026-11-11: AI translation dropped by the owner. Both languages are hand-written; there is no `translation`
+  frontmatter field ([0012](docs/decisions/0012-hand-written-translations.md)).
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -109,7 +113,7 @@ pnpm typecheck                   wrangler types + astro check + worker tsc
 pnpm validate:html               html-validate on dist/
 pnpm test:unit | test:e2e        node:test | Playwright (needs a build)
 pnpm test:lighthouse             Lighthouse CI against pnpm preview
-pnpm translate <file>            machine translation (ticket C3)
+pnpm new <slug> --lang it|en     new entry, or the other-language version of one (ticket C4)
 ```
 
 ## Rules the scaffold already enforces — keep them
@@ -124,3 +128,5 @@ pnpm translate <file>            machine translation (ticket C3)
 - `pnpm-workspace.yaml` keeps `minimumReleaseAge: 1440`; never add release-age exclusions to force a fresh version.
 - GitHub Actions pinned to commit SHAs; Dependabot bumps them.
 - Never log names, emails, comment text or IP addresses.
+- No translation tooling of any kind: no AI or translation API, script, CI job, key, secret or dependency. hreflang
+  pairs only when both language versions exist (`hasTwin` in `BaseLayout.astro`).

@@ -158,11 +158,6 @@ rm app.private-key.pem app.pkcs8.pem
 
 `GITHUB_APP_ID` and `GITHUB_APP_INSTALLATION_ID` go in as vars or secrets as the backend agent specifies.
 
-### 11. Translation API key (when the content agent asks)
-
-GitHub Actions secret `TRANSLATE_API_KEY` (the provider is chosen in ticket C3). On the laptop, put it in a git-ignored
-`.env` file. It is never given to the Worker or the public site.
-
 ---
 
 ## Part 2 — At launch: domain and production
@@ -171,15 +166,14 @@ GitHub Actions secret `TRANSLATE_API_KEY` (the provider is chosen in ticket C3).
 
 1. **Branch protection on `main`.** The repository is public, so this is available on GitHub Free; do it before any real
    phone publishing. GitHub → Settings → Rules → Rulesets → New branch ruleset → target the default branch →
-   **Require a pull request before merging**, **Require status checks to pass** (add `Test`; add `Translate` once open
-   question O2 in `TICKETS.md` is settled), **Block force pushes**, **Restrict deletions**, empty bypass list. Settle O2
-   first: without it, a pull request whose translation the CI committed cannot be merged under this rule.
+   **Require a pull request before merging**, **Require status checks to pass** (add `Test`), **Block force pushes**, **Restrict deletions**, empty
+   bypass list.
 2. Passkeys on GitHub, Cloudflare and the domain registrar (step 1, plus the registrar).
 3. The privacy and rights pages have no unfilled placeholder (contact email, city, launch date).
 4. QA's full matrix and the security audit report zero open failures.
 5. `/admin` returns 403 without an Access token on philglov.es (QA test, re-run against production).
 
-### 12. Domains
+### 11. Domains
 
 1. Register **philglov.es** under your own name, auto-renew and registrar lock on, renewal emails to an address that is
    not on philglov.es. Also `filippoguanti.com` (and `philgloves.com` if free).
@@ -188,7 +182,7 @@ GitHub Actions secret `TRANSLATE_API_KEY` (the provider is chosen in ticket C3).
 3. For the extra domains: add them to Cloudflare and create a **Redirect Rule**: 301 to `https://philglov.es` keeping
    the path.
 
-### 13. Production resources
+### 12. Production resources
 
 ```bash
 pnpm exec wrangler d1 create philglov --jurisdiction=eu
@@ -206,13 +200,13 @@ Paste the D1 ID over `REPLACE_WITH_PRODUCTION_D1_ID`. Create a new read-only R2 
 replace the two R2 secrets, and set `R2_ORIGINALS_BUCKET` = `philglov-originals`. Add the production Worker secrets
 (step 9 with `--env production`, fresh values) and the GitHub App key (step 10).
 
-### 14. Cloudflare Access for /admin
+### 13. Cloudflare Access for /admin
 
 Zero Trust → Access → Applications → Add → **Self-hosted**: domain `philglov.es`, path `admin` (covers `/admin/*`),
 session duration **7 days**, policy Allow → Emails → your address, login method **One-time PIN**. Put its AUD tag in the
 production `ACCESS_AUD` var. The Worker also verifies the token itself.
 
-### 15. Email
+### 14. Email
 
 1. Email → **Email Routing** on philglov.es: route `phil@philglov.es` to your personal inbox; verify that destination
    address.
@@ -221,7 +215,7 @@ production `ACCESS_AUD` var. The Worker also verifies the token itself.
 3. Add SPF, DKIM and DMARC records as Email Routing suggests; to send as `phil@philglov.es`, add the outgoing service
    in your mail client's "Send mail as".
 
-### 16. Zone settings (philglov.es)
+### 15. Zone settings (philglov.es)
 
 - Security → Settings → **Bot traffic**: AI training crawlers **disallowed/blocked**, **Bot Preference Sync** on.
 - Scrape Shield → **Email Address Obfuscation: off** (on by default; it injects a script).
@@ -229,20 +223,20 @@ production `ACCESS_AUD` var. The Worker also verifies the token itself.
   **Zaraz: off**. **Cloudflare Fonts: off**.
 - SSL/TLS: Full (strict); Always Use HTTPS on.
 
-### 17. Switch production on
+### 16. Switch production on
 
 1. GitHub Variables: `PRODUCTION_DEPLOY` = `on`; `STAGING_DEPLOY` = `off` if staging should stop following `main`.
 2. Merge to `main` (or re-run the latest `main` workflow). The production job rebuilds with `SITE_ENV=production`, so
    pages lose `X-Robots-Tag: noindex`; the Worker gets the custom domain `philglov.es` and no workers.dev route.
 3. QA's live-site check runs against `https://philglov.es`.
 
-### 18. Search engines
+### 17. Search engines
 
 Verify philglov.es in **Google Search Console** and **Bing Webmaster Tools** with DNS TXT records (no script on the
 page), submit `https://philglov.es/sitemap.xml`, and request indexing of `/` and `/about`. Link every profile you own
 back to philglov.es (docs/guide.md, "Off-site checklist").
 
-### 19. Uptime and alerts
+### 18. Uptime and alerts
 
 A free external checker (UptimeRobot or similar) loads `/` and one entry every 5 minutes. Workers Logs are on
 (`observability` in `wrangler.jsonc`); add a notification for the Worker's error rate under Notifications.

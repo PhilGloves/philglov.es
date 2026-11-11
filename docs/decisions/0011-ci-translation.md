@@ -1,6 +1,7 @@
 # 0011 — Translation runs inside the pull-request run
 
-Status: Accepted, with an open question for the owner · 2026-11-11 · Source: Lead prompt 5 and 12; Content prompt 3
+Status: Superseded by [0012](0012-hand-written-translations.md) on 2026-11-11 (owner decision: no AI translation; the
+Translate job, scripts and the TRANSLATE_API_KEY reference described here were removed) · Source: Lead prompt 5 and 12 of the earlier guide
 
 **Decision.** The first job of the CI workflow, `Translate`, runs on pull requests from this repository (not forks,
 not Dependabot). `scripts/translate-pr.ts` lists the original-language Markdown files changed on the branch whose twin

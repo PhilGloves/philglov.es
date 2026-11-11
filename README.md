@@ -31,35 +31,40 @@ pnpm lint && pnpm typecheck && pnpm build && pnpm validate:html && pnpm test:uni
 
 1. Pick a short slug: lowercase ASCII letters, digits and hyphens, not a reserved one (`it`, `journal`, `photos`,
    `now`, `about`, `rights`, `privacy`, `admin`, `api`, `_assets`, `feed.xml`, `styleguide`, `404`).
-2. Write it in the language you think in. A journal entry goes in `src/content/journal/<lang>/<slug>.md`; About, Now
-   and other pages go in `src/content/pages/<lang>/<slug>.md`.
-3. Frontmatter (the build fails if anything is missing or inconsistent):
+2. Write it in whichever language feels right. `pnpm new <slug> --lang it` (or `--lang en`) creates the file ready to
+   fill in _(ticket C4)_; by hand, a journal entry goes in `src/content/journal/<lang>/<slug>.md`, and About, Now and
+   other pages go in `src/content/pages/<lang>/<slug>.md`.
+3. Frontmatter (the build fails if anything is missing, misspelled or extra):
 
    ```yaml
    title: "Tre settimane a Lisbona"
    description: "One sentence for search results and link previews"
    date: 2026-10-29
    lang: it # language of THIS file
-   originalLang: it # language you actually wrote it in
-   translation: original # original | machine | reviewed
+   originalLang: it # language you actually wrote it in (same as lang for an original)
    tags: [travel, photography] # travel | photography | projects | thoughts
    comments: true
    ```
 
-4. Create a branch, commit, push, open a pull request. CI adds the translation, builds, tests and posts a preview link.
-   Merge when the preview reads right.
+4. Create a branch, commit, push, open a pull request. CI builds, runs every test and posts a preview link. Merge when
+   the preview reads right.
 
 From the phone: open `/admin/write`, write, add photos with alt text, tap Publish — it opens the same kind of pull
 request _(ticket B8)_.
 
-## Translate
+## Add the other-language version
 
-- Automatic: CI's first job writes the missing or outdated twin (`translation: machine`) into the same pull request. A
-  twin you marked `reviewed` is never overwritten; CI flags it instead _(ticket C3)_.
-- By hand on the laptop: `pnpm translate src/content/journal/it/lisbona.md`, with the API key in a git-ignored `.env`
-  _(ticket C3)_.
-- After reading a machine translation: `pnpm review <path>` on the laptop, or **Mark reviewed** in `/admin` on the
-  phone, flips it to `reviewed` _(tickets C4, B8)_.
+Everything is written by hand; nothing on this site is machine-translated, and there is no translation tool.
+
+- Write the other version whenever you like, with the **same slug**, in the other language folder:
+  `pnpm new lisbona --lang en` creates `src/content/journal/en/lisbona.md` with `lang: en` and `originalLang` taken
+  from the Italian file _(ticket C4)_. On the phone, use `/admin/write` with the same slug; it shows the existing text
+  for reference _(ticket B8)_.
+- A page is your translation when `lang` differs from `originalLang`. Its label reads "Originally written in Italian ·
+  Read the original →".
+- Until the other version exists, the entry says "Not yet available in Italian" (or "Non ancora disponibile in
+  inglese"), is listed in the other language's journal index as `IT only` / `solo EN`, and has no `hreflang`
+  pair. Write photo alt text and captions in the other language at the same time.
 
 ## Moderate comments
 

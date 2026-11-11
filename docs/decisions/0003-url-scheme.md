@@ -8,9 +8,10 @@ files with the same name in the `en/` and `it/` folders. Reserved slugs (`it`, `
 `rights`, `privacy`, `admin`, `api`, `_assets`, `feed.xml`, `styleguide`, `404`) fail the build. A changed slug gets a
 301 from the old one. Never redirect by browser language; the language switch only adds or removes `/it`.
 
-The "originally written in" label is shown on every page (brief rule 5). Where a page has no twin, the label still
-names the language it was written in, and the language switch links to the other language's home and says so
-(Frontend prompt 5). This reconciles the brief with the guide's wording "on every page that has a twin".
+The "originally written in" label is shown on every page (brief rule 5). An entry may exist in one language only:
+then the label says it is not yet available in the other language, the language switch links to the other language's
+home and says so (Frontend prompt 5), and there is no `hreflang` pair. The label texts, the `IT only` / `solo EN`
+listing and the hand-written-only rule are in [0012](0012-hand-written-translations.md).
 
 **Reason.** Shortest URLs for the wider audience, clean `hreflang` pairs, and a switch that needs no JavaScript and no
 stored preference.
