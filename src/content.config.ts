@@ -7,44 +7,30 @@ import { z } from "astro/zod";
  * build, so a malformed laptop or phone entry never goes live.
  *
  * Twins are files with the same name in the en/ and it/ folders, e.g.
- * journal/it/alps.md and journal/en/alps.md. Cross-file checks (twin exists,
+ * journal/it/alps.md and journal/en/alps.md. An entry may exist in one
+ * language only. Cross-file checks (a translation has its original twin,
  * folder matches `lang`, reserved slugs, alt text) are a separate build check
  * owned by the content agent (TICKETS.md, C2).
  */
 
 export const LOCALES = ["en", "it"] as const;
-export const TRANSLATIONS = ["original", "machine", "reviewed"] as const;
 export const TOPICS = ["travel", "photography", "projects", "thoughts"] as const;
 
 const locale = z.enum(LOCALES);
 
+/**
+ * Both language versions are written by hand; there is no `translation`
+ * field. A page is the original when `lang` equals `originalLang`, and the
+ * owner's own translation otherwise. `.strict()` makes a leftover
+ * `translation:` key fail the build.
+ */
 const languageFields = {
   title: z.string().trim().min(1).max(120),
   description: z.string().trim().min(1).max(200),
   date: z.coerce.date(),
   lang: locale,
   originalLang: locale,
-  translation: z.enum(TRANSLATIONS),
 };
-
-/** An original is written in its own language; a translation is not. */
-function checkLanguage(page: { lang: string; originalLang: string; translation: string }, ctx: z.RefinementCtx): void {
-  const isOriginal = page.translation === "original";
-  if (isOriginal && page.lang !== page.originalLang) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["originalLang"],
-      message: "translation is 'original', so originalLang must equal lang",
-    });
-  }
-  if (!isOriginal && page.lang === page.originalLang) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["originalLang"],
-      message: "a machine or reviewed translation must have originalLang different from lang",
-    });
-  }
-}
 
 const journal = defineCollection({
   loader: glob({ base: "./src/content/journal", pattern: "{en,it}/*.md" }),
@@ -54,8 +40,7 @@ const journal = defineCollection({
       tags: z.array(z.enum(TOPICS)).min(1),
       comments: z.boolean(),
     })
-    .strict()
-    .superRefine(checkLanguage),
+    .strict(),
 });
 
 /** About, Now, Rights, Privacy and other standalone pages. */
@@ -67,8 +52,7 @@ const pages = defineCollection({
       tags: z.array(z.enum(TOPICS)).default([]),
       comments: z.boolean().default(false),
     })
-    .strict()
-    .superRefine(checkLanguage),
+    .strict(),
 });
 
 const bilingual = z.object({ en: z.string().trim().min(1), it: z.string().trim().min(1) }).strict();

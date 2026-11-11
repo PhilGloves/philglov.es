@@ -1,5 +1,6 @@
 # One workflow for pull requests and main. Order (docs/guide.md, Lead prompt 5):
-#   translate → lint → typecheck → build → unit → e2e → Lighthouse → deploy
+#   lint → typecheck → build → unit → e2e → Lighthouse → deploy
+# There is no translation step: both languages are written by hand.
 # Deploy jobs are switched on with repository variables once docs/setup.md
 # is done: PREVIEW_DEPLOY, STAGING_DEPLOY, and PRODUCTION_DEPLOY (at launch).
 name: CI
@@ -22,58 +23,12 @@ env:
   WRANGLER_SEND_METRICS: "false"
 
 jobs:
-  # First job: a commit pushed with GITHUB_TOKEN does not start a new run, so
-  # the translated twins are committed here and every later job checks out
-  # that commit. Skipped for forks and Dependabot (no write access / no content).
-  translate:
-    name: Translate
-    if: >-
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.actor != 'dependabot[bot]'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: write
-    outputs:
-      sha: ${{ steps.commit.outputs.sha }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.head_ref }}
-          fetch-depth: 0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .node-version
-      - run: npm install -g "pnpm@$PNPM_VERSION"
-      - run: pnpm install --frozen-lockfile
-      - name: Translate changed originals
-        env:
-          BASE_REF: ${{ github.base_ref }}
-          TRANSLATE_API_KEY: ${{ secrets.TRANSLATE_API_KEY }}
-        run: node scripts/translate-pr.ts "origin/$BASE_REF" > "$RUNNER_TEMP/translated.txt"
-      - name: Commit twins to the pull request
-        id: commit
-        run: |
-          if [ -s "$RUNNER_TEMP/translated.txt" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            xargs git add -- < "$RUNNER_TEMP/translated.txt"
-            git commit -m "Add machine translations"
-            git push
-          fi
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
   test:
     name: Test
-    needs: translate
-    if: ${{ !cancelled() && (needs.translate.result == 'success' || needs.translate.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ needs.translate.outputs.sha || github.sha }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
