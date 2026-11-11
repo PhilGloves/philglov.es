@@ -78,7 +78,22 @@ jobs:
       - name: End-to-end tests
         run: pnpm test:e2e
       - name: Lighthouse CI
+        id: lighthouse
         run: pnpm test:lighthouse
+      # Pass or fail, write each run's scores and timings to the job summary so
+      # a budget failure can be read without downloading the reports.
+      - name: Lighthouse summary
+        if: ${{ !cancelled() && steps.lighthouse.outcome != 'skipped' }}
+        run: |
+          for f in .lighthouseci/lhr-*.json; do
+            [ -e "$f" ] || continue
+            node -e '
+              const r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+              const ms = (id) => Math.round(r.audits[id]?.numericValue ?? NaN);
+              const cats = Object.values(r.categories).map((c) => `${c.id} ${c.score}`).join(", ");
+              console.log(`${r.finalDisplayedUrl}: ${cats}; FCP ${ms("first-contentful-paint")} ms, LCP ${ms("largest-contentful-paint")} ms, SI ${ms("speed-index")} ms, TBT ${ms("total-blocking-time")} ms, TTFB ${ms("server-response-time")} ms, CLS ${r.audits["cumulative-layout-shift"]?.numericValue}`);
+            ' "$f" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -87,13 +102,16 @@ jobs:
           include-hidden-files: true
           retention-days: 7
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: ${{ failure() }}
+        if: ${{ !cancelled() }}
         with:
           name: test-reports
           path: |
             test-results/
             playwright-report/
             .lighthouseci/
+          # .lighthouseci/ is a hidden folder, which upload-artifact skips by default.
+          include-hidden-files: true
+          if-no-files-found: ignore
           retention-days: 7
 
   # One preview URL per pull request on the philglov-preview Worker, which has
