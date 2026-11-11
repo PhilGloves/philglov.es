@@ -10,8 +10,8 @@
  */
 export class NotImplemented extends Error {}
 
-export async function translateFile(_path: string): Promise<string> {
-  throw new NotImplemented("scripts/translate.ts is not implemented yet (TICKETS.md, C3)");
+export async function translateFile(path: string): Promise<string> {
+  throw new NotImplemented(`cannot translate ${path}: scripts/translate.ts is not implemented yet (TICKETS.md, C3)`);
 }
 
 if (import.meta.main) {
