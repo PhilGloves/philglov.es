@@ -173,10 +173,11 @@ rm app.private-key.pem app.pkcs8.pem
 
 ### Launch blockers — production must not go live without these
 
-1. **Branch protection on `main`.** The repository is public, so this is available on GitHub Free; do it before any real
-   phone publishing. GitHub → Settings → Rules → Rulesets → New branch ruleset → target the default branch →
-   **Require a pull request before merging**, **Require status checks to pass** (add `Test`), **Block force pushes**, **Restrict deletions**, empty
-   bypass list.
+1. **Branch protection on `main`.** _Done 2026-11-11: ruleset "Protect main"._ The repository is public, so this is
+   available on GitHub Free; do it before any real phone publishing. GitHub → Settings → Rules → Rulesets → New branch
+   ruleset → target the default branch → **Require a pull request before merging** (0 required approvals: the owner
+   cannot approve their own pull request), **Require status checks to pass** (add `Test`, from GitHub Actions), **Block
+   force pushes**, **Restrict deletions**, empty bypass list. Check it stays active before launch.
 2. Passkeys on GitHub, Cloudflare and the domain registrar (step 1, plus the registrar).
 3. The privacy and rights pages have no unfilled placeholder (contact email, city, launch date).
 4. QA's full matrix and the security audit report zero open failures.

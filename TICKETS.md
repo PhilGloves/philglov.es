@@ -48,7 +48,8 @@ message; add a decision record for anything architectural.
 - [x] L6 Removed all translation tooling after the owner's change of plan (decision 0012): `scripts/translate.ts`,
       `scripts/translate-pr.ts`, their unit test, the `translate` and `translate:pr` scripts, the CI `Translate` job and
       its `TRANSLATE_API_KEY` reference, and the `translation` frontmatter field.
-- [ ] L5 CI green on GitHub (PR #1).
+- [x] L5 CI green on GitHub (PRs #1–#3 merged after green `Test`); first preview and staging deploys from CI.
+- [x] L7 `main` protected by the "Protect main" ruleset; handover note in `docs/handover.md`.
 
 ## 2 · Design system (D) — Sonnet, high
 
