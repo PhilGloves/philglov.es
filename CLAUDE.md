@@ -79,7 +79,12 @@ WAY OF WORKING
   `wrangler.jsonc`); R2 `philglov-originals-staging` and `philglov-backups-staging` (EU, private); first deploy of
   `philglov-staging` and `philglov-preview` on the `philglov-es` workers.dev subdomain; Zero Trust Free (team
   `gentle-hall-eae9`) with Access on all traffic of both Workers, verified (anonymous requests get a 302 to the
-  login). Next: steps 5, 6 and 8. Steps 9 and 10 wait for the backend agent.
+  login). Also done: security settings and fork-PR approval for all outside collaborators (step 1), the Actions
+  secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (step 6) and the variables `R2_ORIGINALS_BUCKET`,
+  `PREVIEW_DEPLOY` and `STAGING_DEPLOY` (steps 5, 8). Still open: passkeys (owner to confirm) and the read-only R2
+  token secrets `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` for Actions and Dependabot (step 5, needed by the photo
+  pipeline). Steps 9 and 10 wait for the backend agent. GitHub fixes repository variables when a run starts, so a run
+  created before a variable changes does not see the change.
 - 2026-11-11: AI translation dropped by the owner. Both languages are hand-written; there is no `translation`
   frontmatter field ([0012](docs/decisions/0012-hand-written-translations.md)).
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
