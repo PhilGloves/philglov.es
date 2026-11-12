@@ -107,6 +107,7 @@ src/data/                     data files (e.g. ai-bots.json)
 public/_assets/               fonts (2 WOFF2 + crimson-pro-OFL.txt) and other static files, no Worker
 worker/src/                   the Worker; headers.ts is shared with the build
 worker/migrations/            D1 migrations (backend agent)
+scripts/lib/content-check.ts    the build check; scripts/lib/new-entry.ts the `pnpm new` template
 scripts/                      build helpers, run with plain `node` (type stripping); build-fonts.py by hand
 tests/unit/ tests/e2e/        node:test unit tests; Playwright e2e
 docs/guide.md docs/design/    owner's guide and prototypes — never edit
@@ -129,6 +130,7 @@ pnpm validate:html               html-validate on dist/
 pnpm test:unit | test:e2e        node:test | Playwright (needs a build)
 pnpm test:lighthouse             Lighthouse CI against pnpm preview; 3 runs per page, judged on the median (0013)
 pnpm new <slug> --lang it|en     new entry, or the other-language version of one (ticket C4)
+pnpm check:content               cross-file content check (twins, slugs, folders, alt); runs first in pnpm build (C2)
 node scripts/contrast.ts         every colour pair with its measured contrast (unit tests enforce the floors)
 python scripts/build-fonts.py    rebuild the fonts from the pinned sources (by hand, only when they change)
 ```

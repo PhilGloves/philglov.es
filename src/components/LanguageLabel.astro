@@ -7,8 +7,8 @@ import Arrows from "./Arrows.astro";
  *   own translation       → Originally written in Italian · Read the original →
  *   original, no twin yet → Written in English · Not yet available in Italian
  */
-import { t, type Locale } from "../i18n";
-import { labelState, markerFor, otherLocale, pathFor } from "../lib/entries.ts";
+import type { Locale } from "../i18n";
+import { labelText } from "../lib/language-label.ts";
 
 interface Props {
   locale: Locale;
@@ -19,27 +19,20 @@ interface Props {
 }
 
 const { locale, originalLang, rest, hasTwin } = Astro.props;
-const state = labelState({ lang: locale, originalLang }, hasTwin);
-const other = otherLocale(locale);
-const marker = markerFor({ lang: locale, originalLang }, locale);
-const otherHref = pathFor(other, rest);
+const label = labelText(locale, originalLang, hasTwin, rest);
 ---
 
 <p class="label">
   <span class="marker" aria-hidden="true">
-    <Arrows text={marker} />
+    <Arrows text={label.marker} />
   </span>
-  <span>{t(locale, state === "translation" ? "labelTranslation" : "labelOriginal")}</span>
+  <span>{label.text}</span>
   <span aria-hidden="true">·</span>
-  {state === "original-twin" && (
-    <a href={otherHref} hreflang={other} lang={other}>
-      <Arrows text={t(locale, "readOther")} />
+  {label.href ? (
+    <a href={label.href} hreflang={label.hreflang} lang={label.state === "original-twin" ? label.hreflang : undefined}>
+      <Arrows text={label.action} />
     </a>
+  ) : (
+    <span>{label.action}</span>
   )}
-  {state === "translation" && (
-    <a href={otherHref} hreflang={other}>
-      <Arrows text={t(locale, "labelReadOriginal")} />
-    </a>
-  )}
-  {state === "original-only" && <span>{t(locale, "labelNotYet")}</span>}
 </p>
