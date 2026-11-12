@@ -28,9 +28,8 @@ NON-NEGOTIABLES
 6. Accessibility: WCAG 2.2 AA, AAA body-text contrast, semantic HTML, skip link, visible focus, full keyboard use,
    descriptive alt text.
 7. Responsive and art-directed separately at 1440, 1024, 768 and 390 px, and fluid in between down to 320 px.
-8. Performance budget: text page ≤ 180 KB first visit; CSS ≤ 20 KB; fonts ≤ 4 files / 135 KB; LCP < 2 s on Slow 4G;
-   CLS < 0.05. _Owner ruling 2026-11-12: the font budget is 135 KB, not the 120 KB in docs/guide.md, so Archivo can keep
-   its width axis from 100 to 110 % ([0014](docs/decisions/0014-design-system.md))._
+8. Performance budget: text page ≤ 180 KB first visit; CSS ≤ 20 KB; fonts ≤ 2 files / 80 KB; LCP < 2 s on Slow 4G;
+   CLS < 0.05. _Owner decision 2026-11-12: one typeface, Crimson Pro, two files ([0015](docs/decisions/0015-one-typeface-crimson-pro.md))._
 9. Hosting: Cloudflare Workers with Static Assets; one Worker that runs first on every HTML request (it adds form tokens
    and comments) and serves /api/\* and /admin; D1 for comments, reports and drafts; R2 for photo originals and backups;
    D1 and R2 created in the EU jurisdiction; Cloudflare Access protects /admin.
@@ -53,12 +52,12 @@ NON-NEGOTIABLES
     that need the domain (notification email, Cloudflare zone settings, Search Console) are built and unit-tested now
     behind a config switch and turned on at launch.
 
-DESIGN DIRECTION — Calm, type-led, artistic and professional, with a quiet developer signature (monospace only for
-metadata). Familiar layout, surprising details (MAYA principle). The approved visual spec is the two v3 prototype files,
+DESIGN DIRECTION — Calm, type-led, artistic and professional, set in a single serif typeface with light titles. Familiar layout, surprising details (MAYA principle). The approved visual spec is the two v3 prototype files,
 Home.dc.html (home page) and Article.dc.html (journal entry with comments and reply form), saved in docs/design/: match
 their grid, navbar, footer, spacing and type. Near-white light theme (#FBFBF8), dark theme on #141513. One accent: moss
-green (#4A5D23 light / #A9BF78 dark), plus a full-width moss band behind Now. Archivo for interface and headings,
-Source Serif 4 for reading, JetBrains Mono for metadata only. The site name in the header is "Filippo Guanti" with
+green (#4A5D23 light / #A9BF78 dark), plus a full-width moss band behind Now. One typeface for everything: Crimson Pro
+(Light 300 for titles of 28 px and up, Regular 400 for text and interface, 600 for emphasis and index numbers); no
+separate monospace or sans-serif web font. The site name in the header is "Filippo Guanti" with
 "philglov.es" small beneath. No vertical social bar, no carousels, no autoplay.
 
 WAY OF WORKING
@@ -83,8 +82,8 @@ WAY OF WORKING
   `philglov-staging.philglov-es.workers.dev`. Both Workers are behind Cloudflare Access (team `gentle-hall-eae9`).
 - 2026-11-11: AI translation dropped by the owner. Both languages are hand-written; there is no `translation`
   frontmatter field ([0012](docs/decisions/0012-hand-written-translations.md)).
-- 2026-11-12: design system built (D1–D12, [0014](docs/decisions/0014-design-system.md)). Fonts total 128 KiB
-  (budget raised to 135 KB by the owner; Archivo width 100–110 %; the 75 % condensed numerals are not shipped).
+- 2026-11-12: design system built (D1–D12, [0014](docs/decisions/0014-design-system.md)). Typography changed on the owner's
+  new guide: one family, Crimson Pro, two files, 64 KiB of the 80 KB budget ([0015](docs/decisions/0015-one-typeface-crimson-pro.md)).
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -102,7 +101,7 @@ src/assets/brand/             placeholder favicon, share-image template, brand.c
 src/components/styleguide/    sections of /styleguide: the markup to copy for each component
 src/i18n/{en,it}.json         every UI string; no text hard-coded in templates
 src/data/                     data files (e.g. ai-bots.json)
-public/_assets/               fonts (4 WOFF2, each with its OFL.txt) and other static files, no Worker
+public/_assets/               fonts (2 WOFF2 + crimson-pro-OFL.txt) and other static files, no Worker
 worker/src/                   the Worker; headers.ts is shared with the build
 worker/migrations/            D1 migrations (backend agent)
 scripts/                      build helpers, run with plain `node` (type stripping); build-fonts.py by hand
@@ -146,9 +145,11 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
   raw colours, logical properties only, container queries for layout (rules at the top of the file; enforced by
   `tests/unit/css.test.ts`). Per-photo placeholder colours are the classes `.tone-1 … .tone-12`. Copy component markup
   from `/styleguide`.
-- Fonts: Source Serif 4 reserves the name "Source", so it ships as **"PG Serif"**; never write the original name in
-  the CSS. Rebuild fonts only with `scripts/build-fonts.py` (pinned commit); keep each `OFL.txt` next to the fonts
-  (0014, `tests/unit/fonts.test.ts`).
+- Typography: one family, Crimson Pro (`--font`), weight 300 only at 28 px and larger, 400 for text and interface, 600
+  for emphasis; code uses the system monospace (`--font-code`); no other web font. Rebuild fonts only with
+  `scripts/build-fonts.py` (pinned commit); keep `crimson-pro-OFL.txt` next to the fonts; rename a family if its
+  licence reserves the name (`tests/unit/fonts.test.ts`, 0015). The font has no arrows: use `<Arrows text=…>` /
+  `<Arrow>` (inline SVG) and never type an arrow character in a template.
 - Never log names, emails, comment text or IP addresses.
 - No translation tooling of any kind: no AI or translation API, script, CI job, key, secret or dependency. hreflang
   pairs only when both language versions exist (`hasTwin` in `BaseLayout.astro`).

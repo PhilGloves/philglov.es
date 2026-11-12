@@ -1,7 +1,8 @@
 # 0014 — Design system: one stylesheet, tokens, container queries, pinned fonts
 
-Status: Accepted · 2026-11-12 · Design agent (D1–D12) · Source: docs/guide.md ("Design system", "Accessibility
-requirements", prompt 2), prototypes in docs/design/
+Status: Accepted, **typography superseded by [0015](0015-one-typeface-crimson-pro.md)** (three families, Archivo width
+axis, 135 KB budget, "PG Serif"; kept below as the record) · 2026-11-12 · Design agent (D1–D12) · Source: docs/guide.md
+("Design system", "Accessibility requirements", prompt 2), prototypes in docs/design/
 
 **Decision.**
 

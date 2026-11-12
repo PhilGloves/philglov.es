@@ -72,23 +72,26 @@ Decisions 0001–0013 are in `docs/decisions/`.
 
 ## Design system (agent 2) — 2026-11-12
 
-Ticket D1–D12, decision [0014](decisions/0014-design-system.md). Branch `design/d1-design-system`.
+Ticket D1–D12, decisions [0014](decisions/0014-design-system.md) (design system) and
+[0015](decisions/0015-one-typeface-crimson-pro.md) (typography, supersedes the font parts of 0014). Branch
+`design/d1-design-system`. The first typography (Archivo, Source Serif 4 as "PG Serif", JetBrains Mono) was replaced the
+same day by the owner's new guide: one family, Crimson Pro.
 
 **What exists.** `src/styles/tokens.css` (colour tokens, measured contrast, type/space/radius/motion scales),
-`src/styles/site.css` (the one stylesheet, 6.4 KB brotli), four fonts in `public/_assets/fonts/` with their `OFL.txt`,
-`src/assets/brand/` (placeholder favicon, apple-touch-icon, share-image template, `brand.config.ts`), `SiteHeader` and
+`src/styles/site.css` (the one stylesheet, 6.4 KB brotli), two Crimson Pro files in `public/_assets/fonts/` with `crimson-pro-OFL.txt` (64 KiB of the 80 KB budget),
+`Arrow.astro` / `Arrows.astro` (the one SVG arrow), `src/assets/brand/` (placeholder favicon, apple-touch-icon, share-image template, `brand.config.ts`), `SiteHeader` and
 `SiteFooter` components wired into `BaseLayout`, and `/styleguide` (noindex, both themes, every component; the markup in
 `src/components/styleguide/` is the markup to copy). `BaseLayout` now takes `current` (nav item) and `footer`
 (`"rule"` default, `"flat"` for the home page, which already ends in a hairline).
 
 **Verified.** Built home and entry markup compared with the two prototypes (rendered to static HTML) at 1440 and 390;
-no horizontal scroll from 1440 down to 320; no console messages; 1,742 rendered text nodes, both themes, 0 below
-4.5:1; `pnpm lint`, `typecheck`, `validate:html`, 31 unit tests, 10 e2e smoke tests (against a local Worker) pass;
+no horizontal scroll from 1440 down to 320; no console messages; 1,800 rendered text nodes, both themes, 0 below
+4.5:1; `pnpm lint`, `typecheck`, `validate:html`, 35 unit tests, 14 e2e tests (against a local Worker) pass;
 print hides header, footer and forms; a navigation gets a `ViewTransition`. Not done: Firefox/WebKit, real devices
 (iOS 15), Lighthouse, a keyboard walkthrough of every control, a real screen-reader pass: that is QA's.
 
-**Owner decision taken.** Font budget raised to 135 KB (rule 8); fonts are 128 KiB with Archivo's width at 100–110 %.
-The condensed 75 % numerals of the prototypes are not shipped (about 25 KB more).
+**Owner decisions taken.** One typeface, Crimson Pro; font budget 80 KB (rule 8); weight 300 only at 28 px and larger;
+code in the system monospace; interface arrows as one inline SVG; 16 px grid gap at 640 px and below.
 
 **Notes for the next agents.**
 
@@ -106,8 +109,13 @@ The condensed 75 % numerals of the prototypes are not shipped (about 25 KB more)
 - _Backend (B4/B8):_ admin pages use `class="admin"` on `<body>` and the classes shown in the styleguide's Admin
   section (`admin-bar`, `admin-main`, `card`, `queue`, `actions`, `badge`, `alert`, `notice`, `upload`).
 - _Content:_ `shareImageSvg(title)` fills the share template; it is pure and tested.
-- Do not rebuild the fonts casually: `scripts/build-fonts.py` pins the source commit and checks hashes. Source Serif 4
-  must stay "PG Serif" in the CSS and the files (reserved name "Source").
+- Do not rebuild the fonts casually: `scripts/build-fonts.py` pins the source commit and checks hashes. Crimson Pro
+  reserves no font name; if a font ever does, the subset must be renamed (the unit test checks).
+- _Frontend:_ never type an arrow character in a template or an Italian/English string that is not rendered through
+  `<Arrows text=…>`; Crimson Pro has no arrows. Footnote back-links (`↩` from remark) need
+  `remarkRehype.footnoteBackContent` set when the entry template is built, or that glyph comes from a system font.
+- _QA:_ the Iowan Old Style fallback shares Palatino's measured numbers (not measured on Windows); check the swap on a
+  Mac, and on iOS 15.
 - Local checking: `pnpm preview` is fixed to port 8787; if another Worker already holds it, run
   `pnpm exec wrangler dev --port 8788 --ip 127.0.0.1`. `pnpm build` empties `dist/`, which a running `wrangler dev`
   does not recover from: restart it after every build.
@@ -115,4 +123,4 @@ The condensed 75 % numerals of the prototypes are not shipped (about 25 KB more)
 ## Next step
 
 Start the **Content** (agent 4), **Backend** (5) and **Photo** (6) agents, which can run in parallel, then **Frontend**
-(3) for the pages; each reads `CLAUDE.md`, this file and its prompt in `docs/guide.md`. The font question is settled.
+(3) for the pages; each reads `CLAUDE.md`, this file and its prompt in `docs/guide.md`. The typography is settled (0015).
