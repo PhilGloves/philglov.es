@@ -116,21 +116,21 @@ Prototypes win over the prompt where they differ, except where the brief sets a 
 Both versions are written by hand. The schema has no `translation` field: a page is the original when `lang` equals
 `originalLang`, a translation otherwise (decision 0012).
 
-- [ ] C1 Helpers: find a page's twin; return the label text from the guide's table (original with a twin, translation,
+- [x] C1 Helpers: find a page's twin; return the label text from the guide's table (original with a twin, translation,
       original without a twin × en / it) and the marker (IT, EN, IT→EN, EN→IT, `IT only`, `solo EN`).
-- [ ] C2 Build check failing on: reserved or duplicate slug; a translation (lang ≠ originalLang) with no original twin;
+- [x] C2 Build check failing on: reserved or duplicate slug; a translation (lang ≠ originalLang) with no original twin;
       a translation whose `originalLang` doesn't match its twin's `lang`; file folder not matching `lang`; missing alt
       text in the page's own language. Also silences the "No files found" loader warnings once seed content exists.
-- [ ] C3 One-language entries: listed in the other language's journal index and topic pages with the `IT only` /
+- [x] C3 One-language entries: listed in the other language's journal index and topic pages with the `IT only` /
       `solo EN` marker, linking to the existing version with the right `lang` attribute; no hreflang pair; only in their
       own language's feed. Other-language alt text and captions are hand-written; an entry photo may carry alt text in
       one language until its entry is translated.
-- [ ] C4 `pnpm new <slug> --lang it|en`: creates a correctly filled Markdown file for a new entry; when the slug already
+- [x] C4 `pnpm new <slug> --lang it|en`: creates a correctly filled Markdown file for a new entry; when the slug already
       exists in the other language, creates that entry's other-language version with `originalLang` set from the
       existing file.
-- [ ] C5 Seed content: one entry written in Italian with a hand-written English version, one entry that exists in
+- [x] C5 Seed content: one entry written in Italian with a hand-written English version, one entry that exists in
       English only, one Now page, one About page.
-- [ ] C6 All UI strings in `src/i18n/{en,it}.json` (started by the Lead).
+- [x] C6 All UI strings in `src/i18n/{en,it}.json` (started by the Lead).
 - _Done when: the sample entry shows the right label in both languages, the build check catches a deliberately broken
   twin, and the English-only entry is listed correctly in the Italian index._
 

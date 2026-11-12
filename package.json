@@ -9,7 +9,9 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/share-images.ts && node scripts/postbuild.ts",
+    "check:content": "node scripts/check-content.ts",
+    "new": "node scripts/new.ts",
+    "build": "node scripts/check-content.ts && astro build && node scripts/share-images.ts && node scripts/postbuild.ts",
     "preview": "wrangler dev --port 8787 --ip 127.0.0.1",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
