@@ -88,10 +88,12 @@ jobs:
         id: lighthouse
         run: pnpm test:lighthouse
       # Pass or fail, write each run's scores and timings to the job summary so
-      # a budget failure can be read without downloading the reports.
+      # a budget failure can be read without downloading the reports. Each URL
+      # runs 3 times and is judged on the median (lighthouserc.json, 0013).
       - name: Lighthouse summary
         if: ${{ !cancelled() && steps.lighthouse.outcome != 'skipped' }}
         run: |
+          echo "Budgets are judged on the median of the 3 runs per page (decision 0013). Every run:" >> "$GITHUB_STEP_SUMMARY"
           for f in .lighthouseci/lhr-*.json; do
             [ -e "$f" ] || continue
             node -e '

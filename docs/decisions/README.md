@@ -18,3 +18,4 @@ never renumber. To change a decision, add a new record that supersedes the old o
 | 0010 | [Tooling and supply chain](0010-tooling.md)                                  | Accepted           |
 | 0011 | [Translation inside the pull-request run](0011-ci-translation.md)            | Superseded by 0012 |
 | 0012 | [Both languages written by hand](0012-hand-written-translations.md)          | Accepted           |
+| 0013 | [Lighthouse: median of three runs](0013-lighthouse-median-of-three.md)       | Accepted           |

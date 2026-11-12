@@ -118,7 +118,7 @@ pnpm lint | pnpm format          ESLint + Prettier
 pnpm typecheck                   wrangler types + astro check + worker tsc
 pnpm validate:html               html-validate on dist/
 pnpm test:unit | test:e2e        node:test | Playwright (needs a build)
-pnpm test:lighthouse             Lighthouse CI against pnpm preview
+pnpm test:lighthouse             Lighthouse CI against pnpm preview; 3 runs per page, judged on the median (0013)
 pnpm new <slug> --lang it|en     new entry, or the other-language version of one (ticket C4)
 ```
 

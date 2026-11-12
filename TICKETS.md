@@ -183,20 +183,13 @@ every page × en/it × light/dark × 1440/1024/768/390/320 × JS on/off in Chrom
       Q9 headers. Q10 images. Q11 SEO. Q12 phone publishing (writing the other-language version of an existing entry
       creates its twin with the right `originalLang`). Q13 print and cookies. Q14 rights and privacy. Q15 live-site check
       through an Access service token.
-- [ ] Q16 Lighthouse stability: on the Lead's Windows laptop about 2 in 9 `lhci autorun` runs died with Lighthouse's
-      `NO_NAVSTART` trace error (no assertion failed). Confirm CI on Linux is stable, or fix the cause; do not paper
-      over it with retries. **CI evidence (2026-11-11):** CI on Linux is not stable either. Lighthouse ran in 18
-      `Test` attempts and failed 2, both on performance for `/`, the first URL measured, and each passed on re-run
-      with no code change. Run 43017392616 scored `/` at 0.81 (no metrics kept; reports were not uploaded yet). Run
-      43063933336 scored it 0.87, with TBT 522 ms against 0–8 ms in passing runs, while FCP, LCP and server response
-      time (13 ms) stayed normal and `/it` scored 1.0. The page ships no JavaScript, so the blocking time comes from
-      the CI browser, most likely its first page load after start-up amplified by simulated throttling, not from the
-      site. **Proposed fix, to decide here:** in `lighthouserc.json`, set `collect.numberOfRuns: 3` and
-      `assert.aggregationMethod: "median-run"`. A page then fails only when its middle run fails, so one cold-start
-      outlier can't block a pull request, while a page that is slow every time still fails. Don't keep the default
-      aggregation (`optimistic`, the best run): that is the retry this ticket rules out. Cost: two more Lighthouse
-      runs per URL, which lengthens the step. If one warm-up page load before the first URL removes the outlier on
-      its own, prefer that and keep one run.
+- [x] Q16 Lighthouse stability on CI: `/`, the first URL measured, failed performance in 2 of 18 CI attempts on
+      2026-11-11 (0.81, then 0.87 with TBT 522 ms on a page with no JavaScript) and passed on re-run. Owner decision
+      2026-11-12: three runs per URL, every budget judged on the median, budgets unchanged, every report kept
+      ([0013](docs/decisions/0013-lighthouse-median-of-three.md)).
+- [ ] Q17 Lighthouse on Windows: on the Lead's laptop `lhci autorun` sometimes dies with Lighthouse's `NO_NAVSTART`
+      trace error (no assertion fails; about 2 in 9 runs with one run per URL, and 2 of 2 attempts with three). It has
+      never happened on CI's Linux runner. Find the cause so the suite runs locally; do not paper over it with retries.
 - _Done when: the full matrix passes twice in a row with no flaky tests; `QA-REPORT.md` written._
 
 ## 8 · Security audit (S) — Opus, xhigh — runs last
