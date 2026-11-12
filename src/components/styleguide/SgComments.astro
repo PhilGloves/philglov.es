@@ -1,0 +1,157 @@
+---
+/** Numbered comments with an author reply, the comment form, error and success states. */
+interface Props {
+  theme: "light" | "dark";
+}
+const { theme } = Astro.props;
+const id = (name: string) => `sg-${theme}-${name}`;
+---
+
+<div class="page">
+  <div class="g comments">
+    <div class="lab">
+      <h3>Comments (2)</h3>
+      <p class="small muted">Comments appear after I’ve read them. I sometimes reply.</p>
+    </div>
+    <div class="con">
+      <ol class="clist">
+        <li class="c">
+          <span class="c-n" aria-hidden="true">
+            001
+          </span>
+          <div>
+            <p class="c-who">
+              <b>Marta</b>
+              <span class="mono">2026-10-21</span>
+            </p>
+            <p class="c-body" lang="en">
+              The bit about hills being a negotiation is exactly how it felt to me too. Did you make it up to Graça at
+              sunrise?
+            </p>
+            <div class="c-reply">
+              <span class="mono">Filippo replied</span>
+              <p lang="en">Twice. Worth every step.</p>
+            </div>
+          </div>
+        </li>
+        <li class="c">
+          <span class="c-n" aria-hidden="true">
+            002
+          </span>
+          <div>
+            <p class="c-who">
+              <b>Luca</b>
+              <span class="mono">2026-10-22</span>
+            </p>
+            <p class="c-body" lang="it">
+              Bellissimo. Anch’io viaggio così: niente programma, solo scarpe comode.
+            </p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="g sec reply">
+    <div class="lab">
+      <h3>Reply</h3>
+    </div>
+    <div class="con">
+      <h4 class="big">Your thoughts? Please leave a reply:</h4>
+      <p class="intro">Write in English or Italian, whichever comes naturally.</p>
+      <form class="form" method="post" action="#sg-top" novalidate>
+        <div class="field">
+          <label for={id("name")}>Name</label>
+          <input id={id("name")} name="name" type="text" autocomplete="name" required />
+        </div>
+        <div class="field">
+          <label for={id("email")}>Email</label>
+          <input
+            id={id("email")}
+            name="email"
+            type="email"
+            autocomplete="email"
+            required
+            aria-describedby={id("email-hint")}
+          />
+          <span id={id("email-hint")} class="hint">
+            Never shown — only so I can reply.
+          </span>
+        </div>
+        <div class="field full">
+          <label for={id("comment")}>Comment</label>
+          <textarea id={id("comment")} name="comment" rows="6" required></textarea>
+        </div>
+        <div class="ffoot full">
+          <button type="submit" class="btn">
+            Send
+          </button>
+          <span class="consent">
+            By sending, you agree that your name and comment may be published here.{" "}
+            <a href="#sg-top">Privacy notice.</a>
+          </span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="g sec">
+    <div class="lab">
+      <h3>Error and success states</h3>
+    </div>
+    <div class="con">
+      <div class="alert" role="alert">
+        <strong>Your comment was not sent.</strong>
+        <ul>
+          <li>
+            <a href={`#${id("e-email")}`}>Email: enter an address like name@example.com</a>
+          </li>
+          <li>
+            <a href={`#${id("e-comment")}`}>Comment: write at least a few words</a>
+          </li>
+        </ul>
+      </div>
+      <form class="form sg-gap" method="post" action="#sg-top" novalidate>
+        <div class="field">
+          <label for={id("e-email")}>Email</label>
+          <input
+            id={id("e-email")}
+            name="email"
+            type="email"
+            value="not-an-email"
+            aria-invalid="true"
+            aria-describedby={id("e-email-err")}
+          />
+          <span id={id("e-email-err")} class="field-error">
+            Enter an address like name@example.com
+          </span>
+        </div>
+        <div class="field">
+          <label for={id("focus")}>Name (keyboard focus)</label>
+          <input id={id("focus")} class="sg-focus" name="name" type="text" value="Marta" />
+        </div>
+        <div class="field full">
+          <label for={id("e-comment")}>Comment</label>
+          <textarea
+            id={id("e-comment")}
+            name="comment"
+            rows="3"
+            aria-invalid="true"
+            aria-describedby={id("e-comment-err")}
+          ></textarea>
+          <span id={id("e-comment-err")} class="field-error">
+            Write at least a few words
+          </span>
+        </div>
+        <div class="ffoot full">
+          <button type="submit" class="btn">
+            Send
+          </button>
+        </div>
+      </form>
+      <p class="notice sg-gap" role="status">
+        Thanks! I read every comment before it appears here.
+      </p>
+    </div>
+  </div>
+</div>

@@ -11,14 +11,28 @@ import { t } from "../i18n";
   hasTwin={false}
   noindex
 >
-  <h1>{t("en", "notFoundTitle")}</h1>
-  <p>
-    {t("en", "notFoundBody")} <a href="/">{t("en", "goHome")}</a>
-  </p>
-  <div lang="it">
-    <h2>{t("it", "notFoundTitle")}</h2>
-    <p>
-      {t("it", "notFoundBody")} <a href="/it">{t("it", "goHome")}</a>
-    </p>
+  <div class="page">
+    <div class="g hero">
+      <div class="lab">
+        <p class="err-code" aria-hidden="true">
+          404
+        </p>
+      </div>
+      <h1 class="state">{t("en", "notFoundTitle")}</h1>
+      <p class="lede">
+        {t("en", "notFoundBody")} <a href="/">{t("en", "goHome")}</a>
+      </p>
+    </div>
+    <div class="g sec" lang="it">
+      <div class="lab">
+        <p class="mono muted">Italiano</p>
+      </div>
+      <div class="con">
+        <h2 class="big">{t("it", "notFoundTitle")}</h2>
+        <p class="lede">
+          {t("it", "notFoundBody")} <a href="/it">{t("it", "goHome")}</a>
+        </p>
+      </div>
+    </div>
   </div>
 </BaseLayout>

@@ -1,0 +1,49 @@
+---
+/** Skip link, header and navigation (both languages), buttons, theme toggle, focus. */
+import SiteHeader from "../SiteHeader.astro";
+---
+
+<div class="page sg-type">
+  <p>
+    <a class="skip sg-show" href="#sg-top">
+      Skip to content
+    </a>
+    <span class="sg-note">The skip link stays out of sight until it takes focus; shown here.</span>
+  </p>
+</div>
+<SiteHeader locale="en" path="/styleguide" current="journal" demo />
+<SiteHeader locale="it" path="/it/styleguide" current="photos" demo />
+<div class="page sg-type">
+  <p class="sg-theme">Buttons, toggle, links</p>
+  <p class="ffoot">
+    <button type="button" class="btn">
+      Send
+    </button>
+    <button type="button" class="btn btn--ghost">
+      Reply
+    </button>
+    <button type="button" class="btn btn--danger">
+      Reject
+    </button>
+    <button type="button" class="btn" disabled>
+      Sending…
+    </button>
+    <button type="button" class="btn sg-focus">
+      Keyboard focus
+    </button>
+  </p>
+  <p class="ffoot">
+    <button type="button" class="theme-toggle" aria-pressed="false">
+      Dark
+    </button>
+    <button type="button" class="theme-toggle" aria-pressed="true">
+      Dark
+    </button>
+    <a class="lang-switch" href="#sg-top" lang="it" hreflang="it">
+      Italiano
+    </a>
+    <a class="go" href="#sg-top">
+      Read · 8 min →
+    </a>
+  </p>
+</div>

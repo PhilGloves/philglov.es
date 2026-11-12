@@ -1,0 +1,109 @@
+---
+/** /admin: moderation queue and write-from-phone form. Phone first, large targets, thick borders. */
+interface Props {
+  theme: "light" | "dark";
+}
+const { theme } = Astro.props;
+const id = (name: string) => `sg-${theme}-ad-${name}`;
+---
+
+<div class="admin">
+  <div class="admin-bar">
+    <b>philglov.es admin</b>
+    <div class="admin-nav">
+      <ul>
+        <li>
+          <a href="#sg-top" aria-current="page">
+            Comments (3)
+          </a>
+        </li>
+        <li>
+          <a href="#sg-top">Reports (1)</a>
+        </li>
+        <li>
+          <a href="#sg-top">Write</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="admin-main">
+    <h2 class="admin-title">Comments to moderate</h2>
+    <ol class="queue">
+      <li class="card">
+        <h3>
+          Marta <span class="badge">pending</span>
+        </h3>
+        <p class="mono muted">2026-10-21 14:02 · Three weeks in Lisbon, mostly on foot</p>
+        <p class="body">The bit about hills being a negotiation is exactly how it felt to me too.</p>
+        <div class="actions">
+          <button type="button" class="btn">
+            Approve
+          </button>
+          <button type="button" class="btn btn--danger">
+            Reject
+          </button>
+          <button type="button" class="btn btn--ghost">
+            Reply
+          </button>
+        </div>
+      </li>
+      <li class="card">
+        <h3>
+          Luca <span class="badge badge--ok">approved</span>
+        </h3>
+        <p class="mono muted">2026-10-22 09:40 · Why I shoot one roll a week</p>
+        <p class="body">Bellissimo. Anch’io viaggio così.</p>
+      </li>
+    </ol>
+
+    <p class="notice" role="status">
+      Saved. The comment is live within a minute.
+    </p>
+    <div class="alert" role="alert">
+      <strong>Could not publish.</strong> The slug alps already exists in English.
+    </div>
+
+    <h2 class="admin-title">Write</h2>
+    <form class="form" method="post" action="#sg-top" novalidate>
+      <div class="field-row">
+        <div class="field">
+          <label for={id("slug")}>Slug</label>
+          <input id={id("slug")} name="slug" type="text" value="alps" autocapitalize="none" />
+        </div>
+        <div class="field">
+          <label for={id("lang")}>Language</label>
+          <select id={id("lang")} name="lang">
+            <option>English</option>
+            <option>Italiano</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for={id("title")}>Title</label>
+        <input id={id("title")} name="title" type="text" />
+      </div>
+      <div class="field">
+        <label for={id("text")}>Text</label>
+        <textarea id={id("text")} name="text" class="write-body"></textarea>
+      </div>
+      <div class="field">
+        <label for={id("photos")}>Photos</label>
+        <input id={id("photos")} name="photos" type="file" accept="image/jpeg,image/png" multiple />
+      </div>
+      <div class="upload">
+        <span class="mono">IMG_2041.jpg · 12.4 MB · 63 %</span>
+        <progress value="63" max="100" aria-label="IMG_2041.jpg upload">
+          63 %
+        </progress>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn">
+          Publish
+        </button>
+        <button type="button" class="btn btn--ghost">
+          Save draft
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

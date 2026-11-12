@@ -8,5 +8,21 @@
   "readOther": "Leggi in italiano →",
   "notFoundTitle": "Page not found",
   "notFoundBody": "There is nothing at this address.",
-  "goHome": "Go to the home page"
+  "goHome": "Go to the home page",
+  "navLabel": "Main",
+  "navJournal": "Journal",
+  "navPhotos": "Photos",
+  "navNow": "Now",
+  "navAbout": "About",
+  "themeToggle": "Dark",
+  "errataTitle": "Errata",
+  "reportText": "Spotted a typo, a wrong fact or anything else? Tell me with this anonymous form — add your email only if you’d like a reply. I’d be grateful.",
+  "reportSummary": "Report an error →",
+  "reportMessage": "What’s wrong?",
+  "reportEmail": "Email (optional)",
+  "reportSend": "Send",
+  "footRss": "RSS",
+  "footPrivacy": "Privacy",
+  "rightsLine": "© 2026 Filippo Guanti · All rights reserved · No AI training",
+  "colophon": "No trackers, no cookies."
 }

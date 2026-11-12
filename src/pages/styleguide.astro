@@ -1,0 +1,88 @@
+---
+/**
+ * /styleguide: every component of the design system in both themes, for
+ * checking by eye and by test. Not in the navigation, noindex, English only.
+ * Each section is rendered twice, once on a [data-theme="light"] panel and
+ * once on a [data-theme="dark"] one; the panels respond to their own width
+ * (container queries), so the page shows the real layout at the width of the
+ * window: resize it to 1440, 1024, 768, 390 and 320 px.
+ * The markup in each section is the markup to copy when building a page.
+ */
+import SgAdmin from "../components/styleguide/SgAdmin.astro";
+import SgArticle from "../components/styleguide/SgArticle.astro";
+import SgChrome from "../components/styleguide/SgChrome.astro";
+import SgColour from "../components/styleguide/SgColour.astro";
+import SgComments from "../components/styleguide/SgComments.astro";
+import SgHome from "../components/styleguide/SgHome.astro";
+import SgPages from "../components/styleguide/SgPages.astro";
+import SgPhotos from "../components/styleguide/SgPhotos.astro";
+import SgType from "../components/styleguide/SgType.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const themes = ["light", "dark"] as const;
+const sections = [
+  { id: "colour", short: "Colour", title: "Colour and contrast", Section: SgColour },
+  { id: "type", short: "Type", title: "Typography", Section: SgType },
+  { id: "chrome", short: "Header and buttons", title: "Skip link, header, navigation, buttons", Section: SgChrome },
+  { id: "home", short: "Home", title: "Home: hero, latest entry, journal table, Now, photos, footer", Section: SgHome },
+  {
+    id: "entry",
+    short: "Entry",
+    title: "Journal entry: head, language label, text, figure, previous/next",
+    Section: SgArticle,
+  },
+  {
+    id: "comments",
+    short: "Comments and forms",
+    title: "Comments, forms, error and success states",
+    Section: SgComments,
+  },
+  { id: "photos", short: "Photos", title: "Photos: series, grid, single photo, topics, paging", Section: SgPhotos },
+  { id: "pages", short: "Pages", title: "Page templates: About, Now, legal, 404", Section: SgPages },
+  { id: "admin", short: "Admin", title: "Admin: moderation and write from phone", Section: SgAdmin },
+];
+---
+
+<BaseLayout
+  locale="en"
+  path="/styleguide"
+  title="Styleguide · Filippo Guanti"
+  description="Every component of the philglov.es design system, in both themes."
+  hasTwin={false}
+  noindex
+>
+  <div class="page" id="sg-top">
+    <div class="g hero">
+      <div class="lab small">
+        <p class="muted">Design system</p>
+      </div>
+      <h1 class="state">Styleguide</h1>
+      <p class="lede">
+        Every component, in the light and the dark theme. Resize the window to 1440, 1024, 768, 390 or 320 px to see
+        each layout. Not linked from anywhere, not indexed.
+      </p>
+    </div>
+    <ul class="tags">
+      {sections.map((s) => (
+        <li>
+          <a href={`#${s.id}`}>{s.short}</a>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  {sections.map(({ id, title, Section }) => (
+    <section aria-labelledby={`${id}-h`} id={id}>
+      <div class="page sg-head">
+        <h2 id={`${id}-h`} class="big">
+          {title}
+        </h2>
+      </div>
+      {themes.map((theme) => (
+        <div class="sg-panel" data-theme={theme}>
+          <Section theme={theme} />
+        </div>
+      ))}
+    </section>
+  ))}
+</BaseLayout>

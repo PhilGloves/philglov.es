@@ -10,11 +10,17 @@ const other: Locale = locale === "en" ? "it" : "en";
 const otherHome = twinPath(locale, locale === "en" ? "/" : "/it");
 ---
 
-<h1>Filippo Guanti</h1>
-<p class="meta">
-  {t(locale, "writtenIn")} ·{" "}
-  <a href={otherHome} hreflang={other} lang={other}>
-    {t(locale, "readOther")}
-  </a>
-</p>
-<p>{t(locale, "placeholder")}</p>
+<div class="page">
+  <div class="g hero">
+    <div class="lab">
+      <p class="mono muted">
+        {t(locale, "writtenIn")} ·{" "}
+        <a href={otherHome} hreflang={other} lang={other}>
+          {t(locale, "readOther")}
+        </a>
+      </p>
+    </div>
+    <h1 class="state">Filippo Guanti</h1>
+    <p class="lede">{t(locale, "placeholder")}</p>
+  </div>
+</div>

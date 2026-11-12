@@ -30,7 +30,7 @@ for (const home of homes) {
     await expect(page.locator("h1")).toHaveCount(1);
     await expect(page.locator("a.skip")).toHaveAttribute("href", "#main");
     await expect(page.locator("main#main")).toBeVisible();
-    await expect(page.locator(`nav a[href="${home.other}"]`)).toBeVisible();
+    await expect(page.locator(`header a[hreflang][href="${home.other}"]`)).toBeVisible();
     await expect(page.locator("[style]")).toHaveCount(0);
     expect(problems).toEqual([]);
   });

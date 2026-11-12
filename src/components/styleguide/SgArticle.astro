@@ -1,0 +1,193 @@
+---
+/** Journal entry: head, language label in all six states, prose, figure, pull quote, previous/next. */
+interface Props {
+  theme: "light" | "dark";
+}
+const { theme } = Astro.props;
+const fn = `sg-${theme}-fn`;
+const fnref = `sg-${theme}-fnref`;
+const labels = [
+  { marker: "IT", cls: "marker", text: "Scritto in italiano", link: "Read in English →" },
+  { marker: "EN", cls: "marker", text: "Written in English", link: "Leggi in italiano →" },
+  { marker: "IT→EN", cls: "marker", text: "Originally written in Italian", link: "Read the original →" },
+  { marker: "EN→IT", cls: "marker", text: "Scritto originariamente in inglese", link: "Leggi l’originale →" },
+  { marker: "IT only", cls: "marker marker--only", text: "Written in Italian", link: "Not yet available in English" },
+  {
+    marker: "solo EN",
+    cls: "marker marker--only",
+    text: "Scritto in inglese",
+    link: "Non ancora disponibile in italiano",
+  },
+];
+---
+
+<div class="page">
+  <div class="g top">
+    <div class="lab">
+      <p class="crumb">
+        <a href="#sg-top">Journal</a> / <a href="#sg-top">Travel</a>
+      </p>
+      <dl class="entry-meta">
+        <div>
+          <dt>No.</dt>
+          <dd>042</dd>
+        </div>
+        <div>
+          <dt>Published</dt>
+          <dd>2026-10-21</dd>
+        </div>
+        <div>
+          <dt>Written in</dt>
+          <dd>Italian</dd>
+        </div>
+        <div>
+          <dt>This version</dt>
+          <dd class="moss">My translation</dd>
+        </div>
+        <div>
+          <dt>Reading</dt>
+          <dd>8 min</dd>
+        </div>
+        <div>
+          <dt>Comments</dt>
+          <dd>
+            <a href="#sg-top">2 →</a>
+          </dd>
+        </div>
+      </dl>
+    </div>
+    <div class="con">
+      <h2 class="title">Three weeks in Lisbon, mostly on foot</h2>
+      <p class="label">
+        <span class="marker" aria-hidden="true">
+          IT→EN
+        </span>
+        <span>Originally written in Italian</span>
+        <span aria-hidden="true">·</span>
+        <a href="#sg-top" lang="it">
+          Read the original →
+        </a>
+      </p>
+      <p class="stand">
+        I had a plan when I arrived and none when I left. On hills, trams, and taking fewer photographs.
+      </p>
+    </div>
+  </div>
+
+  <div class="g">
+    <div class="con">
+      <div class="prose">
+        <p>The plan was a list of viewpoints; what I actually did was walk until my feet chose the route.</p>
+        <p>
+          Lisbon is built on hills, so every walk is a negotiation. Uphill is slow and short of breath; downhill is
+          quick and full of light. After three days I stopped checking the map and started following{" "}
+          <a href="#sg-top">trams</a>, cats and the smell of grilled sardines.
+        </p>
+        <h2>A second-level heading</h2>
+        <p>
+          Body text is <strong>Source Serif</strong> at 20 px with <em>italics</em>, <code>inline code</code>, and a
+          footnote.
+          <sup>
+            <a href={`#${fn}`} id={fnref} data-footnote-ref aria-describedby={fn}>
+              1
+            </a>
+          </sup>
+        </p>
+        <h3>A third-level heading</h3>
+        <ul>
+          <li>A list item in the margin of the page</li>
+          <li>Another one, a little longer so that it has to wrap around the measure of the column</li>
+        </ul>
+        <ol>
+          <li>First step</li>
+          <li>Second step</li>
+        </ol>
+        <blockquote>
+          <p>A plain quotation from someone else sits behind a moss rule.</p>
+        </blockquote>
+        <pre tabindex="0"><code>pnpm new alps --lang it
+# creates src/content/journal/it/alps.md</code></pre>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Camera</th>
+              <th scope="col">Lens</th>
+              <th scope="col">Film</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Leica M6</td>
+              <td>35 mm</td>
+              <td>Portra 400</td>
+            </tr>
+          </tbody>
+        </table>
+        <hr />
+        <section data-footnotes class="footnotes">
+          <h2 class="sr-only">Footnotes</h2>
+          <ol>
+            <li id={fn}>
+              <p>
+                A footnote, set small and muted.{" "}
+                <a href={`#${fnref}`} data-footnote-backref aria-label="Back to reference 1">
+                  ↩
+                </a>
+              </p>
+            </li>
+          </ol>
+        </section>
+      </div>
+      <figure class="fig">
+        <div
+          class="frame frame--fig tone-1"
+          role="img"
+          aria-label="Placeholder figure, 16:9 on wide screens, 4:5 on phones"
+        >
+          <span aria-hidden="true">[ photo ]</span>
+        </div>
+        <figcaption class="cap">
+          <span>[Photo title] · Lisbon, 2026</span>
+          <span>[camera] · 35mm · f/8 · 1/250 s · ISO 200</span>
+        </figcaption>
+      </figure>
+      <blockquote class="pull">
+        <p>A city tells you where to look only once you stop asking it.</p>
+      </blockquote>
+      <div class="prose">
+        <p>What I’m bringing home is a habit, not a souvenir: walk first, decide later.</p>
+        <p class="sign">— Filippo, Lisbon</p>
+      </div>
+      <div class="pn">
+        <div class="pn-grid">
+          <a href="#sg-top">
+            <span class="k">← Previous · No. 041</span>
+            <span class="v">Why I shoot one roll a week</span>
+          </a>
+          <a href="#sg-top">
+            <span class="k">All entries →</span>
+            <span class="v">Back to the journal</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g sec">
+    <div class="lab">
+      <p class="small muted">The language label, in each state:</p>
+    </div>
+    <div class="con">
+      {labels.map((l) => (
+        <p class="label">
+          <span class={l.cls} aria-hidden="true">
+            {l.marker}
+          </span>
+          <span>{l.text}</span>
+          <span aria-hidden="true">·</span>
+          <span>{l.link}</span>
+        </p>
+      ))}
+    </div>
+  </div>
+</div>
