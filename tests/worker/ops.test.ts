@@ -61,7 +61,7 @@ describe("notifications", () => {
 });
 
 describe("retention", () => {
-  test("IP hashes and rejected comments go after 30 days, done reports 12 months after being done", async () => {
+  test("IP hashes and rejected comments go after 30 days, every report 12 months after it arrived", async () => {
     const { slug } = await twinEntry();
     const old = NOW - 31 * DAY;
     const recent = NOW - 29 * DAY;
@@ -73,10 +73,13 @@ describe("retention", () => {
     const insert = env.DB.prepare(
       "INSERT INTO reports (page_url, message, created_at, ip_hash, status, done_at) VALUES ('/', 'x', ?1, 'h', ?2, ?3)",
     );
+    // Deleted 12 months after arrival, whether marked done or still open; kept until then, even if done long ago.
     await env.DB.batch([
-      insert.bind(NOW - 400 * DAY, "done", NOW - 366 * DAY),
-      insert.bind(NOW - 400 * DAY, "done", NOW - 300 * DAY),
-      insert.bind(NOW - 400 * DAY, "open", null),
+      insert.bind(NOW - 366 * DAY, "open", null),
+      insert.bind(NOW - 366 * DAY, "done", NOW - 1 * DAY),
+      insert.bind(NOW - 364 * DAY, "done", NOW - 360 * DAY),
+      insert.bind(NOW - 364 * DAY, "open", null),
+      insert.bind(NOW - 10 * DAY, "open", null),
     ]);
 
     await retention(env.DB, NOW);
@@ -91,10 +94,11 @@ describe("retention", () => {
       { id: rejectedRecent, ip_hash: "hash" },
       { id: pendingOld, ip_hash: null },
     ]);
-    const reports = await env.DB.prepare("SELECT status, ip_hash FROM reports ORDER BY id").all();
+    const reports = await env.DB.prepare("SELECT created_at, status, ip_hash FROM reports ORDER BY id").all();
     expect(reports.results).toEqual([
-      { status: "done", ip_hash: null },
-      { status: "open", ip_hash: null },
+      { created_at: NOW - 364 * DAY, status: "done", ip_hash: null },
+      { created_at: NOW - 364 * DAY, status: "open", ip_hash: null },
+      { created_at: NOW - 10 * DAY, status: "open", ip_hash: "h" },
     ]);
   });
 });

@@ -39,7 +39,7 @@ const NOTICES: Record<string, string> = {
   reject: "Rejected. It is deleted after 30 days.",
   reply: "Reply saved and the comment approved. Both are live within a minute.",
   delete: "Deleted for good, with its name and email.",
-  done: "Report marked done. It is deleted 12 months from now.",
+  done: "Report marked done. It is deleted 12 months after it arrived.",
   "delete-report": "Report deleted for good.",
   "delete-draft": "Draft deleted.",
 };

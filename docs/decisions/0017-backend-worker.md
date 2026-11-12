@@ -9,8 +9,8 @@ Status: Accepted · 2026-11-12 · Backend agent · Source: docs/guide.md (prompt
 added is `jose` (Access JWT verification, GitHub App JWT signing). HMAC, SHA-256 and random IDs use WebCrypto.
 
 **Data (B1).** `worker/migrations/0001_init.sql`, applied by CI (`migrations_dir` set on every D1 binding). Times are
-Unix milliseconds. Additions to the brief's columns, each needed by a rule: `reports.done_at` (retention counts from
-it) and `drafts.description` / `drafts.photos` (the schema requires a description; photos must survive a draft).
+Unix milliseconds. Additions to the brief's columns: `reports.done_at` (when a report was marked done, for the
+record) and `drafts.description` / `drafts.photos` (the schema requires a description; photos must survive a draft).
 
 **Forms (B2).** Checks in this order: urlencoded and ≤ 64 KB, same `Origin` (or none), honeypot, signed token (3 s –
 24 h), rate limit (5 per 10 min per `SHA-256(salt:IP)`, shared by both forms, one upsert), then the fields. Bots stop
@@ -63,11 +63,13 @@ every listed secret is set, which broke the first preview deploy of this branch.
 it; that is intended.
 
 **Notifications (B5).** `NOTIFY` var, "off" everywhere until launch, and an optional `send_email` binding `EMAIL`
-plus `NOTIFY_TO`; anything missing logs `notification skipped`. The message is hand-built MIME (no library): subject
+plus `NOTIFY_TO`; anything missing logs `notification skipped`. Owner decision O2 (2026-11-12): the address lives only
+in the `NOTIFY_TO` secret; the binding is declared without `destination_address`, because `wrangler.jsonc` is in a
+public repository. This departs from the brief's "destination_address set to my verified address" on purpose. The message is hand-built MIME (no library): subject
 and body hold the page title and `https://philglov.es/admin`, nothing about the visitor.
 
 **Retention, backups, logs (B6, B9, B10).** Cron `0 3 * * *`: IP hashes nulled after 30 days, rejected comments
-deleted after 30 days, done reports deleted 12 months after `done_at`, finished rate-limit windows swept. Cron
+deleted after 30 days, every error report deleted 12 months after it arrived, open or done, finished rate-limit windows swept. Cron
 `0 4 * * 1`: `backups/YYYY-MM-DD.json` with all comments and reports (no IP hashes), newest 12 kept. `log.ts` is the
 only logger and accepts fixed event names only; an error is reduced to its class name.
 
@@ -84,5 +86,8 @@ would have to buffer to parse them). Owner email allow-list in the Worker (it wo
 repository; the Access policy already decides who gets a token). A local Access bypass for `wrangler dev` (one bug
 away from an open admin).
 
-**Open for the owner.** The AUD tags and secrets (`docs/setup.md` steps 9 and 10); where the notification address
-lives (step 14, TICKETS.md O2); the retention wording for error reports (TICKETS.md O3).
+**Report retention (O3).** The brief said 12 months after a report is marked done; the privacy notice says reports
+are deleted within 12 months. Owner decision 2026-11-12: follow the notice. Every report is deleted 12 months after
+it arrived, whether or not it was marked done, so no open report outlives the promise.
+
+**Open for the owner.** The GitHub App and its secrets (`docs/setup.md` step 10).

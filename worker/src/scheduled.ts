@@ -1,7 +1,8 @@
 /**
  * Cron jobs (B6, B9). Daily retention, so the privacy notice stays true:
- * IP hashes after 30 days, rejected comments after 30 days, error reports 12
- * months after they were marked done, finished rate-limit windows.
+ * IP hashes after 30 days, rejected comments after 30 days, every error report
+ * 12 months after it arrived (open or done, as the privacy notice says;
+ * owner decision O3, 2026-11-12), finished rate-limit windows.
  * Weekly backup: comments and reports as JSON in the backups bucket, 12 kept.
  */
 import { log } from "./log.ts";
@@ -10,7 +11,7 @@ import { sweep } from "./ratelimit.ts";
 const DAY = 24 * 60 * 60 * 1000;
 export const IP_HASH_DAYS = 30;
 export const REJECTED_DAYS = 30;
-export const DONE_REPORT_DAYS = 365;
+export const REPORT_DAYS = 365;
 export const BACKUPS_KEPT = 12;
 export const DAILY = "0 3 * * *";
 export const WEEKLY = "0 4 * * 1";
@@ -21,7 +22,7 @@ export async function retention(db: D1Database, now = Date.now()): Promise<void>
     db.prepare("UPDATE comments SET ip_hash = NULL WHERE ip_hash IS NOT NULL AND created_at < ?1").bind(ipCutoff),
     db.prepare("UPDATE reports SET ip_hash = NULL WHERE ip_hash IS NOT NULL AND created_at < ?1").bind(ipCutoff),
     db.prepare("DELETE FROM comments WHERE status = 'rejected' AND created_at < ?1").bind(now - REJECTED_DAYS * DAY),
-    db.prepare("DELETE FROM reports WHERE status = 'done' AND done_at < ?1").bind(now - DONE_REPORT_DAYS * DAY),
+    db.prepare("DELETE FROM reports WHERE created_at < ?1").bind(now - REPORT_DAYS * DAY),
   ]);
   await sweep(db, now);
 }

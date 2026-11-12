@@ -10,11 +10,13 @@ a translation script, CI job, `translate`/`review` command, AI or translation AP
 
 ## Open owner questions — do not guess these
 
-| #   | Question                                                                                                                                                                                                                                                                                                       | Blocks       | Default until answered                                  |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------- |
-| O1  | **Placeholders:** contact email (guide suggests `phil@philglov.es`), city, launch date, partita IVA (only if any), the list of profiles for `sameAs`, a real photo for About, the 2–3 sentence bio.                                                                                                            | F6a, F1, C5  | visible `[placeholder]` text; QA fails it before launch |
-| O2  | **Notification address:** the brief puts your verified address in the `send_email` binding's `destination_address`, but `wrangler.jsonc` is in a public repository. Write it there (public), or leave the binding unrestricted and keep the address only in the `NOTIFY_TO` secret? (`docs/setup.md`, step 14) | B5 at launch | notifications off (`NOTIFY: "off"`)                     |
-| O3  | **Error-report retention:** the brief deletes reports 12 months _after they are marked done_; the privacy notice says reports are deleted "within 12 months", and an open report is never deleted. Keep the brief's rule and adjust the notice wording, or also delete any report 12 months after it arrived?  | B6, F6a      | the brief's rule (done + 12 months)                     |
+| #   | Question                                                                                                                                                                                            | Blocks      | Default until answered                                  |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------- |
+| O1  | **Placeholders:** contact email (guide suggests `phil@philglov.es`), city, launch date, partita IVA (only if any), the list of profiles for `sameAs`, a real photo for About, the 2–3 sentence bio. | F6a, F1, C5 | visible `[placeholder]` text; QA fails it before launch |
+
+Settled by the owner on 2026-11-12 (backend): O2, the notification address is only ever the `NOTIFY_TO` Worker secret,
+never in `wrangler.jsonc`; O3, every error report is deleted 12 months after it arrived, open or done, as the privacy
+notice says (decision 0017).
 
 Settled by the owner on 2026-11-12 (new guide and prototypes): one typeface, Crimson Pro, two files (upright 300–600,
 italic 300–400), font budget 80 KB (rule 8); shipped 64 KiB. Archivo, Source Serif 4 and JetBrains Mono are gone
@@ -155,7 +157,7 @@ Only runtime dependency allowed: `jose`. No framework. Stay within 10 ms CPU per
       approve / reject / reply / mark done / delete.
 - [x] B5 Notifications behind a config switch, off on staging ("notification skipped"): page title and `/admin` link
       only.
-- [x] B6 Scheduled retention job (IP hashes 30 d, rejected comments 30 d, done reports 12 months).
+- [x] B6 Scheduled retention job (IP hashes 30 d, rejected comments 30 d, every report 12 months after arrival, O3).
 - [x] B7 Security headers on all responses (use `worker/src/headers.ts`); admin gets its own CSP and noindex.
 - [x] B8 `/admin/write`: phone form, slug suggestion, R2 uploads (JPEG/PNG by signature, ≤ 25 MB, streamed, retry),
       drafts, Publish → PR through the GitHub App. When the slug already exists in the other language, the new text is
