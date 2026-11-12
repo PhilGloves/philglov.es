@@ -1,0 +1,177 @@
+---
+import Arrows from "../components/Arrows.astro";
+import EntryTable from "../components/EntryTable.astro";
+import Photo from "../components/Photo.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+/** Home page (Home.dc.html): statement, one photograph, latest entry, journal table, Now band, photos. */
+import { t, tf, topicName, type Locale } from "../i18n";
+import { getPage, getSeries, getSlots } from "../lib/collections.ts";
+import { journalPath, pathFor, rowsFor, isoDate, type EntryLike, type Row } from "../lib/entries.ts";
+import { personJsonLd } from "../lib/seo.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const rows = rowsFor(await getSlots(), locale) as Row<EntryLike>[];
+const [latest, ...older] = rows;
+const earlier = older.slice(0, 5);
+const series = await getSeries();
+const photos = series.flatMap((s) => s.photos.map((p) => ({ ...p, seriesTitle: s.title[locale] })));
+const hero = photos[0];
+const grid = photos.slice(1, 5);
+const widths = ["w2", "w1", "w1", "w2"] as const;
+const now = await getPage(locale, "now");
+const firstYear = rows.length
+  ? Math.min(...rows.map((r) => r.slot.date.getUTCFullYear()))
+  : new Date().getUTCFullYear();
+const photoPath = (p: { series: string; id: string }) => pathFor(locale, `/photos/${p.series}/${p.id}`);
+const path = locale === "en" ? "/" : "/it";
+---
+
+<BaseLayout
+  locale={locale}
+  path={path}
+  footer="flat"
+  fullTitle
+  title={t(locale, "homeTitle")}
+  description={t(locale, "homeDescription")}
+  jsonLd={[personJsonLd(locale)]}
+>
+  <div class="page">
+    <div class="g hero">
+      <div class="lab small">
+        <p>
+          <strong>{t(locale, "heroRole")}</strong>
+        </p>
+        <p class="muted">{t(locale, "heroBased")}</p>
+      </div>
+      <h1 class="state">
+        <span class="kick">{t(locale, "heroKick")}</span>
+        {t(locale, "heroLead")} <em>{t(locale, "heroEm")}</em>
+      </h1>
+      <p class="lede">
+        {t(locale, "heroLede1")} <a href={pathFor(locale, "/now")}>{t(locale, "heroNow")}</a>
+        {t(locale, "heroLede2")} <a href={pathFor(locale, "/about")}>{t(locale, "heroAbout")}</a>
+        {t(locale, "heroLede3")}
+      </p>
+    </div>
+
+    {hero && (
+      <figure class="photo">
+        <a href={photoPath(hero)}>
+          <Photo tone={hero.tone} alt={hero.alt[locale]} ratio="hero" />
+        </a>
+        <figcaption class="cap">
+          <span>{hero.caption[locale]}</span>
+          <a href={pathFor(locale, "/photos")}>
+            <Arrows text={t(locale, "allPhotos")} />
+          </a>
+        </figcaption>
+      </figure>
+    )}
+
+    <div class="g sec">
+      <div class="lab">
+        <h2>{t(locale, "navJournal")}</h2>
+        {rows.length > 0 && (
+          <p class="small muted">
+            {rows.length === 1
+              ? tf(locale, "journalCountOne", { year: firstYear })
+              : tf(locale, "journalCount", { n: rows.length, year: firstYear })}
+          </p>
+        )}
+        <p class="small muted">
+          <Arrows text={t(locale, "markLegend")} />
+        </p>
+      </div>
+      <div class="con">
+        {latest ? (
+          <div class="latest">
+            <p class="latest-meta">
+              <span>
+                {t(locale, "noShort")} {latest.number}
+              </span>
+              <time datetime={isoDate(latest.slot.date)}>{isoDate(latest.slot.date)}</time>
+              <span>{latest.version.entry.data.tags.map((tag) => topicName(locale, tag)).join(", ")}</span>
+              <b>
+                <Arrows text={latest.marker} />
+              </b>
+            </p>
+            <h3>
+              <a
+                href={latest.href}
+                lang={latest.only ? latest.version.lang : undefined}
+                hreflang={latest.only ? latest.version.lang : undefined}
+              >
+                {latest.version.entry.data.title}
+              </a>
+            </h3>
+            <div class="ex">
+              <p>{latest.version.entry.data.description}</p>
+              <a class="go" href={latest.href}>
+                <Arrows text={tf(locale, "readMin", { n: latest.version.minutes })} />
+              </a>
+            </div>
+          </div>
+        ) : (
+          <p class="muted">{t(locale, "noEntries")}</p>
+        )}
+        {earlier.length > 0 && <EntryTable locale={locale} rows={earlier} caption={t(locale, "earlierEntries")} />}
+        <p class="idx-more">
+          <a class="go" href={journalPath(locale)}>
+            <Arrows text={t(locale, "fullIndex")} />
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {now && (
+    <div class="band">
+      <div class="page g">
+        <div class="lab">
+          <h2>{t(locale, "navNow")}</h2>
+          <p class="small fine">{tf(locale, "nowUpdated", { date: isoDate(now.data.date) })}</p>
+        </div>
+        <div class="con">
+          <p>{now.data.description}</p>
+          <a class="small" href={pathFor(locale, "/now")}>
+            <Arrows text={t(locale, "nowMore")} />
+          </a>
+        </div>
+      </div>
+    </div>
+  )}
+
+  <div class="page">
+    {grid.length > 0 && (
+      <div class="g sec">
+        <div class="lab">
+          <h2>{t(locale, "navPhotos")}</h2>
+          <p class="small muted">
+            {series.length === 1 ? t(locale, "photosCountOne") : tf(locale, "photosCount", { n: series.length })} ·{" "}
+            <a class="go" href={pathFor(locale, "/photos")}>
+              <Arrows text={t(locale, "seeAll")} />
+            </a>
+          </p>
+        </div>
+        <div class="con">
+          <ul class="shots">
+            {grid.map((p, i) => (
+              <li class={widths[i % 4]}>
+                <figure>
+                  <a href={photoPath(p)}>
+                    <Photo tone={p.tone} alt={p.alt[locale]} />
+                  </a>
+                  <figcaption>{p.caption[locale]}</figcaption>
+                </figure>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    )}
+  </div>
+</BaseLayout>

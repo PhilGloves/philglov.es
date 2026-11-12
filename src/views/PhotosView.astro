@@ -1,0 +1,208 @@
+---
+import Arrows from "../components/Arrows.astro";
+import Photo from "../components/Photo.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+/**
+ * Photos: the series index, one series, one photograph. The images themselves
+ * come from the photo pipeline (ticket P2); until then Photo draws the tone
+ * placeholder. Alt text and captions are hand-written in both languages.
+ */
+import { t, tf, type Locale, type UiKey } from "../i18n";
+import { getSeries, type Photo as PhotoData, type Series } from "../lib/collections.ts";
+import { isoDate, pathFor } from "../lib/entries.ts";
+import { absolute, imageObjectJsonLd } from "../lib/seo.ts";
+
+interface Props {
+  locale: Locale;
+  /** Series slug; absent for the index. */
+  series?: string | undefined;
+  /** Photo id within the series; absent for the index and series pages. */
+  photo?: string | undefined;
+}
+
+const { locale, series: seriesSlug, photo: photoId } = Astro.props;
+const all = await getSeries();
+const series: Series | undefined = all.find((s) => s.slug === seriesSlug);
+const index = series && photoId ? series.photos.findIndex((p) => p.id === photoId) : -1;
+const photo: PhotoData | undefined = series && index >= 0 ? series.photos[index] : undefined;
+const prev = series && index > 0 ? series.photos[index - 1] : undefined;
+const next = series && index >= 0 ? series.photos[index + 1] : undefined;
+
+const photoPath = (p: PhotoData) => pathFor(locale, `/photos/${p.series}/${p.id}`);
+const seriesPath = (s: { slug: string }) => pathFor(locale, `/photos/${s.slug}`);
+const seriesMeta = (s: Series) =>
+  s.photos.length === 1
+    ? tf(locale, "seriesMetaOne", { year: s.year })
+    : tf(locale, "seriesMeta", { n: s.photos.length, year: s.year });
+
+const page =
+  photo && series
+    ? { path: photoPath(photo), title: photo.caption[locale], description: photo.alt[locale] }
+    : series
+      ? {
+          path: seriesPath(series),
+          title: series.title[locale],
+          description: series.description?.[locale] ?? seriesMeta(series),
+        }
+      : { path: pathFor(locale, "/photos"), title: t(locale, "photosTitle"), description: t(locale, "photosIntro") };
+
+const exif = photo?.exif;
+const exifRows = exif
+  ? (
+      [
+        ["exifCamera", exif.camera],
+        ["exifLens", exif.lens],
+        ["exifFocal", exif.focalLength],
+        ["exifAperture", exif.aperture],
+        ["exifShutter", exif.shutter],
+        ["exifIso", exif.iso === undefined ? undefined : String(exif.iso)],
+      ] as [UiKey, string | undefined][]
+    ).filter((r): r is [UiKey, string] => r[1] !== undefined)
+  : [];
+---
+
+<BaseLayout
+  locale={locale}
+  path={page.path}
+  current="photos"
+  title={page.title}
+  description={page.description}
+  jsonLd={
+    photo && series
+      ? [
+          imageObjectJsonLd({
+            pageUrl: absolute(page.path),
+            name: photo.caption[locale],
+            caption: photo.caption[locale],
+            description: photo.alt[locale],
+            dateCreated: photo.takenAt,
+            lang: locale,
+            rightsPath: pathFor(locale, "/rights"),
+          }),
+        ]
+      : []
+  }
+>
+  <div class="page">
+    {photo && series ? (
+      <div class="g top single">
+        <div class="lab">
+          <p class="crumb">
+            <a href={pathFor(locale, "/photos")}>{t(locale, "photosTitle")}</a> /{" "}
+            <a href={seriesPath(series)}>{series.title[locale]}</a>
+          </p>
+          <p class="small muted">
+            <time datetime={isoDate(photo.takenAt)}>{isoDate(photo.takenAt)}</time>
+          </p>
+        </div>
+        <div class="con">
+          <h1 class="title">{photo.caption[locale]}</h1>
+          <figure>
+            <Photo tone={photo.tone} alt={photo.alt[locale]} ratio="land" />
+            <figcaption class="cap">
+              <span>{t(locale, "photoCredit")}</span>
+              <a href={seriesPath(series)}>
+                <Arrows text={t(locale, "backToSeries")} />
+              </a>
+            </figcaption>
+          </figure>
+          {exifRows.length > 0 && (
+            <dl class="exif">
+              {exifRows.map(([key, value]) => (
+                <div>
+                  <dt>{t(locale, key)}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          <nav class="pn" aria-label={series.title[locale]}>
+            <div class="pn-grid">
+              {prev && (
+                <a href={photoPath(prev)}>
+                  <span class="k">
+                    <Arrows text={t(locale, "previous")} />
+                  </span>
+                  <span class="v">{prev.caption[locale]}</span>
+                </a>
+              )}
+              {next && (
+                <a href={photoPath(next)}>
+                  <span class="k">
+                    <Arrows text={t(locale, "next")} />
+                  </span>
+                  <span class="v">{next.caption[locale]}</span>
+                </a>
+              )}
+            </div>
+          </nav>
+        </div>
+      </div>
+    ) : series ? (
+      <>
+        <div class="g hero">
+          <div class="lab">
+            <p class="crumb">
+              <a href={pathFor(locale, "/photos")}>{t(locale, "photosTitle")}</a> / {series.title[locale]}
+            </p>
+          </div>
+          <h1 class="state">{series.title[locale]}</h1>
+          <p class="lede">{series.description?.[locale] ?? seriesMeta(series)}</p>
+        </div>
+        <div class="g sec">
+          <div class="lab">
+            <h2>{t(locale, "photosTitle")}</h2>
+            <p class="small muted">{seriesMeta(series)}</p>
+          </div>
+          <div class="con">
+            <ul class="shots">
+              {series.photos.map((p, i) => (
+                <li class={i % 4 === 0 || i % 4 === 3 ? "w2" : "w1"}>
+                  <figure>
+                    <a href={photoPath(p)}>
+                      <Photo tone={p.tone} alt={p.alt[locale]} />
+                    </a>
+                    <figcaption>{p.caption[locale]}</figcaption>
+                  </figure>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </>
+    ) : (
+      <>
+        <div class="g hero">
+          <div class="lab">
+            <p class="crumb">
+              <a href={pathFor(locale, "/")}>{t(locale, "crumbHome")}</a> / {t(locale, "photosTitle")}
+            </p>
+          </div>
+          <h1 class="state">{t(locale, "photosTitle")}</h1>
+          <p class="lede">{t(locale, "photosIntro")}</p>
+        </div>
+        <div class="g sec">
+          <div class="lab">
+            <h2>{t(locale, "photosTitle")}</h2>
+            <p class="small muted">
+              {all.length === 1 ? t(locale, "photosCountOne") : tf(locale, "photosCount", { n: all.length })}
+            </p>
+          </div>
+          <div class="con">
+            <ul class="series">
+              {all.map((s) => (
+                <li>
+                  <a href={seriesPath(s)}>
+                    <Photo tone={s.photos[0]?.tone ?? 1} alt={s.photos[0]?.alt[locale] ?? s.title[locale]} />
+                    <h3>{s.title[locale]}</h3>
+                    <p>{seriesMeta(s)}</p>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </>
+    )}
+  </div>
+</BaseLayout>

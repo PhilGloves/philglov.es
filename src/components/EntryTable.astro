@@ -1,0 +1,67 @@
+---
+import Arrows from "./Arrows.astro";
+/**
+ * The journal table (markup from /styleguide, "Home"): number, date, title,
+ * topic, language marker, minutes. Entries that exist only in the other
+ * language are marked "IT only" / "solo EN" and link to the version that exists.
+ */
+import { t, tf, topicName, type Locale } from "../i18n";
+import { isoDate, type EntryLike, type Row } from "../lib/entries.ts";
+
+interface Props {
+  locale: Locale;
+  rows: readonly Row<EntryLike>[];
+  caption: string;
+  /** Hide the caption visually (a heading above already names the table). */
+  captionHidden?: boolean;
+}
+
+const { locale, rows, caption, captionHidden = false } = Astro.props;
+---
+
+<table class="idx">
+  <caption class:list={{ "sr-only": captionHidden }}>{caption}</caption>
+  <thead>
+    <tr>
+      <th scope="col">{t(locale, "thNo")}</th>
+      <th scope="col">{t(locale, "thDate")}</th>
+      <th scope="col">{t(locale, "thTitle")}</th>
+      <th scope="col" class="tp">
+        {t(locale, "thTopic")}
+      </th>
+      <th scope="col">{t(locale, "thLang")}</th>
+      <th scope="col" class="mn">
+        {t(locale, "thMin")}
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    {rows.map((row) => (
+      <tr>
+        <td class="n">{row.number}</td>
+        <td class="dt">
+          <time datetime={isoDate(row.slot.date)}>{isoDate(row.slot.date)}</time>
+        </td>
+        <td class="t">
+          <a
+            href={row.href}
+            lang={row.only ? row.version.lang : undefined}
+            hreflang={row.only ? row.version.lang : undefined}
+          >
+            {row.version.entry.data.title}
+          </a>
+        </td>
+        <td class="tp">{row.version.entry.data.tags.map((tag) => topicName(locale, tag)).join(", ")}</td>
+        <td class="ln">
+          <span class:list={{ only: row.only }}>
+            <Arrows text={row.marker} />
+          </span>
+        </td>
+        <td class="mn">
+          <span class="sr-only">{tf(locale, "minutes", { n: row.version.minutes })}</span>
+          <span aria-hidden="true">{row.version.minutes}</span>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>

@@ -4,7 +4,13 @@
       "startServerCommand": "pnpm preview",
       "startServerReadyPattern": "Ready on",
       "startServerReadyTimeout": 60000,
-      "url": ["http://127.0.0.1:8787/", "http://127.0.0.1:8787/it"],
+      "url": [
+        "http://127.0.0.1:8787/",
+        "http://127.0.0.1:8787/it",
+        "http://127.0.0.1:8787/journal",
+        "http://127.0.0.1:8787/lisbona",
+        "http://127.0.0.1:8787/photos/lisbon/tram-28"
+      ],
       "numberOfRuns": 3,
       "settings": {
         "formFactor": "mobile",

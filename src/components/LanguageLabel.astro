@@ -1,0 +1,45 @@
+---
+import Arrows from "./Arrows.astro";
+/**
+ * "Originally written in" label under the title of every entry and page
+ * (docs/guide.md, the three-row table; decisions 0003 and 0012).
+ *   original with a twin  → Written in English · Leggi in italiano →
+ *   own translation       → Originally written in Italian · Read the original →
+ *   original, no twin yet → Written in English · Not yet available in Italian
+ */
+import { t, type Locale } from "../i18n";
+import { labelState, markerFor, otherLocale, pathFor } from "../lib/entries.ts";
+
+interface Props {
+  locale: Locale;
+  originalLang: Locale;
+  /** Path of this page without the language prefix, e.g. "/alps" or "/about". */
+  rest: string;
+  hasTwin: boolean;
+}
+
+const { locale, originalLang, rest, hasTwin } = Astro.props;
+const state = labelState({ lang: locale, originalLang }, hasTwin);
+const other = otherLocale(locale);
+const marker = markerFor({ lang: locale, originalLang }, locale);
+const otherHref = pathFor(other, rest);
+---
+
+<p class="label">
+  <span class="marker" aria-hidden="true">
+    <Arrows text={marker} />
+  </span>
+  <span>{t(locale, state === "translation" ? "labelTranslation" : "labelOriginal")}</span>
+  <span aria-hidden="true">·</span>
+  {state === "original-twin" && (
+    <a href={otherHref} hreflang={other} lang={other}>
+      <Arrows text={t(locale, "readOther")} />
+    </a>
+  )}
+  {state === "translation" && (
+    <a href={otherHref} hreflang={other}>
+      <Arrows text={t(locale, "labelReadOriginal")} />
+    </a>
+  )}
+  {state === "original-only" && <span>{t(locale, "labelNotYet")}</span>}
+</p>

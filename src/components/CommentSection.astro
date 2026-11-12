@@ -1,0 +1,100 @@
+---
+/**
+ * Approved comments and the reply form (markup from /styleguide, "Comments").
+ * Everything here is plain HTML. The Worker (tickets B2, B3, B3b) does the rest:
+ *  - [data-slot="comments"]: the <ol> it fills with approved comments (HTMLRewriter,
+ *    text only); [data-slot="comment-count"]: the number, written next to the title.
+ *  - [data-slot="comment-status"] (#comment-status): the thank-you notice after
+ *    ?sent=… and the error summary (role="alert") after a 422.
+ *  - [data-slot="error-<field>"]: the text of one field's error, next to the field.
+ *  - input[name="token"]: a fresh signed token. input[name="website"]: the honeypot.
+ * See docs/decisions/0016-frontend-pages.md for the whole contract.
+ */
+import FormGuard from "./FormGuard.astro";
+import { t, type Locale } from "../i18n";
+
+interface Props {
+  locale: Locale;
+  slug: string;
+}
+
+const { locale, slug } = Astro.props;
+---
+
+<section id="comments" class="g comments" data-slug={slug} data-lang={locale} aria-labelledby="comments-title">
+  <div class="lab">
+    <h2 id="comments-title">
+      {t(locale, "commentsTitle")}
+      <span data-slot="comment-count"></span>
+    </h2>
+    <p class="small muted">{t(locale, "commentsNote")}</p>
+  </div>
+  <div class="con">
+    <ol class="clist" data-slot="comments"></ol>
+  </div>
+</section>
+
+<div class="g sec reply">
+  <div class="lab">
+    <h2>{t(locale, "replyTitle")}</h2>
+  </div>
+  <div class="con">
+    <h3 class="big">{t(locale, "commentFormTitle")}</h3>
+    <p class="intro">{t(locale, "commentIntro")}</p>
+    <div id="comment-status" data-slot="comment-status"></div>
+    <form class="form" method="post" action="/api/comment" id="comment-form">
+      <div class="field">
+        <label for="c-name">{t(locale, "fieldName")}</label>
+        <input
+          id="c-name"
+          name="name"
+          type="text"
+          autocomplete="name"
+          required
+          maxlength="80"
+          aria-describedby="c-name-err"
+        />
+        <span id="c-name-err" class="field-error" data-slot="error-name"></span>
+      </div>
+      <div class="field">
+        <label for="c-email">{t(locale, "fieldEmail")}</label>
+        <input
+          id="c-email"
+          name="email"
+          type="email"
+          autocomplete="email"
+          required
+          maxlength="254"
+          aria-describedby="c-email-hint c-email-err"
+        />
+        <span id="c-email-hint" class="hint">
+          {t(locale, "emailHint")}
+        </span>
+        <span id="c-email-err" class="field-error" data-slot="error-email"></span>
+      </div>
+      <div class="field full">
+        <label for="c-comment">{t(locale, "fieldComment")}</label>
+        <textarea
+          id="c-comment"
+          name="comment"
+          rows="6"
+          required
+          maxlength="4000"
+          aria-describedby="c-comment-err"
+        ></textarea>
+        <span id="c-comment-err" class="field-error" data-slot="error-comment"></span>
+      </div>
+      <input type="hidden" name="slug" value={slug} />
+      <input type="hidden" name="lang" value={locale} />
+      <FormGuard locale={locale} id="c" />
+      <div class="ffoot full">
+        <button type="submit" class="btn">
+          {t(locale, "send")}
+        </button>
+        <span class="consent">
+          {t(locale, "consent")} <a href={locale === "en" ? "/privacy" : "/it/privacy"}>{t(locale, "privacyNotice")}</a>
+        </span>
+      </div>
+    </form>
+  </div>
+</div>

@@ -182,6 +182,7 @@ rm app.private-key.pem app.pkcs8.pem
 3. The privacy and rights pages have no unfilled placeholder (contact email, city, launch date).
 4. QA's full matrix and the security audit report zero open failures.
 5. `/admin` returns 403 without an Access token on philglov.es (QA test, re-run against production).
+6. The owner has read and rewritten every Italian interface string and the Italian privacy and rights pages.
 
 ### 11. Domains
 

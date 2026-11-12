@@ -1,22 +1,29 @@
 ---
 import Arrows from "./Arrows.astro";
+import FormGuard from "./FormGuard.astro";
 /**
- * Footer on every page: the error-report form inside a <details> (works with
- * JavaScript off: it is a plain POST), the secondary links and the rights line.
+ * Footer on every page: the error-report form inside a <details> (a plain POST
+ * to /api/report, so it works with JavaScript off), the secondary links and the
+ * rights line. Marked slots (data-slot) are where the Worker writes its thank-you
+ * and error messages; see docs/decisions/0016-frontend-pages.md.
+ *
  * `flat` drops the heavy rule above it, for pages that already end in a
  * hairline (the home page). `demo` renders without the landmark and ids.
  */
+import site from "../data/site.json" with { type: "json" };
 import { t, type Locale } from "../i18n";
 
 interface Props {
   locale: Locale;
   flat?: boolean;
   demo?: boolean;
+  /** This page's path without a query, sent with the report so I know where the error is. */
+  path?: string;
   /** Prefix for field ids when the footer appears twice on one page. */
   idPrefix?: string;
 }
 
-const { locale, flat = false, demo = false, idPrefix = "f" } = Astro.props;
+const { locale, flat = false, demo = false, path = "/", idPrefix = "f" } = Astro.props;
 const prefix = locale === "en" ? "" : "/it";
 const Footer = demo ? "div" : "footer";
 const link = (href: string) => (demo ? "#" : href);
@@ -28,6 +35,7 @@ const links = [
   { href: locale === "en" ? "/feed.xml" : "/it/feed.xml", label: t(locale, "footRss") },
   { href: `${prefix}/privacy`, label: t(locale, "footPrivacy") },
 ];
+const partitaIva = site.partitaIva;
 ---
 
 <div class="page">
@@ -37,19 +45,38 @@ const links = [
     </div>
     <div class="txt">
       <p>{t(locale, "reportText")}</p>
-      <details>
+      <div data-slot="report-status" id={demo ? undefined : "report-status"}></div>
+      <details data-slot="report-details">
         <summary>
           <Arrows text={t(locale, "reportSummary")} />
         </summary>
         <form class="rform" method="post" action="/api/report">
           <div class="field field--small">
             <label for={`${idPrefix}-msg`}>{t(locale, "reportMessage")}</label>
-            <textarea id={`${idPrefix}-msg`} name="message" required></textarea>
+            <textarea
+              id={`${idPrefix}-msg`}
+              name="message"
+              required
+              maxlength="2000"
+              aria-describedby={`${idPrefix}-msg-err`}
+            ></textarea>
+            <span id={`${idPrefix}-msg-err`} class="field-error" data-slot="report-error-message"></span>
           </div>
           <div class="field field--small">
             <label for={`${idPrefix}-mail`}>{t(locale, "reportEmail")}</label>
-            <input id={`${idPrefix}-mail`} name="email" type="email" autocomplete="email" />
+            <input
+              id={`${idPrefix}-mail`}
+              name="email"
+              type="email"
+              autocomplete="email"
+              maxlength="254"
+              aria-describedby={`${idPrefix}-mail-err`}
+            />
+            <span id={`${idPrefix}-mail-err`} class="field-error" data-slot="report-error-email"></span>
           </div>
+          <input type="hidden" name="url" value={path} />
+          <input type="hidden" name="lang" value={locale} />
+          <FormGuard locale={locale} id={idPrefix} />
           <button type="submit" class="btn">
             {t(locale, "reportSend")}
           </button>
@@ -68,6 +95,7 @@ const links = [
         <a href={link(`${prefix}/rights`)}>{t(locale, "rightsLine")}</a>
         <br />
         {t(locale, "colophon")}
+        {partitaIva && <> · P.IVA {partitaIva}</>}
       </p>
     </div>
   </Footer>

@@ -1,18 +1,25 @@
 ---
 /**
- * Base layout. The design agent wired in the stylesheet, fonts, brand icons,
- * header and footer; the frontend agent owns it from here (TICKETS.md, F1):
- * the inline theme script, Open Graph, structured data.
+ * Base layout: <html lang>, meta, canonical, hreflang (only when the twin
+ * exists), Open Graph, JSON-LD, the one inline theme script, skip link, header,
+ * main#main, footer. No inline style attributes anywhere (the CSP blocks them).
+ *
+ * The theme script is hashed by scripts/postbuild.ts straight from the built
+ * HTML and the hash goes into worker/src/script-hashes.json for the CSP header.
  */
 import "../styles/site.css";
 import { brand } from "../assets/brand/brand.config";
 import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import { t, twinPath, type Locale } from "../i18n";
+import { jsonLdText } from "../lib/seo.ts";
+import themeScript from "../scripts/theme.js?raw";
 
 interface Props {
   locale: Locale;
+  /** The page's own title; " · Filippo Guanti" is added unless `fullTitle` is set or the name is already in it. */
   title: string;
+  fullTitle?: boolean;
   description: string;
   /** This page's path without a trailing slash, e.g. "/" or "/it/alps". */
   path: string;
@@ -20,17 +27,42 @@ interface Props {
   hasTwin?: boolean;
   noindex?: boolean;
   /** Which main-navigation link is the current section. */
-  current?: "journal" | "photos" | "now" | "about";
+  current?: "journal" | "photos" | "now" | "about" | undefined;
   /** "flat" for pages that already end in a hairline (home); default has a heavy rule. */
   footer?: "rule" | "flat";
+  /** Open Graph type. */
+  ogType?: "website" | "article";
+  /** Path of the 1200×630 share image under /_assets/share/. */
+  ogImage?: string;
+  /** JSON-LD objects (Person, BlogPosting, ImageObject). */
+  jsonLd?: readonly Record<string, unknown>[];
 }
 
-const { locale, title, description, path, hasTwin = true, noindex = false, current, footer = "rule" } = Astro.props;
+const {
+  locale,
+  title,
+  fullTitle = false,
+  description,
+  path,
+  hasTwin = true,
+  noindex = false,
+  current,
+  footer = "rule",
+  ogType = "website",
+  ogImage = "/_assets/share/default.png",
+  jsonLd = [],
+} = Astro.props;
 const site = Astro.site ?? new URL("https://philglov.es");
 const canonical = new URL(path, site).href;
 const otherPath = twinPath(locale, path);
 const enHref = new URL(locale === "en" ? path : otherPath, site).href;
 const itHref = new URL(locale === "it" ? path : otherPath, site).href;
+const name = brand.name;
+const fullPageTitle = fullTitle || title.includes(name) ? title : `${title} · ${t(locale, "titleSuffix")}`;
+const image = new URL(ogImage, site).href;
+const feed = locale === "en" ? "/feed.xml" : "/it/feed.xml";
+const ogLocale = { en: "en_GB", it: "it_IT" } as const;
+const otherLocale: Locale = locale === "en" ? "it" : "en";
 ---
 
 <!doctype html>
@@ -38,7 +70,7 @@ const itHref = new URL(locale === "it" ? path : otherPath, site).href;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
+    <title>{fullPageTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     {hasTwin && (
@@ -48,6 +80,19 @@ const itHref = new URL(locale === "it" ? path : otherPath, site).href;
         <link rel="alternate" hreflang="x-default" href={enHref} />
       </>
     )}
+    <link rel="alternate" type="application/rss+xml" title={t(locale, "feedTitle")} href={feed} />
+    <meta property="og:site_name" content={name} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={fullPageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={ogLocale[locale]} />
+    {hasTwin && <meta property="og:locale:alternate" content={ogLocale[otherLocale]} />}
+    <meta property="og:image" content={image} />
+    <meta property="og:image:width" content={String(brand.share.width)} />
+    <meta property="og:image:height" content={String(brand.share.height)} />
+    <meta property="og:image:alt" content={fullPageTitle} />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content={brand.themeColor} />
     <link rel="icon" href={brand.icons.svg} type="image/svg+xml" />
     <link rel="icon" href={brand.icons.png32} type="image/png" sizes="32x32" />
@@ -55,6 +100,10 @@ const itHref = new URL(locale === "it" ? path : otherPath, site).href;
     <link rel="preload" href="/_assets/fonts/crimson-pro.woff2" as="font" type="font/woff2" crossorigin />
     <meta name="tdm-reservation" content="1" />
     {noindex && <meta name="robots" content="noindex" />}
+    {jsonLd.map((data) => (
+      <script type="application/ld+json" set:html={jsonLdText(data)} />
+    ))}
+    <script is:inline set:html={themeScript.trim()} />
   </head>
   <body>
     <a class="skip" href="#main">
@@ -64,6 +113,6 @@ const itHref = new URL(locale === "it" ? path : otherPath, site).href;
     <main id="main">
       <slot />
     </main>
-    <SiteFooter locale={locale} flat={footer === "flat"} />
+    <SiteFooter locale={locale} flat={footer === "flat"} path={path} />
   </body>
 </html>

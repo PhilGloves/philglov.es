@@ -1,0 +1,24 @@
+---
+/**
+ * The two anti-spam fields every form carries (docs/guide.md, Backend):
+ *  - `website`: a honeypot. Humans never see it; bots fill it.
+ *  - `token`: empty here. The Worker writes a fresh signed token into it as it
+ *    serves the page (HTMLRewriter, ticket B3b), so the static HTML stays cacheable.
+ * Both work with JavaScript off: this is plain HTML.
+ */
+import { t, type Locale } from "../i18n";
+
+interface Props {
+  locale: Locale;
+  /** Unique id prefix, because a page can carry two forms. */
+  id: string;
+}
+
+const { locale, id } = Astro.props;
+---
+
+<div class="hp" aria-hidden="true">
+  <label for={`${id}-website`}>{t(locale, "honeypotLabel")}</label>
+  <input id={`${id}-website`} name="website" type="text" tabindex="-1" autocomplete="off" value="" />
+</div>
+<input type="hidden" name="token" value="" data-slot="token" />

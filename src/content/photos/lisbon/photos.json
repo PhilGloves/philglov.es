@@ -1,0 +1,36 @@
+{
+  "title": { "en": "Lisbon [placeholder series]", "it": "Lisbona [serie segnaposto]" },
+  "description": {
+    "en": "[Placeholder] A series of photographs.",
+    "it": "[Segnaposto] Una serie di fotografie."
+  },
+  "photos": [
+    {
+      "file": "tram-28.jpg",
+      "alt": {
+        "en": "[Placeholder alt text: a yellow tram climbing a steep street]",
+        "it": "[Testo alternativo segnaposto: un tram giallo che sale una strada ripida]"
+      },
+      "caption": { "en": "Tram 28 · Lisbon, 2026", "it": "Tram 28 · Lisbona, 2026" },
+      "takenAt": "2026-10-12"
+    },
+    {
+      "file": "graca.jpg",
+      "alt": {
+        "en": "[Placeholder alt text: a terrace above the rooftops at dusk]",
+        "it": "[Testo alternativo segnaposto: una terrazza sopra i tetti al tramonto]"
+      },
+      "caption": { "en": "Graça · Lisbon, 2026", "it": "Graça · Lisbona, 2026" },
+      "takenAt": "2026-10-13"
+    },
+    {
+      "file": "alfama.jpg",
+      "alt": {
+        "en": "[Placeholder alt text: washing hung across a narrow lane]",
+        "it": "[Testo alternativo segnaposto: panni stesi lungo un vicolo stretto]"
+      },
+      "caption": { "en": "Alfama · Lisbon, 2026", "it": "Alfama · Lisbona, 2026" },
+      "takenAt": "2026-10-14"
+    }
+  ]
+}

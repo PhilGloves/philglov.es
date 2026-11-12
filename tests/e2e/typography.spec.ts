@@ -20,12 +20,19 @@ test("only the Crimson Pro files are fetched, and no arrow character is drawn", 
   expect(await page.locator("svg.arr").count()).toBeGreaterThan(10);
 });
 
-test("the home page loads the upright font only (the italic is not preloaded and not needed)", async ({ page }) => {
+test("the home page preloads the upright font only; the italic (the hero's emphasis) loads when drawn", async ({
+  page,
+}) => {
   const fonts: string[] = [];
   page.on("response", (res) => {
     if (res.request().resourceType() === "font") fonts.push(new URL(res.url()).pathname);
   });
   await page.goto("/");
   await page.evaluate(() => document.fonts.ready);
-  expect(fonts).toEqual(["/_assets/fonts/crimson-pro.woff2"]);
+  expect(fonts).toContain("/_assets/fonts/crimson-pro.woff2");
+  for (const path of fonts) expect(path).toMatch(/^\/_assets\/fonts\/crimson-pro(-italic)?\.woff2$/);
+  const preloads = await page
+    .locator('link[rel="preload"][as="font"]')
+    .evaluateAll((links) => links.map((l) => new URL((l as HTMLLinkElement).href).pathname));
+  expect(preloads).toEqual(["/_assets/fonts/crimson-pro.woff2"]);
 });

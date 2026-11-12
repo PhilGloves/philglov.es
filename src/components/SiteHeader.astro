@@ -54,6 +54,7 @@ const Nav = demo ? "div" : "nav";
     <div class="tools">
       <a class="lang-switch" href={demo ? "#" : switchHref} hreflang={other} lang={other}>
         {t(locale, "otherLanguageName")}
+        {!hasTwin && !demo && <span class="sr-only"> — {t(locale, "switchNoTwin")}</span>}
       </a>
       <button type="button" class="theme-toggle" aria-pressed="false" data-theme-toggle>
         {t(locale, "themeToggle")}
