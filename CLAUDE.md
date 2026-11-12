@@ -86,6 +86,9 @@ WAY OF WORKING
   frontmatter field ([0012](docs/decisions/0012-hand-written-translations.md)).
 - 2026-11-12: design system built (D1–D12, [0014](docs/decisions/0014-design-system.md)). Typography changed on the owner's
   new guide: one family, Crimson Pro, two files, 64 KiB of the 80 KB budget ([0015](docs/decisions/0015-one-typeface-crimson-pro.md)).
+- 2026-11-12: backend built (B1–B10, [0017](docs/decisions/0017-backend-worker.md)): forms, comments, `/admin`,
+  `/admin/write`, crons. On staging it waits for the owner's secrets and Access AUD tags (`docs/setup.md` steps 9, 10):
+  until then forms answer 503 and `/admin` 403.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -105,8 +108,10 @@ src/components/styleguide/    sections of /styleguide: the markup to copy for ea
 src/i18n/{en,it}.json         every UI string; no text hard-coded in templates
 src/data/                     data files (e.g. ai-bots.json)
 public/_assets/               fonts (2 WOFF2 + crimson-pro-OFL.txt) and other static files, no Worker
-worker/src/                   the Worker; headers.ts is shared with the build
-worker/migrations/            D1 migrations (backend agent)
+worker/src/                   the Worker (0017): index.ts routes; forms, page, comments, access, github, notify,
+                              scheduled, admin/; headers.ts is shared with the build; log.ts is the only logger
+worker/migrations/            D1 migrations, applied by CI (migrations_dir in wrangler.jsonc)
+tests/worker/                 Vitest inside workerd (vitest.config.ts: test JWKS and a GitHub stand-in)
 scripts/lib/content-check.ts    the build check; scripts/lib/new-entry.ts the `pnpm new` template
 scripts/                      build helpers, run with plain `node` (type stripping); build-fonts.py by hand
 tests/unit/ tests/e2e/        node:test unit tests; Playwright e2e
@@ -123,11 +128,13 @@ pnpm install --frozen-lockfile   install (pnpm 12; builds allowed only for esbui
 pnpm dev                         Astro dev server (no Worker)
 pnpm build                       astro build + share-image PNGs (needs Chromium) + CSP hash + dist/_headers
                                  (SITE_ENV=production only at launch)
-pnpm preview                     serve dist/ through the real Worker on http://127.0.0.1:8787
+pnpm preview                     serve dist/ through the real Worker on http://127.0.0.1:8787 (writes a local
+                                 .dev.vars, migrates the local D1; /admin is always 403 locally)
 pnpm lint | pnpm format          ESLint + Prettier
-pnpm typecheck                   wrangler types + astro check + worker tsc
+pnpm typecheck                   wrangler types + astro check + worker tsc + tests/worker tsc
 pnpm validate:html               html-validate on dist/
 pnpm test:unit | test:e2e        node:test | Playwright (needs a build)
+pnpm test:worker                 Vitest in the Workers runtime, against dist/ (needs a build)
 pnpm test:lighthouse             Lighthouse CI against pnpm preview; 3 runs per page, judged on the median (0013)
 pnpm new <slug> --lang it|en     new entry, or the other-language version of one (ticket C4)
 pnpm check:content               cross-file content check (twins, slugs, folders, alt); runs first in pnpm build (C2)
@@ -158,6 +165,11 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
   `<Arrow>` (inline SVG) and never type an arrow character in a template.
 - Pages: the form field names and Worker slots are a contract (0016); keep them. The only inline JS is the theme
   script. Footnote arrows and labels are fixed in `scripts/lib/footnotes.ts`.
-- Never log names, emails, comment text or IP addresses.
+- Never log names, emails, comment text or IP addresses. The Worker logs only through `worker/src/log.ts` (fixed
+  event names). Never put personal data in a URL: Workers Logs record URLs.
+- Worker output: text into pages only via `Parts`/HTMLRewriter `html: false`; admin markup only via the escaping
+  `html` template. The admin script is served from `/admin/write.js` behind Access, never from `/_assets/`.
+- Every `/admin` path verifies the Access JWT; there is no local or test bypass. Secrets only via `wrangler secret
+put`; non-secret config as per-env vars in `wrangler.jsonc` (`secrets.required` lists the names).
 - No translation tooling of any kind: no AI or translation API, script, CI job, key, secret or dependency. hreflang
   pairs only when both language versions exist (`hasTwin` in `BaseLayout.astro`).

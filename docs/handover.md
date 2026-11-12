@@ -150,3 +150,52 @@ replace the seed. Photo (P): swap `Photo.astro` for `<picture>`; set `contentUrl
 
 Start the **Content** (agent 4), **Backend** (5) and **Photo** (6) agents, which can run in parallel, then **Frontend**
 (3) for the pages; each reads `CLAUDE.md`, this file and its prompt in `docs/guide.md`. The typography is settled (0015).
+
+## Backend (agent 5) — 2026-11-12
+
+Tickets B1–B10, decision [0017](decisions/0017-backend-worker.md). Branch `backend/b1-worker`, cut from `main` after
+#9. Runtime dependencies are now two: `astro`, `jose`. Dev: `vitest`, `@cloudflare/vitest-plugin`.
+
+**What exists.** `worker/src/`: router (`index.ts`), public forms (`forms.ts`, `validate.ts`, `tokens.ts`,
+`ratelimit.ts`), page rewriting with comments, tokens, thank-you and 422 errors (`page.ts`, `comments.ts`), Access
+check (`access.ts`), `/admin` moderation, `/admin/write`, uploads and its script (`admin/`), GitHub App
+(`github.ts`), notifications (`notify.ts`), crons (`scheduled.ts`), the only logger (`log.ts`). D1 schema in
+`worker/migrations/0001_init.sql`. The build writes `/_assets/entries.json` (`src/pages/entries.json.ts` +
+postbuild). `pnpm preview` now writes a random local `.dev.vars` and migrates the local D1 first
+(`scripts/preview.ts`). Worker messages to visitors are `w_*` keys in `src/i18n/{en,it}.json`.
+
+**Verified.** `pnpm lint`, `typecheck` (now also `tsc -p tests/worker`), `build`, `validate:html`, 70 unit tests,
+133 Worker tests (every validation rule, tokens, rate limiter, XSS payloads as text, Access 403s incl. wrong audience
+and forged keys, CSRF, moderation, deletion, uploads by signature, publish through a GitHub stand-in, retention,
+backups, headers on every response type, no personal data in logs), 53 e2e tests. By hand against `pnpm preview`:
+a comment sent at once → 422; after 3 s → 303 and the thank-you; approved in D1 → on both language pages after the
+60 s cache; `/admin` → 403. **Not verified:** anything on staging (the secrets and AUD tags are not set yet), real
+email sending (off until launch), a real GitHub App, uploads from an iPhone, Firefox/WebKit, a screen reader on
+`/admin`.
+
+**For the owner (in this order).**
+
+1. `docs/setup.md` step 9: `FORM_HMAC_KEY` and `IP_SALT` for staging and preview, and the two **AUD tags** (paste
+   them in a message; an agent puts them in `wrangler.jsonc`). Until then staging forms answer 503 and `/admin` 403.
+2. Step 10: create the GitHub App, then the three `GITHUB_APP_*` secrets per environment.
+3. TICKETS.md O2 (where the notification address lives) and O3 (report retention wording). Read the Italian `w_*`
+   strings in `src/i18n/it.json`: they are drafts, except the comment thank-you, which is the guide's.
+4. Step 18: the error alert in Notifications (I could not check which alert types your plan offers).
+
+**For other agents.**
+
+- _Photo (P1/P2):_ phone entries reference photos as `../../../.originals/<slug>/<file>` (with the caption as the
+  image title). Download `philglov-originals/<slug>/*` to `src/.originals/<slug>/` and make that path resolve, or
+  change `photoPath()` in `worker/src/entry-file.ts` and its test together.
+- _QA:_ the e2e tests that expected an empty token and 404 on `/admin` now expect a `v1.` token and 403. Locally
+  `/admin` is always 403 (no Access token, and no bypass, on purpose); test admin through `tests/worker/`, where
+  `vitest.config.ts` signs real JWTs. Q6 forms against a local Worker: `pnpm preview` is ready for it.
+- _Security:_ start with 0017's list of checks; `isAdminPath()` covers case, `%61` and `//`. The fragment cache is a
+  no-op on workers.dev, so staging always reads D1.
+- Anyone touching `src/components/CommentSection.astro` or `SiteFooter.astro`: field names, ids (`c-name`, `c-email`,
+  `c-comment`, `f-msg`, `f-mail`), slots and `#comment-form` are what `worker/src/page.ts` rewrites. The `maxlength`
+  of the two text areas now matches the brief (5,000 and 3,000).
+- `pnpm build` rewrites `worker/src/script-hashes.json` pretty-printed, which `prettier --check` then flags; it was so
+  before this branch. Restore it with `git checkout` unless the hash really changed.
+- The `html` tagged template in `worker/src` escapes every value; Prettier's embedded formatting is off for that folder
+  so it never reflows markup inside `<textarea>` or `<pre>`.

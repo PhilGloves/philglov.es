@@ -140,8 +140,14 @@ openssl rand -base64 32 | pnpm exec wrangler secret put FORM_HMAC_KEY --env stag
 openssl rand -base64 32 | pnpm exec wrangler secret put IP_SALT --env staging
 ```
 
-Repeat both with `--env preview`. The Access team domain and AUD from step 7 go into `wrangler.jsonc` as vars
-(`ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`) per environment; they are not secret. The backend agent adds the exact keys.
+Repeat both with `--env preview`. Until both are set, the forms answer 503 and pages carry an empty token.
+
+The Access **AUD tag** of each Worker (Workers & Pages → the Worker → Access tab, from step 7) is not secret: it goes
+into `wrangler.jsonc` as `ACCESS_AUD`, over `REPLACE_WITH_STAGING_ACCESS_AUD` and `REPLACE_WITH_PREVIEW_ACCESS_AUD`
+(one value per Worker). `ACCESS_TEAM_DOMAIN` is already `gentle-hall-eae9.cloudflareaccess.com`; change it if you rename
+the team. While an AUD is a placeholder, `/admin` on that Worker answers 403 to everyone, you included.
+
+`NOTIFY_TO` stays unset until launch (step 14).
 
 ### 10. GitHub App for phone publishing (when the backend agent asks)
 
@@ -165,7 +171,19 @@ pnpm exec wrangler secret put GITHUB_APP_PRIVATE_KEY --env staging < app.pkcs8.p
 rm app.private-key.pem app.pkcs8.pem
 ```
 
-`GITHUB_APP_ID` and `GITHUB_APP_INSTALLATION_ID` go in as vars or secrets as the backend agent specifies.
+`GITHUB_APP_ID` and `GITHUB_APP_INSTALLATION_ID` go in as secrets too (not secret values, but this keeps them out of
+the public repository and lets you set them without a pull request):
+
+```bash
+pnpm exec wrangler secret put GITHUB_APP_ID --env staging
+```
+
+```bash
+pnpm exec wrangler secret put GITHUB_APP_INSTALLATION_ID --env staging
+```
+
+Repeat the three `secret put` commands with `--env preview` (same App, same key). Until they are set, `/admin/write`
+saves drafts but says "Publishing is not set up". Photos go to `philglov-originals-staging/<slug>/`.
 
 ---
 
@@ -222,14 +240,19 @@ missing zone permission; add only that one.
 
 Zero Trust → Access → Applications → Add → **Self-hosted**: domain `philglov.es`, path `admin` (covers `/admin/*`),
 session duration **7 days**, policy Allow → Emails → your address, login method **One-time PIN**. Put its AUD tag in the
-production `ACCESS_AUD` var. The Worker also verifies the token itself.
+production `ACCESS_AUD` var (over `REPLACE_WITH_PRODUCTION_ACCESS_AUD`). The Worker also verifies the token itself: with
+no valid `Cf-Access-Jwt-Assertion` for that AUD, every `/admin` URL answers 403.
 
 ### 14. Email
 
 1. Email → **Email Routing** on philglov.es: route `phil@philglov.es` to your personal inbox; verify that destination
    address.
-2. The backend agent's `send_email` binding uses that verified address as `destination_address`. Turn notifications on
-   with its production config switch.
+2. Notifications for new comments and reports (page title and a link to `/admin`, nothing else). In `wrangler.jsonc`,
+   production env, add `"send_email": [{ "name": "EMAIL", "destination_address": "<your verified address>" }]` and set
+   `"NOTIFY": "on"`; then `pnpm exec wrangler secret put NOTIFY_TO --env production` with the same address. The sender
+   is `NOTIFY_FROM` (`notify@philglov.es`). **The repository is public:** an address written into `wrangler.jsonc`
+   is public too. To keep it private, leave out `destination_address` (the binding may then send to any verified
+   destination of the account) and keep the address only in the `NOTIFY_TO` secret. Owner's choice (TICKETS.md, O2).
 3. Add SPF, DKIM and DMARC records as Email Routing suggests; to send as `phil@philglov.es`, add the outgoing service
    in your mail client's "Send mail as".
 
@@ -259,4 +282,9 @@ back to philglov.es (docs/guide.md, "Off-site checklist").
 ### 18. Uptime and alerts
 
 A free external checker (UptimeRobot or similar) loads `/` and one entry every 5 minutes. Workers Logs are on
-(`observability` in `wrangler.jsonc`); add a notification for the Worker's error rate under Notifications.
+(`observability` in `wrangler.jsonc`) and hold only fixed event names from `worker/src/log.ts`, never form data.
+
+Error alert (B10): dashboard → **Notifications** → Add, and pick the alert type for Worker errors that your plan lists,
+for the `philglov` Worker. The backend agent could not check from the repository which types the Free plan offers;
+if none is Worker-specific, use **Origin Error Rate** on the philglov.es zone (it counts 5xx answers). The scheduled
+jobs log `retention done` / `backup done` daily and weekly; Workers Logs → filter on `failed` shows any miss.
