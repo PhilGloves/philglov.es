@@ -87,8 +87,8 @@ WAY OF WORKING
 - 2026-11-12: design system built (D1–D12, [0014](docs/decisions/0014-design-system.md)). Typography changed on the owner's
   new guide: one family, Crimson Pro, two files, 64 KiB of the 80 KB budget ([0015](docs/decisions/0015-one-typeface-crimson-pro.md)).
 - 2026-11-12: backend built (B1–B10, [0017](docs/decisions/0017-backend-worker.md)): forms, comments, `/admin`,
-  `/admin/write`, crons. On staging it waits for the owner's secrets and Access AUD tags (`docs/setup.md` steps 9, 10):
-  until then forms answer 503 and `/admin` 403.
+  `/admin/write`, crons. Staging and preview have their form secrets and Access AUD tags (setup step 9, done);
+  publishing waits for the GitHub App (step 10). Settled: O2 (address only in `NOTIFY_TO`), O3 (reports 12 months).
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map

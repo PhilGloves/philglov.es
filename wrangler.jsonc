@@ -82,7 +82,7 @@
       "vars": {
         "SITE_ENV": "staging",
         "ACCESS_TEAM_DOMAIN": "gentle-hall-eae9.cloudflareaccess.com",
-        "ACCESS_AUD": "REPLACE_WITH_STAGING_ACCESS_AUD",
+        "ACCESS_AUD": "6203b8b8bca9a7acd793efad85ab2ec6e0c837f6f9fac6cb3054b33623b5f965",
         "NOTIFY": "off",
         "NOTIFY_FROM": "notify@philglov.es",
         "GITHUB_REPO": "PhilGloves/philglov.es",
@@ -112,7 +112,7 @@
       "vars": {
         "SITE_ENV": "preview",
         "ACCESS_TEAM_DOMAIN": "gentle-hall-eae9.cloudflareaccess.com",
-        "ACCESS_AUD": "REPLACE_WITH_PREVIEW_ACCESS_AUD",
+        "ACCESS_AUD": "eafefe8a2e9044ba9c56afd4b2350e5f3945810fc07eb646c924a3e8cd6d8d77",
         "NOTIFY": "off",
         "NOTIFY_FROM": "notify@philglov.es",
         "GITHUB_REPO": "PhilGloves/philglov.es",

@@ -128,7 +128,10 @@ GitHub → Settings → Secrets and variables → Actions → **Variables**:
 
 Leave `PRODUCTION_DEPLOY` unset until launch.
 
-### 9. Worker secrets and config (when the backend agent asks)
+### 9. Worker secrets and config
+
+_Done 2026-11-12 for staging and preview (backend agent, values piped from `openssl` straight into wrangler, never
+printed or stored); AUD tags set in `wrangler.jsonc`. Production repeats this at launch (step 12)._
 
 Generate fresh random values per environment; never reuse them between environments.
 
@@ -140,11 +143,22 @@ openssl rand -base64 32 | pnpm exec wrangler secret put FORM_HMAC_KEY --env stag
 openssl rand -base64 32 | pnpm exec wrangler secret put IP_SALT --env staging
 ```
 
-Repeat both with `--env preview`. Until both are set, the forms answer 503 and pages carry an empty token.
+Repeat both for preview. The preview Worker's latest version is a PR preview, not its deployed version, so wrangler
+refuses `secret put` there; use `versions secret put` (a new version with the secret, nothing deployed; later
+`versions upload` runs keep it):
+
+```bash
+openssl rand -base64 32 | pnpm exec wrangler versions secret put FORM_HMAC_KEY --env preview
+```
+
+```bash
+openssl rand -base64 32 | pnpm exec wrangler versions secret put IP_SALT --env preview
+```
+
+Until both are set, the forms answer 503 and pages carry an empty token.
 
 The Access **AUD tag** of each Worker (Workers & Pages → the Worker → Access tab, from step 7) is not secret: it goes
-into `wrangler.jsonc` as `ACCESS_AUD`, over `REPLACE_WITH_STAGING_ACCESS_AUD` and `REPLACE_WITH_PREVIEW_ACCESS_AUD`
-(one value per Worker). `ACCESS_TEAM_DOMAIN` is already `gentle-hall-eae9.cloudflareaccess.com`; change it if you rename
+into `wrangler.jsonc` as `ACCESS_AUD`, one value per Worker (staging and preview are set). `ACCESS_TEAM_DOMAIN` is already `gentle-hall-eae9.cloudflareaccess.com`; change it if you rename
 the team. While an AUD is a placeholder, `/admin` on that Worker answers 403 to everyone, you included.
 
 `NOTIFY_TO` stays unset until launch (step 14).
@@ -182,7 +196,7 @@ pnpm exec wrangler secret put GITHUB_APP_ID --env staging
 pnpm exec wrangler secret put GITHUB_APP_INSTALLATION_ID --env staging
 ```
 
-Repeat the three `secret put` commands with `--env preview` (same App, same key). Until they are set, `/admin/write`
+Repeat the three for preview with `versions secret put` instead of `secret put` (same App, same key; see step 9). Until they are set, `/admin/write`
 saves drafts but says "Publishing is not set up". Photos go to `philglov-originals-staging/<slug>/`.
 
 ---
@@ -247,12 +261,19 @@ no valid `Cf-Access-Jwt-Assertion` for that AUD, every `/admin` URL answers 403.
 
 1. Email → **Email Routing** on philglov.es: route `phil@philglov.es` to your personal inbox; verify that destination
    address.
-2. Notifications for new comments and reports (page title and a link to `/admin`, nothing else). In `wrangler.jsonc`,
-   production env, add `"send_email": [{ "name": "EMAIL", "destination_address": "<your verified address>" }]` and set
-   `"NOTIFY": "on"`; then `pnpm exec wrangler secret put NOTIFY_TO --env production` with the same address. The sender
-   is `NOTIFY_FROM` (`notify@philglov.es`). **The repository is public:** an address written into `wrangler.jsonc`
-   is public too. To keep it private, leave out `destination_address` (the binding may then send to any verified
-   destination of the account) and keep the address only in the `NOTIFY_TO` secret. Owner's choice (TICKETS.md, O2).
+2. Notifications for new comments and reports (page title and a link to `/admin`, nothing else). Your address is
+   **never written in the repository** (owner decision O2, 2026-11-12; the repository is public): it lives only in the
+   `NOTIFY_TO` secret. Set it (wrangler asks for the value; type or paste it there):
+
+   ```bash
+   pnpm exec wrangler secret put NOTIFY_TO --env production
+   ```
+
+   Then, in a pull request, add to the production env of `wrangler.jsonc` the binding **without** a
+   `destination_address`, `"send_email": [{ "name": "EMAIL" }]`, and set `"NOTIFY": "on"`. Without a
+   `destination_address` the binding can send to any verified destination address of the account; the Worker sends
+   only to `NOTIFY_TO`. The sender is `NOTIFY_FROM` (`notify@philglov.es`).
+
 3. Add SPF, DKIM and DMARC records as Email Routing suggests; to send as `phil@philglov.es`, add the outgoing service
    in your mail client's "Send mail as".
 
