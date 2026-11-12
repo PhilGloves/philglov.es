@@ -8,5 +8,21 @@
   "readOther": "Read in English →",
   "notFoundTitle": "Pagina non trovata",
   "notFoundBody": "A questo indirizzo non c'è niente.",
-  "goHome": "Vai alla home page"
+  "goHome": "Vai alla home page",
+  "navLabel": "Principale",
+  "navJournal": "Diario",
+  "navPhotos": "Foto",
+  "navNow": "Now",
+  "navAbout": "Chi sono",
+  "themeToggle": "Scuro",
+  "errataTitle": "Errata",
+  "reportText": "Hai notato un refuso, un’informazione sbagliata o altro? Segnalalo con questo modulo anonimo — lascia la tua email solo se vuoi una risposta. Te ne sarò grato.",
+  "reportSummary": "Segnala un errore →",
+  "reportMessage": "Cosa non va?",
+  "reportEmail": "Email (facoltativa)",
+  "reportSend": "Invia",
+  "footRss": "RSS",
+  "footPrivacy": "Privacy",
+  "rightsLine": "© 2026 Filippo Guanti · Tutti i diritti riservati · No all’addestramento di IA",
+  "colophon": "Nessun tracker, nessun cookie."
 }

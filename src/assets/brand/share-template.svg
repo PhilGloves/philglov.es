@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <rect width="1200" height="630" fill="#fbfbf8"/>
+  <rect x="72" y="72" width="96" height="8" fill="#4a5d23"/>
+  <g font-family="Crimson Pro, Iowan Old Style, Palatino Linotype, Georgia, serif" font-weight="300" font-size="92" letter-spacing="-1.5" fill="#141414">
+    <!--TITLE-->
+  </g>
+  <text x="72" y="538" font-family="Crimson Pro, Iowan Old Style, Palatino Linotype, Georgia, serif" font-weight="600" font-size="40" fill="#141414">Filippo Guanti</text>
+  <text x="72" y="580" font-family="Crimson Pro, Iowan Old Style, Palatino Linotype, Georgia, serif" font-size="30" fill="#5b5b57">philglov.es</text>
+</svg>

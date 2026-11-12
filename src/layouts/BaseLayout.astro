@@ -1,9 +1,13 @@
 ---
 /**
- * Placeholder base layout set up by the lead. The frontend agent owns it
- * from here (TICKETS.md, F1): header, nav, footer, theme script, Open Graph.
+ * Base layout. The design agent wired in the stylesheet, fonts, brand icons,
+ * header and footer; the frontend agent owns it from here (TICKETS.md, F1):
+ * the inline theme script, Open Graph, structured data.
  */
-import "../styles/tokens.css";
+import "../styles/site.css";
+import { brand } from "../assets/brand/brand.config";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
 import { t, twinPath, type Locale } from "../i18n";
 
 interface Props {
@@ -15,12 +19,15 @@ interface Props {
   /** Whether the other-language twin exists (adds hreflang + alternate). */
   hasTwin?: boolean;
   noindex?: boolean;
+  /** Which main-navigation link is the current section. */
+  current?: "journal" | "photos" | "now" | "about";
+  /** "flat" for pages that already end in a hairline (home); default has a heavy rule. */
+  footer?: "rule" | "flat";
 }
 
-const { locale, title, description, path, hasTwin = true, noindex = false } = Astro.props;
+const { locale, title, description, path, hasTwin = true, noindex = false, current, footer = "rule" } = Astro.props;
 const site = Astro.site ?? new URL("https://philglov.es");
 const canonical = new URL(path, site).href;
-const other: Locale = locale === "en" ? "it" : "en";
 const otherPath = twinPath(locale, path);
 const enHref = new URL(locale === "en" ? path : otherPath, site).href;
 const itHref = new URL(locale === "it" ? path : otherPath, site).href;
@@ -41,7 +48,11 @@ const itHref = new URL(locale === "it" ? path : otherPath, site).href;
         <link rel="alternate" hreflang="x-default" href={enHref} />
       </>
     )}
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content={brand.themeColor} />
+    <link rel="icon" href={brand.icons.svg} type="image/svg+xml" />
+    <link rel="icon" href={brand.icons.png32} type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href={brand.icons.appleTouch} />
+    <link rel="preload" href="/_assets/fonts/crimson-pro.woff2" as="font" type="font/woff2" crossorigin />
     <meta name="tdm-reservation" content="1" />
     {noindex && <meta name="robots" content="noindex" />}
   </head>
@@ -49,20 +60,10 @@ const itHref = new URL(locale === "it" ? path : otherPath, site).href;
     <a class="skip" href="#main">
       {t(locale, "skipLink")}
     </a>
-    <header>
-      <p>
-        <a href={locale === "en" ? "/" : "/it"}>Filippo Guanti</a>
-        <br />
-        <span class="meta">philglov.es</span>
-      </p>
-      <nav aria-label={locale === "en" ? "Language" : "Lingua"}>
-        <a href={otherPath} hreflang={other} lang={other}>
-          {t(locale, "otherLanguageName")}
-        </a>
-      </nav>
-    </header>
+    <SiteHeader locale={locale} path={path} hasTwin={hasTwin} current={current} />
     <main id="main">
       <slot />
     </main>
+    <SiteFooter locale={locale} flat={footer === "flat"} />
   </body>
 </html>

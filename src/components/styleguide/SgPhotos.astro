@@ -1,0 +1,157 @@
+---
+import Arrows from "../Arrows.astro";
+/** Photos: series cards, a series grid, the single photo page, topic tags and paging. */
+const series = [
+  { title: "Lisbon", meta: "12 photos · 2026", tone: "tone-1" },
+  { title: "Vienna", meta: "8 photos · 2026", tone: "tone-3" },
+  { title: "Apennines", meta: "15 photos · 2026", tone: "tone-4" },
+];
+const grid = [
+  { cls: "w2", tone: "tone-6", cap: "Tram 28 · Lisbon · 2026" },
+  { cls: "w1", tone: "tone-9", cap: "Graça · 2026" },
+  { cls: "w1", tone: "tone-8", cap: "Alfama · 2026" },
+  { cls: "w2", tone: "tone-11", cap: "Baixa · 2026" },
+  { cls: "w1", tone: "tone-7", cap: "Belém · 2026" },
+  { cls: "w2", tone: "tone-10", cap: "Tejo · 2026" },
+];
+---
+
+<div class="page">
+  <div class="g sec">
+    <div class="lab">
+      <h3>Photos</h3>
+      <p class="small muted">Series cards</p>
+    </div>
+    <div class="con">
+      <ul class="series">
+        {series.map((s) => (
+          <li>
+            <a href="#sg-top">
+              <div class={`frame ${s.tone}`} role="img" aria-label="Placeholder photograph">
+                <span aria-hidden="true">[ cover ]</span>
+              </div>
+              <h4>{s.title}</h4>
+              <p>{s.meta}</p>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+
+  <div class="g sec">
+    <div class="lab">
+      <h3>Lisbon</h3>
+      <p class="small muted">Grid: three columns, one wide image per row. One column on phones.</p>
+    </div>
+    <div class="con">
+      <ul class="shots">
+        {grid.map((p) => (
+          <li class={p.cls}>
+            <figure>
+              <a href="#sg-top">
+                <div class={`frame ${p.tone}`} role="img" aria-label="Placeholder photograph">
+                  <span aria-hidden="true">[ photo ]</span>
+                </div>
+              </a>
+              <figcaption>{p.cap}</figcaption>
+            </figure>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+
+  <div class="g sec single">
+    <div class="lab">
+      <h3>Tram 28</h3>
+      <p class="small muted">Lisbon · 2026</p>
+    </div>
+    <div class="con">
+      <figure>
+        <div class="frame frame--land tone-6" role="img" aria-label="Placeholder photograph at its own proportions">
+          <span aria-hidden="true">[ large photo ]</span>
+        </div>
+        <figcaption class="cap">
+          <span>Tram 28 on Rua da Graça · Lisbon, 2026</span>
+          <a href="#sg-top">
+            <Arrows text="Series →" />
+          </a>
+        </figcaption>
+      </figure>
+      <dl class="exif">
+        <div>
+          <dt>Camera</dt>
+          <dd>[camera]</dd>
+        </div>
+        <div>
+          <dt>Lens</dt>
+          <dd>35 mm</dd>
+        </div>
+        <div>
+          <dt>Aperture</dt>
+          <dd>f/8</dd>
+        </div>
+        <div>
+          <dt>Shutter</dt>
+          <dd>1/250 s</dd>
+        </div>
+        <div>
+          <dt>ISO</dt>
+          <dd>200</dd>
+        </div>
+      </dl>
+      <div class="pn">
+        <div class="pn-grid">
+          <a href="#sg-top">
+            <span class="k">
+              <Arrows text="← Previous" />
+            </span>
+            <span class="v">Graça</span>
+          </a>
+          <a href="#sg-top">
+            <span class="k">
+              <Arrows text="Next →" />
+            </span>
+            <span class="v">Alfama</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g sec">
+    <div class="lab">
+      <h3>Topics</h3>
+    </div>
+    <div class="con">
+      <ul class="tags">
+        <li>
+          <a href="#sg-top" aria-current="page">
+            All
+          </a>
+        </li>
+        <li>
+          <a href="#sg-top">Travel</a>
+        </li>
+        <li>
+          <a href="#sg-top">Photography</a>
+        </li>
+        <li>
+          <a href="#sg-top">Projects</a>
+        </li>
+        <li>
+          <a href="#sg-top">Thoughts</a>
+        </li>
+      </ul>
+      <div class="pager">
+        <a class="go" href="#sg-top">
+          <Arrows text="← Newer" />
+        </a>
+        <a class="go" href="#sg-top">
+          <Arrows text="Older →" />
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

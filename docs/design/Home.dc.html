@@ -10,12 +10,13 @@
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400..600;1,8..60,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300..600;1,300..400&amp;display=swap">
 <style>
 body{margin:0}
-.bx{--bg:#FBFBF8;--ink:#141414;--muted:#5B5B57;--hair:#E0DFD9;--moss:#4A5D23;--band:#4A5D23;--band-ink:#F4F6EE;--band-muted:#D3DCC0;--sans:Archivo,'Helvetica Neue',Arial,sans-serif;--serif:'Source Serif 4',Georgia,serif;--mono:'JetBrains Mono',ui-monospace,Menlo,monospace;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.55;min-height:100vh;container-type:inline-size;transition:background-color .2s ease-out,color .2s ease-out}
+.bx{--bg:#FBFBF8;--ink:#141414;--muted:#5B5B57;--hair:#E0DFD9;--moss:#4A5D23;--band:#4A5D23;--band-ink:#F4F6EE;--band-muted:#D3DCC0;--font:'Crimson Pro','Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:19px;line-height:1.5;min-height:100vh;container-type:inline-size;transition:background-color .2s ease-out,color .2s ease-out}
 .bx.dark{--bg:#141513;--ink:#ECECE7;--muted:#A3A49D;--hair:#2D2F2A;--moss:#A9BF78;--band:#232C17;--band-ink:#E6ECD6;--band-muted:#A9BF78}
 .bx *{box-sizing:border-box}
+.bx b,.bx strong{font-weight:600}
 .bx a{color:inherit;text-decoration:none}
 .bx a:hover{color:var(--moss)}
 .bx :focus-visible{outline:2px solid var(--moss);outline-offset:3px}
@@ -25,53 +26,53 @@ body{margin:0}
 .g{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:32px}
 .lab{grid-column:1/span 3}
 .con{grid-column:4/span 9}
-.small{font-size:14px;line-height:1.5}
-.mono{font-family:var(--mono);font-size:13px;letter-spacing:.01em;line-height:1.5}
-.up{font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.small{font-size:16px;line-height:1.45}
+.fine{font-size:16px;letter-spacing:.01em;line-height:1.45;font-variant-numeric:tabular-nums}
+.up{font-size:13.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
 .muted{color:var(--muted)}
 
 /* Index navbar */
 .head{align-items:center;padding:24px 0;border-bottom:1px solid var(--ink)}
 .name{grid-column:1/span 3;margin:0;line-height:1.2}
 .name a{display:inline-flex;flex-direction:column}
-.name b{font-weight:700;font-size:18px;letter-spacing:-.01em}
-.name span{font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:400;margin-top:2px}
+.name b{font-weight:600;font-size:22px;letter-spacing:-.005em}
+.name span{font-size:15px;color:var(--muted);font-weight:400;margin-top:1px}
 .nav{grid-column:4/span 6}
 .nav ul{list-style:none;margin:0;padding:0;display:flex;gap:32px;flex-wrap:wrap}
-.nav a{font-size:16px;font-weight:500}
+.nav a{font-size:19px;font-weight:400}
 .nav a[aria-current="page"]{border-bottom:2px solid var(--moss);padding-bottom:2px}
 .tools{grid-column:10/span 3;display:flex;justify-content:flex-end;align-items:center;gap:18px}
-.tools a{font-size:15px;font-weight:500}
-.tbtn{font:inherit;font-size:13px;font-weight:600;background:none;color:var(--ink);border:1px solid var(--ink);border-radius:999px;padding:0 16px;min-height:36px;cursor:pointer}
+.tools a{font-size:18px;font-weight:400}
+.tbtn{font:inherit;font-size:16px;font-weight:600;background:none;color:var(--ink);border:1px solid var(--ink);border-radius:999px;padding:0 16px;min-height:36px;cursor:pointer}
 .tbtn[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 
 /* hero */
 .hero{padding:88px 0 56px}
 .hero .lab p{margin:0 0 6px}
-.state{grid-column:4/span 9;margin:0;font-stretch:110%;font-weight:500;font-size:clamp(2.2rem,4cqi,3.5rem);line-height:1.07;letter-spacing:-.022em;text-wrap:balance}
-.state .kick{display:block;font-family:var(--mono);font-stretch:100%;font-size:13px;font-weight:400;letter-spacing:.02em;color:var(--muted);margin-bottom:18px}
-.state em{font-style:normal;color:var(--moss)}
-.lede{grid-column:4/span 6;margin:28px 0 0;font-family:var(--serif);font-size:20px;line-height:1.55}
+.state{grid-column:4/span 9;margin:0;font-weight:300;font-size:clamp(2.5rem,4.6cqi,4rem);line-height:1.04;letter-spacing:-.016em;text-wrap:balance}
+.state .kick{display:block;font-size:17px;font-weight:400;line-height:1.4;letter-spacing:.01em;color:var(--muted);margin-bottom:14px}
+.state em{font-style:italic;color:var(--moss)}
+.lede{grid-column:4/span 6;margin:28px 0 0;font-size:22px;line-height:1.45}
 .lede a{text-decoration:underline;text-decoration-color:var(--hair);text-underline-offset:.2em}
 .lede a:hover{text-decoration-color:var(--moss)}
 
 /* photograph (from v1) */
 .photo{margin:0 0 8px}
 .ph{display:grid;place-items:center;width:100%}
-.ph span{font-family:var(--mono);font-size:12px;background:var(--bg);color:var(--ink);padding:5px 10px;border-radius:4px}
+.ph span{font-size:15px;background:var(--bg);color:var(--ink);padding:5px 10px;border-radius:4px}
 .ph-hero{aspect-ratio:21/9;background:#4E5847}
 .cap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:12px;color:var(--muted)}
 
 /* sections */
 .sec{padding:72px 0;border-bottom:1px solid var(--hair)}
-.sec h2,.band h2{margin:0 0 8px;font-size:18px;font-weight:700}
+.sec h2,.band h2{margin:0 0 8px;font-size:23px;font-weight:600;line-height:1.2}
 .sec .lab p{margin:0}
 .latest{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));column-gap:32px;padding-bottom:40px;margin-bottom:8px;border-bottom:1px solid var(--ink)}
 .latest .meta{grid-column:1/-1;margin:0 0 14px;display:flex;gap:18px;flex-wrap:wrap;color:var(--muted)}
-.latest .meta b{font-weight:500;color:var(--moss)}
-.latest h3{grid-column:1/span 5;margin:0;font-stretch:108%;font-weight:600;font-size:36px;line-height:1.1;letter-spacing:-.018em}
-.latest .ex{grid-column:6/span 4;margin:0;font-family:var(--serif)}
-.latest .ex p{margin:0 0 14px;font-size:18px;line-height:1.6}
+.latest .meta b{font-weight:600;color:var(--moss)}
+.latest h3{grid-column:1/span 5;margin:0;font-weight:400;font-size:42px;line-height:1.06;letter-spacing:-.012em}
+.latest .ex{grid-column:6/span 4;margin:0}
+.latest .ex p{margin:0 0 14px;font-size:20px;line-height:1.5}
 .go{color:var(--moss);font-weight:600}
 .idx{width:100%;border-collapse:collapse}
 .idx caption{text-align:left;padding:22px 0 4px;color:var(--muted)}
@@ -80,19 +81,19 @@ body{margin:0}
 .idx tbody tr{transition:background-color .15s ease-out}
 .idx tbody tr:hover{background:color-mix(in srgb, var(--moss) 7%, transparent)}
 .idx tbody tr:hover .t a{color:var(--moss)}
-.n{font-stretch:75%;font-weight:700;font-size:22px;width:5rem;font-variant-numeric:tabular-nums}
+.n{font-weight:600;font-size:23px;width:5rem;font-variant-numeric:tabular-nums}
 .dt{width:9rem;color:var(--muted)}
-.t{font-size:19px;font-weight:500;line-height:1.35}
-.tp,.ln,.mn{font-size:15px;color:var(--muted);white-space:nowrap}
-.ln{font-family:var(--mono);font-size:12.5px}
-.ln span{color:var(--moss);font-weight:500}
+.t{font-size:22px;font-weight:400;line-height:1.25}
+.tp,.ln,.mn{font-size:17px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.ln{font-size:14px;letter-spacing:.06em}
+.ln span{color:var(--moss);font-weight:600}
 .mn{text-align:right}
 .idx-more{margin:22px 0 0}
 
 /* now band */
 .band{background:var(--band);color:var(--band-ink);padding:64px 0}
 .band .lab p{margin:0;color:var(--band-muted)}
-.band .con p{margin:0 0 14px;font-family:var(--serif);font-size:25px;line-height:1.45;max-width:36ch}
+.band .con p{margin:0 0 14px;font-size:29px;line-height:1.32;max-width:34ch}
 .band a{color:var(--band-ink);text-decoration:underline;text-underline-offset:.2em}
 .band a:hover{color:var(--band-ink);opacity:.8}
 
@@ -106,19 +107,19 @@ body{margin:0}
 
 /* Index footer */
 .foot{padding:48px 0 56px;row-gap:24px}
-.foot .lab h2{margin:0;font-size:18px;font-weight:700}
+.foot .lab h2{margin:0;font-size:23px;font-weight:600;line-height:1.2}
 .foot .txt{grid-column:4/span 5}
-.foot .txt p{margin:0 0 10px;font-size:16px}
+.foot .txt p{margin:0 0 10px;font-size:19px}
 .foot .links{grid-column:10/span 3}
-.foot .links ul{list-style:none;margin:0 0 14px;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:15px;font-weight:500}
+.foot .links ul{list-style:none;margin:0 0 14px;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:18px;font-weight:400}
 .foot summary{cursor:pointer;display:inline-flex;align-items:center;min-height:40px;font-weight:600;color:var(--moss);list-style:none}
 .foot summary::-webkit-details-marker{display:none}
 .rform{display:grid;gap:12px;margin-top:10px}
 .field{display:flex;flex-direction:column;gap:4px}
-.bx input,.bx textarea{font:inherit;font-size:16px;background:var(--bg);color:var(--ink);border:1px solid var(--muted);border-radius:5px;padding:10px 12px;width:100%}
+.bx input,.bx textarea{font:inherit;font-size:19px;background:var(--bg);color:var(--ink);border:1px solid var(--muted);border-radius:5px;padding:10px 12px;width:100%}
 .bx textarea{min-height:96px;resize:vertical}
-.send{justify-self:start;font:inherit;font-size:14px;font-weight:600;background:var(--moss);color:var(--bg);border:0;border-radius:999px;padding:0 22px;min-height:44px;cursor:pointer}
-.thanks{margin:10px 0 0;font-weight:500}
+.send{justify-self:start;font:inherit;font-size:17px;font-weight:600;background:var(--moss);color:var(--bg);border:0;border-radius:999px;padding:0 22px;min-height:44px;cursor:pointer}
+.thanks{margin:10px 0 0;font-weight:600}
 
 @container (max-width: 1040px){
 .lab,.con,.state,.lede,.foot .txt,.foot .links{grid-column:1/-1}
@@ -134,21 +135,22 @@ body{margin:0}
 }
 @container (max-width: 640px){
 .page{padding:0 20px}
-.bx{font-size:16px}
+.g{column-gap:16px}
+.bx{font-size:18px}
 .nav ul{gap:22px}
 .hero{padding:44px 0 32px}
 .photo{margin:0 -20px 8px}
 .ph-hero{aspect-ratio:4/5}
 .photo .cap{padding:0 20px;flex-direction:column;gap:2px}
-.lede{font-size:18px}
-.latest h3{font-size:27px}
+.lede{font-size:20px}
+.latest h3{font-size:32px}
 .idx thead{display:none}
 .idx tr{display:grid;grid-template-columns:auto 1fr auto;column-gap:12px;padding:14px 0;border-bottom:1px solid var(--hair)}
 .idx td{border:0;padding:0}
-.idx .t{grid-column:1/-1;order:5;margin-top:4px;font-size:18px}
+.idx .t{grid-column:1/-1;order:5;margin-top:4px;font-size:20px}
 .mn{display:none}
 .band{padding:48px 0}
-.band .con p{font-size:20px}
+.band .con p{font-size:23px}
 .shots{grid-template-columns:1fr;gap:28px}
 .w2{grid-column:auto}
 .w2 .ph{aspect-ratio:3/2}
@@ -190,18 +192,18 @@ body{margin:0}
 
 <figure class="photo">
 <div class="ph ph-hero" role="img" aria-label="[Describe this photograph: what is in it and why it matters]"><span aria-hidden="true">[ your best photograph ]</span></div>
-<figcaption class="cap mono"><span>[Photo title] · [Place], [Year]</span><a href="#photos">All photos →</a></figcaption>
+<figcaption class="cap fine"><span>[Photo title] · [Place], [Year]</span><a href="#photos">All photos →</a></figcaption>
 </figure>
 
 <section id="journal" class="g sec" aria-labelledby="j-h">
 <div class="lab">
 <h2 id="j-h">Journal</h2>
 <p class="small muted">42 entries since 2025.</p>
-<p class="small muted" style="margin-top: 10px"><span class="mono" style="color: var(--moss)">IT→EN</span> marks entries I wrote in Italian and translated myself.</p>
+<p class="small muted" style="margin-top: 10px"><span class="fine" style="color: var(--moss)">IT→EN</span> marks entries I wrote in Italian and translated myself.</p>
 </div>
 <div class="con">
 <article class="latest" aria-labelledby="lt-h">
-<p class="meta mono"><span>No. 042</span><span>2026-10-21</span><span>Travel</span><b>IT→EN</b></p>
+<p class="meta fine"><span>No. 042</span><span>2026-10-21</span><span>Travel</span><b>IT→EN</b></p>
 <h3 id="lt-h"><a href="Article.dc.html">Three weeks in Lisbon, mostly on foot</a></h3>
 <div class="ex">
 <p>I had a plan when I arrived and none when I left. The plan was a list of viewpoints; what I actually did was walk until my feet chose the route.</p>
@@ -217,7 +219,7 @@ body{margin:0}
 <sc-for list="{{rows}}" as="e" hint-placeholder-count="7">
 <tr>
 <td class="n">{{e.n}}</td>
-<td class="dt mono">{{e.date}}</td>
+<td class="dt fine">{{e.date}}</td>
 <td class="t"><a href="Article.dc.html">{{e.title}}</a></td>
 <td class="tp">{{e.topic}}</td>
 <td class="ln"><span>{{e.mark}}</span></td>
@@ -235,7 +237,7 @@ body{margin:0}
 <div class="page g">
 <div class="lab">
 <h2 id="now-h">Now</h2>
-<p class="small mono">Updated 2026-10-29</p>
+<p class="small fine">Updated 2026-10-29</p>
 </div>
 <div class="con">
 <p>[Where you are and what you’re making this month, in one or two sentences.] Reading [book]. Shooting [project] on [camera].</p>
@@ -254,7 +256,7 @@ body{margin:0}
 <sc-for list="{{shots}}" as="p" hint-placeholder-count="4">
 <figure class="{{p.cls}}">
 <div class="ph" style="background: {{p.tone}}" role="img" aria-label="[Describe this photograph]"><span aria-hidden="true">[ photo ]</span></div>
-<figcaption class="mono">{{p.cap}}</figcaption>
+<figcaption class="fine">{{p.cap}}</figcaption>
 </figure>
 </sc-for>
 </div>
@@ -294,7 +296,7 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3400}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3600}}'>
 class Component extends DCLogic {
   renderVals() {
     var s = this.state || {};

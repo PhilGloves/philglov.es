@@ -1,0 +1,43 @@
+---
+/** Type specimens: one family in four weights and two styles, the scale, the measure, code, the arrow. */
+import Arrows from "../Arrows.astro";
+---
+
+<div class="page sg-type">
+  <p class="state">
+    <span class="kick">Crimson Pro Light 300, up to 64 px (40 px on phones): titles of 28 px and larger only</span>
+    Writing about photography, software, and <em>the places in between.</em>
+  </p>
+  <p class="lede">
+    Regular 400 at 22 px (20 px on phones), line height 1.5, about 66 characters to the line: entry bodies, excerpts,
+    the Now paragraph, the navbar, the journal table and the footer. Interface text is 19 px (18 px on phones).
+  </p>
+  <p>
+    <strong>Semibold 600</strong> for emphasis, index numbers and buttons, and <em>italic 300–400</em> for pull quotes,
+    the sign-off and emphasis.
+  </p>
+  <p class="fine">
+    <Arrows text="Small labels, 16 px, tabular figures: 2026-10-21 · No. 042 · IT→EN · f/8 · 1/250 s · ISO 200" />
+  </p>
+  <p class="up">Uppercase label, 13.5 px, 600, tracked 0.1em</p>
+  <p class="small muted">Small muted interface text, 16 px.</p>
+  <p>
+    Arrows are one inline SVG, not a glyph:{" "}
+    <a class="go" href="#sg-top">
+      <Arrows text="Read · 8 min →" />
+    </a>{" "}
+    and{" "}
+    <a class="go" href="#sg-top">
+      <Arrows text="← Back" />
+    </a>
+  </p>
+  <div class="prose">
+    <p>
+      Code uses the reader’s own monospace, so it costs no download: <code>pnpm new alps --lang it</code>
+    </p>
+  </div>
+  <p class="sg-note">
+    Hover, focus and pressed states are drawn from the same tokens; nothing animates when the visitor asks for reduced
+    motion.
+  </p>
+</div>

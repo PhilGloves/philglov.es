@@ -1,0 +1,63 @@
+---
+/**
+ * Header and main navigation: name with the domain beneath, the four links,
+ * the language switch and the theme toggle. One row on desktop; from tablet
+ * down the name and controls sit above the links. No menu button.
+ * `demo` renders the same markup without landmarks, for /styleguide.
+ */
+import { t, twinPath, type Locale } from "../i18n";
+
+interface Props {
+  locale: Locale;
+  /** This page's path without a trailing slash, e.g. "/" or "/it/alps". */
+  path: string;
+  /** Whether the other-language twin of this page exists. */
+  hasTwin?: boolean;
+  current?: "journal" | "photos" | "now" | "about" | undefined;
+  demo?: boolean;
+}
+
+const { locale, path, hasTwin = true, current, demo = false } = Astro.props;
+const other: Locale = locale === "en" ? "it" : "en";
+const prefix = locale === "en" ? "" : "/it";
+const home = locale === "en" ? "/" : "/it";
+const switchHref = hasTwin ? twinPath(locale, path) : twinPath(locale, home);
+const links = [
+  { key: "journal", href: `${prefix}/journal`, label: t(locale, "navJournal") },
+  { key: "photos", href: `${prefix}/photos`, label: t(locale, "navPhotos") },
+  { key: "now", href: `${prefix}/now`, label: t(locale, "navNow") },
+  { key: "about", href: `${prefix}/about`, label: t(locale, "navAbout") },
+] as const;
+const Header = demo ? "div" : "header";
+const Nav = demo ? "div" : "nav";
+---
+
+<div class="page">
+  <Header class="head">
+    <p class="name">
+      <a href={demo ? "#" : home}>
+        <b>Filippo Guanti</b>
+        <span>philglov.es</span>
+      </a>
+    </p>
+    <Nav class="nav" aria-label={demo ? undefined : t(locale, "navLabel")}>
+      <ul>
+        {links.map((link) => (
+          <li>
+            <a href={demo ? "#" : link.href} aria-current={link.key === current ? "page" : undefined}>
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </Nav>
+    <div class="tools">
+      <a class="lang-switch" href={demo ? "#" : switchHref} hreflang={other} lang={other}>
+        {t(locale, "otherLanguageName")}
+      </a>
+      <button type="button" class="theme-toggle" aria-pressed="false" data-theme-toggle>
+        {t(locale, "themeToggle")}
+      </button>
+    </div>
+  </Header>
+</div>

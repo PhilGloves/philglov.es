@@ -1,0 +1,17 @@
+---
+/**
+ * The one interface arrow: an inline SVG, because Crimson Pro has no arrow
+ * glyphs. Inherits the text colour (currentColor) and scales with the font size.
+ * Decorative: the words next to it carry the meaning.
+ */
+interface Props {
+  /** Points left (←) instead of right (→). */
+  left?: boolean;
+}
+
+const { left = false } = Astro.props;
+---
+
+<svg class:list={["arr", { "arr--left": left }]} viewBox="0 0 20 14" aria-hidden="true" focusable="false">
+  <path d="M1 7h17M12 1.5 18 7l-6 5.5" fill="none" stroke="currentColor" stroke-width="1.6" />
+</svg>

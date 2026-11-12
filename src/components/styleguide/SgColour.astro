@@ -1,0 +1,53 @@
+---
+/** Colour tokens and the measured contrast of every text/background pair. */
+import css from "../../styles/tokens.css?raw";
+import { checkTheme } from "../../../scripts/contrast.ts";
+
+interface Props {
+  theme: "light" | "dark";
+}
+const { theme } = Astro.props;
+const rows = checkTheme(css, theme);
+const swatches = [
+  ["bg", "s-bg"],
+  ["surface", "s-surface"],
+  ["text", "s-text"],
+  ["muted", "s-muted"],
+  ["rule", "s-rule"],
+  ["accent", "s-accent"],
+  ["band", "s-band"],
+  ["error", "s-error"],
+] as const;
+---
+
+<div class="page">
+  <p class="sg-theme">{theme}</p>
+  <ul class="sg-swatches">
+    {swatches.map(([name, cls]) => (
+      <li>
+        <i class={cls}></i>--{name}
+      </li>
+    ))}
+  </ul>
+  <table class="idx">
+    <caption>Measured contrast ({theme}), computed from tokens.css at build time</caption>
+    <thead>
+      <tr>
+        <th scope="col">Pair</th>
+        <th scope="col">Ratio</th>
+        <th scope="col">Floor</th>
+        <th scope="col">Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map(({ pair, value, ok }) => (
+        <tr>
+          <td class="t">{pair.label}</td>
+          <td class="dt">{value.toFixed(2)}:1</td>
+          <td class="dt">{pair.floor}:1</td>
+          <td class="dt">{ok ? "pass" : "FAIL"}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>

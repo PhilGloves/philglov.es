@@ -1,12 +1,12 @@
 # Personal Hub Website — Decision Guide & Agent Prompts
 
-Build guide for philglov.es · exported 11 November 2026 (no AI translation)
+Build guide for philglov.es · exported 12 November 2026 (Crimson Pro, no AI translation)
 
 ## TL;DR
 
 Build a fully static site with Astro, write every page as a Markdown file in a Git repo, and serve it from Cloudflare. One small server program (a Worker) plus a small SQLite database (D1) handles the comment form, the anonymous error form and a private page for publishing from your phone. Zero third-party scripts, no CMS, and no password anywhere: the private admin area opens only with a one-time code emailed to you.
 
-- **Look:** the v3 prototype ("Index × v1"): a Swiss-style grid with section labels on the left, Archivo for interface and headings, Source Serif 4 for reading, JetBrains Mono for metadata, and moss green as the one accent, on a near-white light theme and a #141513 dark theme.
+- **Look:** the v3 prototype ("Index × v1"): a Swiss-style grid with section labels on the left, one typeface, Crimson Pro, with light titles and small tracked labels, and moss green as the one accent, on a near-white light theme and a #141513 dark theme.
 - **Weight:** a text page under \~180 KB on first visit, about 1 KB of JavaScript (only the theme toggle), and everything still works with JavaScript off.
 - **Languages:** English at `/`, Italian at `/it/`. Every page says which language you wrote it in and links to the other version once you've written it. You translate by hand; nothing is translated by AI.
 - **Comments:** a Sivers-style form (name, email, comment) that posts to your own Worker. You approve each comment before it appears. No CAPTCHA, no Disqus, no external widget.
@@ -21,7 +21,7 @@ Take Sivers' structure, Riccardo's editorial confidence, and Scrivi.la's calm; l
 | --- | --- | --- |
 | [sive.rs](https://sive.rs/) | Plain HTML that loads instantly. /about and /now as fixed anchors. Article lists that lead with the date. A 10-second "me" summary on the home page. Comments under each post, numbered, with his short replies inline ([example](https://sive.rs/fit)). A visible honesty note about how the content is made. | The home page is a wall of links; it has no visual hierarchy or imagery. |
 | [riccardo.im](https://riccardo.im/) | Built with Hugo, so it is also a static site. Big editorial headlines, a strong wordmark, and only four nav items. | The vertical social bar, the auto-advancing carousel (users rarely see past slide one), and the support badge competing with the logo. |
-| [scrivi.la](https://scrivi.la/) | Distraction-free, type-led, one column, a near-black #171717 theme colour. | Nothing to remove. Its calm carried into v3; the fonts were chosen in the prototypes instead. |
+| [scrivi.la](https://scrivi.la/) | Distraction-free, type-led, one column, a near-black #171717 theme colour. | Nothing to remove. Its calm carried into v3; its single calm serif led to Crimson Pro (scrivi.la's own font, Tiempos, is paid). |
 
 The one idea to steal above all: Sivers' homepage answers "who is this?" in 10 seconds, then gets out of the way. Your v3 home page does the same: one statement, the latest entry, and one photograph.
 
@@ -57,7 +57,7 @@ The studies below are well-established findings cited from memory; check the exa
 | --- | --- | --- |
 | Visitors judge a site's appeal in about 50 ms, and that judgement sticks. | Lindgaard et al., 2006 | The first viewport is your name, one statement about what you write, and the top of one photograph. Nothing else competes. |
 | Sites with low visual complexity and a familiar (prototypical) layout are rated most beautiful. | Tuch et al., 2012 (Google) | Nav at top, labels left and content right, footer at bottom. No vertical social bar, no carousel. |
-| People prefer designs that are "most advanced, yet acceptable": novel details on a typical frame. | Hekkert, Snelders & van Wieringen, 2003 (Loewy's MAYA principle) | Conventional structure; surprise comes from typographic scale, monospace metadata, and photo art direction. |
+| People prefer designs that are "most advanced, yet acceptable": novel details on a typical frame. | Hekkert, Snelders & van Wieringen, 2003 (Loewy's MAYA principle) | Conventional structure; surprise comes from typographic scale, light serif titles, and photo art direction. |
 | Things that are easy to perceive feel more beautiful and more true. | Reber, Schwarz & Winkielman, 2004 (processing fluency) | High contrast, generous spacing, one reading font, a 60–70 character line. |
 | Good typography puts readers in a better mood and makes reading feel easier. | Larson & Picard, 2005 | A screen-designed serif at 18–20 px with 1.6 line height. |
 | The fastest font differs from reader to reader. | Wallace et al., 2022 | Sizes in `rem` so browser font-size settings and zoom always work. |
@@ -69,13 +69,13 @@ The studies below are well-established findings cited from memory; check the exa
 
 ### Typography
 
-Chosen in the v3 prototype ("Index × v1"), all free under the SIL Open Font License and self-hosted as WOFF2:
+Chosen in the v3 prototype ("Index × v1"), now set in one typeface, Crimson Pro, free under the SIL Open Font License and self-hosted as WOFF2:
 
-- **Interface and headings:** Archivo (variable, with a width axis). Navbar, section labels, the journal table, and the home statement set slightly wide (110%).
-- **Reading:** Source Serif 4. Entry bodies, excerpts, the Now paragraph, the intro line.
-- **Metadata only:** JetBrains Mono, small and muted. Dates, IT→EN markers, camera data, captions, the domain under your name.
-- Budget: 4 files (Archivo upright, Source Serif upright and italic, JetBrains Mono; no Archivo italic, which the prototypes never use), about 120 KB total, Latin subset (covers à è é ì ò ù), `font-display: swap`, Archivo and Source Serif preloaded.
-- Sizes: body 17 px desktop / 16 px phone; Source Serif text 18–20 px; latest-entry title 36 px; home statement up to 56 px; sections spaced about 72 px apart (56 px tablet, 44 px phone).
+- **Titles:** Crimson Pro Light (weight 300), only at 28 px and larger. The home statement, entry titles, the reply heading, and pull quotes in italic.
+- **Text and interface:** Crimson Pro Regular (400), with 600 for emphasis and index numbers. Entry bodies, excerpts, the Now paragraph, the navbar, the journal table and the footer.
+- **Small labels:** the same typeface, small and muted, with tabular figures; column headings are uppercase and tracked. Dates, IT→EN markers, camera data, captions, the domain under your name. Code samples use the reader's system monospace, which adds no download.
+- Budget: 2 files (upright with weights 300–600, italic with weights 300–400), about 66 KB against an 80 KB cap, Latin subset (covers à è é ì ò ù), `font-display: swap`, only the upright file preloaded. Crimson Pro has no arrow glyphs, so interface arrows are one small inline SVG.
+- Sizes: interface 19 px desktop / 18 px phone; reading text 22 px desktop / 20 px phone; latest-entry title 42 px; home statement and entry titles up to 64 px (40 px on phones); sections spaced about 72 px apart (56 px tablet, 44 px phone).
 
 ### Colour
 
@@ -141,7 +141,7 @@ QA treats every row as a failing test, not a goal.
 | HTML per text page | ≤ 30 KB compressed |
 | CSS, whole site | 1 file, ≤ 20 KB compressed |
 | JavaScript | ≤ 1.5 KB (theme toggle only); 0 KB needed for any content or form |
-| Fonts | ≤ 4 files, ≤ 120 KB (Archivo upright, Source Serif 4 upright and italic, JetBrains Mono; Latin subset; the italic is not preloaded) |
+| Fonts | ≤ 2 files, ≤ 80 KB (Crimson Pro upright 300–600 and italic 300–400; Latin subset; the italic is not preloaded) |
 | Text page, first visit total | ≤ 180 KB |
 | Photo page, first screen on a phone | ≤ 400 KB |
 | Largest Contentful Paint | < 2.0 s on throttled "Slow 4G", mid-range Android profile |
@@ -242,7 +242,7 @@ comments: true
 
 ### The "originally written in" label
 
-Shown under the title in monospace, muted, on every entry:
+Shown under the title in small muted text on every entry:
 
 | This page is… | English page shows | Italian page shows |
 | --- | --- | --- |
@@ -335,7 +335,7 @@ NON-NEGOTIABLES
 5. Bilingual: English at /<slug>, Italian at /it/<slug>, the SAME short slug in both languages and no section folders in entry URLs (philglov.es/alps, philglov.es/it/alps). No trailing slashes. Never redirect by browser language. Every page has lang and originalLang in frontmatter; twins are the files with the same name in the en and it folders, and a page is a translation when its lang differs from its originalLang. Both versions are written by hand: no AI translation, no translation script, API or key, anywhere. An entry may exist in one language only. Every page shows the "originally written in" label.
 6. Accessibility: WCAG 2.2 AA, AAA body-text contrast, semantic HTML, skip link, visible focus, full keyboard use, descriptive alt text.
 7. Responsive and art-directed separately at 1440, 1024, 768 and 390 px, and fluid in between down to 320 px.
-8. Performance budget: text page ≤ 180 KB first visit; CSS ≤ 20 KB; fonts ≤ 4 files / 120 KB; LCP < 2 s on Slow 4G; CLS < 0.05.
+8. Performance budget: text page ≤ 180 KB first visit; CSS ≤ 20 KB; fonts ≤ 2 files / 80 KB; LCP < 2 s on Slow 4G; CLS < 0.05.
 9. Hosting: Cloudflare Workers with Static Assets; one Worker that runs first on every HTML request (it adds form tokens and comments) and serves /api/* and /admin; D1 for comments, reports and drafts; R2 for photo originals and backups; D1 and R2 created in the EU jurisdiction; Cloudflare Access protects /admin.
 10. Fewer than 10 direct dependencies. Justify each new one in the PR description. pnpm, lockfile committed.
 11. Zero console errors or warnings on any page, any theme, any language, any width.
@@ -345,7 +345,7 @@ NON-NEGOTIABLES
 15. Two environments. Staging: a Cloudflare workers.dev address, the whole Worker behind Cloudflare Access and X-Robots-Tag: noindex on every response; all building and testing happens here until launch. Production: philglov.es, added only at launch. Canonical URLs, the sitemap and metadata always use https://philglov.es. Features that need the domain (notification email, Cloudflare zone settings, Search Console) are built and unit-tested now behind a config switch and turned on at launch.
 
 DESIGN DIRECTION
-Calm, type-led, artistic and professional, with a quiet developer signature (monospace only for metadata). Familiar layout, surprising details (MAYA principle). The approved visual spec is the two v3 prototype files, Home.dc.html (home page) and Article.dc.html (journal entry with comments and reply form), saved in docs/design/: match their grid, navbar, footer, spacing and type. Near-white light theme (#FBFBF8), dark theme on #141513. One accent: moss green (#4A5D23 light / #A9BF78 dark), plus a full-width moss band behind Now. Archivo for interface and headings, Source Serif 4 for reading, JetBrains Mono for metadata only. The site name in the header is "Filippo Guanti" with "philglov.es" small beneath. No vertical social bar, no carousels, no autoplay.
+Calm, type-led, artistic and professional, set in a single serif typeface with light titles. Familiar layout, surprising details (MAYA principle). The approved visual spec is the two v3 prototype files, Home.dc.html (home page) and Article.dc.html (journal entry with comments and reply form), saved in docs/design/: match their grid, navbar, footer, spacing and type. Near-white light theme (#FBFBF8), dark theme on #141513. One accent: moss green (#4A5D23 light / #A9BF78 dark), plus a full-width moss band behind Now. One typeface for everything: Crimson Pro (Light 300 for titles of 28 px and up, Regular 400 for text and interface, 600 for emphasis and index numbers); no separate monospace or sans-serif web font. The site name in the header is "Filippo Guanti" with "philglov.es" small beneath. No vertical social bar, no carousels, no autoplay.
 
 WAY OF WORKING
 - Small commits, each with a clear message. Do not mark a task done until its tests pass.
@@ -386,15 +386,15 @@ FIRST: study docs/design/Home.dc.html and docs/design/Article.dc.html (the v3 ho
 
 DELIVER
 1. src/styles/tokens.css: colour tokens for light and dark (bg, surface, text, muted, rule, accent, focus), applied via [data-theme] on <html> with prefers-color-scheme as the default. Verify every text/background pair with a contrast checker; body text ≥ 7:1, everything else ≥ 4.5:1. Record the measured ratios in a comment.
-2. Typography: Archivo (with its width axis), Source Serif 4 and JetBrains Mono as self-hosted WOFF2, subset to Latin + Latin Extended-A, at most 4 files and 120 KB (Archivo upright only, because the prototypes never use Archivo italic; Source Serif 4 upright and italic; JetBrains Mono). If the variable files exceed the budget, pin unused axes, narrow axis ranges to what the design uses, or use static instances, and report the real sizes before asking to raise the budget; font-display: swap; preload Archivo and Source Serif; fallback stacks with size-adjust to minimise layout shift. Sizes as in the prototypes: interface 17 px (16 px on phones), reading text 18–20 px in Source Serif, measure about 66 characters.
+2. Typography: one family, Crimson Pro (SIL OFL), self-hosted as two WOFF2 files subset to Latin (English and Italian, including à è é ì ò ù, curly quotes, dashes, · and €): an upright variable file with weights 300–600 and an italic variable file with weights 300–400. Font budget 80 KB (the pair measures about 66 KB). No other web font: code uses the system monospace stack. Light 300 only at 28 px and larger (home statement, entry titles, reply heading, pull quotes in italic); Regular 400 for text and interface; 600 for emphasis, index numbers and buttons. Small labels are uppercase 600 with 0.1em tracking, because the font has no small caps; numbers in the index, dates and counts use tabular figures. Crimson Pro has no arrow glyphs: ship one inline SVG arrow for interface arrows (after links, and in the IT→EN marker). font-display: swap; preload only the upright file; fallback stack Iowan Old Style, Palatino Linotype, Palatino, Georgia, serif with size-adjust to minimise layout shift. Sizes as in the prototypes: interface 19 px (18 px on phones), reading text 22 px (20 px on phones) at line-height 1.5, measure about 66 characters, titles up to 64 px (40 px on phones). If the files exceed the budget, narrow the weight ranges or use static instances, and report the real sizes before asking to raise it.
 3. Spacing scale (4 px base), radius tokens as in the prototypes (pill buttons, 5 px inputs, 0 for photos), motion tokens (150 / 250 ms, ease-out) disabled under prefers-reduced-motion.
 4. Layout primitives as in the prototypes: a 12-column grid with section labels and entry details in the left 3 columns and content in the right 9; below about 1040 px the labels move above their content; one column on phones.
-5. Component specs + CSS: header/nav (one row on desktop; name and controls above the four links from tablet down; no menu button), theme toggle, language switch, language label (mono, muted, with IT→EN marker), the numbered journal table with its stacked phone layout, the latest-entry feature, the Now band, article body styles (headings, quotes, code, figures, footnotes), photo grid (3 columns with one wide image per row; 1 column on phones), single-photo page, comment list (numbered like sive.rs, with author replies set off), comment form, footer with <details> error-report form, focus and error states for every control.
+5. Component specs + CSS: header/nav (one row on desktop; name and controls above the four links from tablet down; no menu button), theme toggle, language switch, language label (small, muted, with IT→EN marker), the numbered journal table with its stacked phone layout, the latest-entry feature, the Now band, article body styles (headings, quotes, code, figures, footnotes), photo grid (3 columns with one wide image per row; 1 column on phones), single-photo page, comment list (numbered like sive.rs, with author replies set off), comment form, footer with <details> error-report form, focus and error states for every control.
 6. Cross-document view transitions in CSS only.
 7. A /styleguide page (not in nav, noindex) showing every component in both themes.
 8. CSS architecture: one file ordered with @layer reset, tokens, base, layout, components, utilities; every colour, size and space from tokens.css; components respond to their container (container queries); logical properties; no !important, no ID selectors. Document the rules at the top of the file.
-9. Brand is deferred: the owner will choose an identity and favicon later. Ship a neutral placeholder favicon (a plain moss-green rounded square, no letters; SVG, 32 px PNG, 180 px apple-touch-icon) and a typographic 1200×630 share-image template the build fills per entry (title in Archivo, "Filippo Guanti", a moss rule). Keep every brand file in src/assets/brand/ and reference it from one config, so a later identity means replacing files, not editing templates.
-10. A print stylesheet: entries print in Source Serif without nav, forms or footer, with link URLs written after links.
+9. Brand is deferred: the owner will choose an identity and favicon later. Ship a neutral placeholder favicon (a plain moss-green rounded square, no letters; SVG, 32 px PNG, 180 px apple-touch-icon) and a typographic 1200×630 share-image template the build fills per entry (title in Crimson Pro Light, "Filippo Guanti", a moss rule). Keep every brand file in src/assets/brand/ and reference it from one config, so a later identity means replacing files, not editing templates.
+10. A print stylesheet: entries print in Crimson Pro without nav, forms or footer, with link URLs written after links.
 11. The /admin pages (moderation and write-from-phone): same tokens, designed phone-first, large touch targets, readable in bright sunlight.
 12. No inline style attributes (the CSP blocks them): per-photo placeholder colours and any other per-item values go through classes in the stylesheet.
 
@@ -475,7 +475,7 @@ ROLE: You are a frontend engineer and photographer. Make photos look stunning an
 BUILD
 1. Originals live in the private R2 bucket philglov-originals; the repo keeps only a photos.json per series (file, alt.en, alt.it, caption.en, caption.it). A prebuild script downloads the originals not already in the CI cache into a git-ignored folder under src/ (Astro only optimises imported local files), and resized outputs are cached keyed by file hash, so build time grows with new photos, not with the whole archive. RAW files never leave the owner's drives. Photos uploaded from the phone writing page arrive in R2 the same way. Support both kinds of photo: portfolio series (photos.json) and photos inside journal entries (Markdown images with alt text, resolved from philglov-originals/<slug>/).
 2. At build, Astro's <Picture>: AVIF + WebP + JPEG fallback, widths 480/800/1200/1600/2400, correct sizes attribute per layout, width/height always set, loading="lazy" except the first image on a page (eager + fetchpriority="high").
-3. Astro's image service strips all metadata, GPS included. In a post-build step, write back only rights metadata into every output image with exiftool (installed in CI; it also handles AVIF, which sharp's withXmp does not): IPTC Creator (Filippo Guanti), Copyright Notice (© <year> Filippo Guanti. All rights reserved.), Credit Line, Web Statement of Rights (https://philglov.es/rights), and the IPTC/PLUS Data Mining field set to http://ns.useplus.org/ldf/vocab/DMI-PROHIBITED-EXCEPTSEARCHENGINEINDEXING (XMP property plus:DataMining). Read camera, lens, focal length, aperture, shutter, ISO at build time from the source and render them as text in the mono metadata style.
+3. Astro's image service strips all metadata, GPS included. In a post-build step, write back only rights metadata into every output image with exiftool (installed in CI; it also handles AVIF, which sharp's withXmp does not): IPTC Creator (Filippo Guanti), Copyright Notice (© <year> Filippo Guanti. All rights reserved.), Credit Line, Web Statement of Rights (https://philglov.es/rights), and the IPTC/PLUS Data Mining field set to http://ns.useplus.org/ldf/vocab/DMI-PROHIBITED-EXCEPTSEARCHENGINEINDEXING (XMP property plus:DataMining). Read camera, lens, focal length, aperture, shutter, ISO at build time from the source and render them as text in the small muted metadata style.
 4. Placeholder: compute each photo's dominant colour at build and apply it as the background of the image box through a build-generated class in the stylesheet, never an inline style attribute (the CSP blocks those). No blur JS.
 5. Art direction: hero images support separate crops per breakpoint via <picture><source media>, defined in photos.json or the page's frontmatter (desktop, tablet, mobile focal points or separate files).
 6. Single-photo page: largest sensible size, caption, alt text, metadata, previous/next links (also with keyboard shortcuts only if they need zero extra JS — otherwise skip them).
@@ -808,7 +808,7 @@ These are the items no agent can decide for you; the legal ones are general info
 
 **Brand (deferred: you'll choose it later)**
 
-- [ ] Choose a brand identity and favicon when you're ready. Until then the site ships a plain moss-green square as favicon and a typographic share image (title in Archivo, your name, a moss rule); swapping them later means replacing the files in `src/assets/brand/`, not editing templates.
+- [ ] Choose a brand identity and favicon when you're ready. Until then the site ships a plain moss-green square as favicon and a typographic share image (title in Crimson Pro Light, your name, a moss rule); swapping them later means replacing the files in `src/assets/brand/`, not editing templates.
 - [x] Print stylesheet: assigned to the design agent.
 
 **Content and checks**
@@ -822,12 +822,12 @@ These are the items no agent can decide for you; the legal ones are general info
 Nine choices only you can make; the recommended default is in brackets so the agents can start without waiting.
 
 - [ ] Domain: philglov.es (decided). Also register filippoguanti.com as a 301 redirect.
-- [ ] Fonts: Archivo + Source Serif 4 + JetBrains Mono (decided, v3).
+- [ ] Fonts: Crimson Pro only, two files (decided 12 November 2026; replaces Archivo, Source Serif 4 and JetBrains Mono).
 - [ ] Accent colour: moss green #4A5D23 / #A9BF78 (decided).
 - [ ] Comment email: required like Sivers, or optional. \[required, never shown — it filters drive-by spam and lets you reply\]
 - [ ] Pre-moderate every comment, or publish instantly and remove later. \[pre-moderate\]
 - [ ] Hosting: Cloudflare, with the database and photo storage in its EU jurisdiction, or an EU-only VPS. \[Cloudflare\]
-- [ ] Show camera data under photos. \[yes, in monospace\]
+- [ ] Show camera data under photos. \[yes, in small muted text\]
 - [ ] Translation: by hand, with no AI (decided). Like Sivers, you can say every word on the site is yours.
 - [ ] Newsletter later (e.g. email on new posts). \[not at launch; RSS first\]
 
