@@ -77,7 +77,7 @@ test("the footer error-report form is on every page and opens from the keyboard"
   await expect(form.locator('input[name="email"]:not([required])')).toBeVisible();
   await expect(form).toHaveAttribute("method", /post/i);
   await expect(form.locator('input[name="url"]')).toHaveValue("/about");
-  await expect(form.locator('input[name="token"]')).toHaveValue("");
+  await expect(form.locator('input[name="token"]')).toHaveValue(/^v1\./);
   await expect(form.locator('input[name="website"]')).toHaveCount(1);
 });
 

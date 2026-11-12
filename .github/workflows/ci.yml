@@ -1,5 +1,5 @@
 # One workflow for pull requests and main. Order (docs/guide.md, Lead prompt 5):
-#   lint → typecheck → build → unit → e2e → Lighthouse → deploy
+#   lint → typecheck → build → unit → Worker → e2e → Lighthouse → deploy
 # There is no translation step: both languages are written by hand.
 # Deploy jobs are switched on with repository variables once docs/setup.md
 # is done: PREVIEW_DEPLOY, STAGING_DEPLOY, and PRODUCTION_DEPLOY (at launch).
@@ -84,6 +84,9 @@ jobs:
         run: pnpm validate:html
       - name: Unit tests
         run: pnpm test:unit
+      # The Worker inside the Workers runtime (Vitest + Miniflare), against the built dist/.
+      - name: Worker tests
+        run: pnpm test:worker
       - name: End-to-end tests
         run: pnpm test:e2e
       - name: Lighthouse CI

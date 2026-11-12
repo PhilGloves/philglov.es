@@ -73,7 +73,8 @@ test("the entry page has the comment form with every field, the consent line and
   for (const name of ["name", "email", "comment"])
     await expect(form.locator(`[name="${name}"][required]`)).toHaveCount(1);
   await expect(form.locator('input[name="website"]')).toHaveCount(1);
-  await expect(form.locator('input[name="token"][type="hidden"]')).toHaveValue("");
+  // The Worker writes a fresh signed token as it serves the page (B3b).
+  await expect(form.locator('input[name="token"][type="hidden"]')).toHaveValue(/^v1\./);
   await expect(form.locator('input[name="slug"]')).toHaveValue("lisbona");
   await expect(form.locator('input[name="lang"]')).toHaveValue("en");
   await expect(form.locator(".consent a")).toHaveAttribute("href", "/privacy");
