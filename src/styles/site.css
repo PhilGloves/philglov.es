@@ -1109,7 +1109,7 @@
   }
 
   .series h3,
-  .series h4 {
+  .series :is(h3, h4) {
     margin-block-start: var(--sp-12);
     font-size: var(--fs-23);
     font-weight: 600;
@@ -1722,6 +1722,11 @@
 
   .field-error::before {
     content: "× ";
+  }
+
+  /* the Worker fills these slots only when a field has an error */
+  .field-error:empty {
+    display: none;
   }
 
   .alert,

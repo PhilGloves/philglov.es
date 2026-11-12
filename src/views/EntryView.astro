@@ -1,0 +1,159 @@
+---
+import Arrows from "../components/Arrows.astro";
+import CommentSection from "../components/CommentSection.astro";
+import LanguageLabel from "../components/LanguageLabel.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+/** A journal entry (Article.dc.html): head, label, prose, sign-off, previous/next, comments. */
+import { render } from "astro:content";
+import { t, tf, topicName, type Locale } from "../i18n";
+import { getSlots, type JournalEntry } from "../lib/collections.ts";
+import {
+  isoDate,
+  journalPath,
+  otherLocale,
+  pathFor,
+  rowsFor,
+  type Slot,
+  type Row,
+  type EntryLike,
+} from "../lib/entries.ts";
+import { absolute, blogPostingJsonLd } from "../lib/seo.ts";
+
+interface Props {
+  locale: Locale;
+  item: Slot<JournalEntry>;
+}
+
+const { locale, item: slot } = Astro.props;
+const version = slot.versions[locale];
+if (!version) throw new Error(`No ${locale} version of ${slot.slug}`);
+const { entry } = version;
+const hasTwin = slot.versions[otherLocale(locale)] !== undefined;
+const { Content } = await render(entry);
+
+const rows = rowsFor(await getSlots(), locale) as Row<EntryLike>[];
+const at = rows.findIndex((r) => r.slot.slug === slot.slug);
+const older = rows[at + 1];
+const newer = at > 0 ? rows[at - 1] : undefined;
+const path = pathFor(locale, `/${slot.slug}`);
+const number = String(slot.number).padStart(3, "0");
+const firstTag = entry.data.tags[0];
+const shareImage = `/_assets/share/${locale}-${slot.slug}.png`;
+const languageName = (l: Locale) => t(locale, l === "en" ? "langEn" : "langIt");
+
+const neighbours = [
+  older && { row: older, k: tf(locale, "prevEntry", { n: older.number }) },
+  newer && { row: newer, k: tf(locale, "nextEntry", { n: newer.number }) },
+].filter((n): n is NonNullable<typeof n> => Boolean(n));
+---
+
+<BaseLayout
+  locale={locale}
+  path={path}
+  current="journal"
+  title={entry.data.title}
+  description={entry.data.description}
+  hasTwin={hasTwin}
+  ogType="article"
+  ogImage={shareImage}
+  jsonLd={[
+    blogPostingJsonLd({
+      title: entry.data.title,
+      description: entry.data.description,
+      url: absolute(path),
+      datePublished: entry.data.date,
+      lang: locale,
+      image: absolute(shareImage),
+    }),
+  ]}
+>
+  <article class="page">
+    <div class="g top">
+      <div class="lab">
+        <p class="crumb">
+          <a href={journalPath(locale)}>{t(locale, "navJournal")}</a>
+          {firstTag && (
+            <>
+              {" / "}
+              <a href={journalPath(locale, firstTag)}>{topicName(locale, firstTag)}</a>
+            </>
+          )}
+        </p>
+        <dl class="entry-meta">
+          <div>
+            <dt>{t(locale, "metaNo")}</dt>
+            <dd>{number}</dd>
+          </div>
+          <div>
+            <dt>{t(locale, "metaPublished")}</dt>
+            <dd>
+              <time datetime={isoDate(slot.date)}>{isoDate(slot.date)}</time>
+            </dd>
+          </div>
+          <div>
+            <dt>{t(locale, "metaWrittenIn")}</dt>
+            <dd>{languageName(version.originalLang)}</dd>
+          </div>
+          <div>
+            <dt>{t(locale, "metaVersion")}</dt>
+            <dd class:list={{ moss: !version.isOriginal }}>
+              {t(locale, version.isOriginal ? "versionOriginal" : "versionTranslation")}
+            </dd>
+          </div>
+          <div>
+            <dt>{t(locale, "metaReading")}</dt>
+            <dd>{tf(locale, "minutes", { n: version.minutes })}</dd>
+          </div>
+          {entry.data.comments && (
+            <div>
+              <dt>{t(locale, "metaComments")}</dt>
+              <dd>
+                <a href="#comments">
+                  <Arrows text="→" />
+                  <span class="sr-only">{t(locale, "commentsTitle")}</span>
+                </a>
+              </dd>
+            </div>
+          )}
+        </dl>
+      </div>
+      <div class="con">
+        <h1 class="title">{entry.data.title}</h1>
+        <LanguageLabel locale={locale} originalLang={version.originalLang} rest={`/${slot.slug}`} hasTwin={hasTwin} />
+        <p class="stand">{entry.data.description}</p>
+      </div>
+    </div>
+
+    <div class="g">
+      <div class="con">
+        <div class="prose">
+          <Content />
+          <p class="sign">{t(locale, "signOff")}</p>
+        </div>
+
+        <nav class="pn" aria-label={t(locale, "navJournal")}>
+          <div class="pn-grid">
+            {neighbours.map(({ row, k }) => (
+              <a href={row.href} lang={row.only ? row.version.lang : undefined}>
+                <span class="k">
+                  <Arrows text={k} />
+                </span>
+                <span class="v">{row.version.entry.data.title}</span>
+              </a>
+            ))}
+            {neighbours.length < 2 && (
+              <a href={journalPath(locale)}>
+                <span class="k">
+                  <Arrows text={t(locale, "allEntries")} />
+                </span>
+                <span class="v">{t(locale, "backToJournal")}</span>
+              </a>
+            )}
+          </div>
+        </nav>
+      </div>
+    </div>
+
+    {entry.data.comments && <CommentSection locale={locale} slug={slot.slug} />}
+  </article>
+</BaseLayout>

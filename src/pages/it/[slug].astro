@@ -1,0 +1,17 @@
+---
+import EntryView from "../../views/EntryView.astro";
+import PageView from "../../views/PageView.astro";
+import { slugPaths } from "../../lib/routes.ts";
+
+export async function getStaticPaths() {
+  return slugPaths("it");
+}
+
+const props = Astro.props;
+---
+
+{props.kind === "entry" ? (
+  <EntryView locale="it" item={props.item} />
+) : (
+  <PageView locale="it" slug={props.slug} page={props.page} hasTwin={props.hasTwin} />
+)}

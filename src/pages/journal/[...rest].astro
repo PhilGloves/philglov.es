@@ -1,0 +1,12 @@
+---
+import JournalView from "../../views/JournalView.astro";
+import { journalPaths } from "../../lib/routes.ts";
+
+export async function getStaticPaths() {
+  return journalPaths("en");
+}
+
+const { tag, page } = Astro.props;
+---
+
+<JournalView locale="en" tag={tag} page={page} />

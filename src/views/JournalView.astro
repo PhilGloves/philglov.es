@@ -1,0 +1,113 @@
+---
+import Arrows from "../components/Arrows.astro";
+import EntryTable from "../components/EntryTable.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+/**
+ * Journal index and topic pages, paginated at 50: /journal, /journal/page/2,
+ * /journal/travel, /journal/travel/page/2. Entries that exist in the other
+ * language only are listed too, marked "IT only" / "solo EN".
+ */
+import { t, tf, topicName, type Locale } from "../i18n";
+import { getSlots } from "../lib/collections.ts";
+import { journalPath, paginate, rowsFor, type EntryLike, type Row } from "../lib/entries.ts";
+import { TOPICS } from "../lib/topics.ts";
+
+interface Props {
+  locale: Locale;
+  tag?: string | undefined;
+  page: number;
+  /** Paths of the same page in the other language exist (always true for index and topic pages). */
+}
+
+const { locale, tag, page } = Astro.props;
+const all = rowsFor(await getSlots(), locale) as Row<EntryLike>[];
+const rows = tag ? all.filter((r) => r.version.entry.data.tags.includes(tag)) : all;
+const paged = paginate(rows, page);
+const years = [...new Set(paged.items.map((r) => r.slot.date.getUTCFullYear()))];
+const heading = tag ? topicName(locale, tag) : t(locale, "journalTitle");
+const title = page > 1 ? `${heading} · ${tf(locale, "pageOf", { page, pages: paged.pages })}` : heading;
+const path = journalPath(locale, tag, page);
+---
+
+<BaseLayout
+  locale={locale}
+  path={path}
+  current="journal"
+  title={tag ? `${t(locale, "journalTitle")}: ${title}` : title}
+  description={t(locale, "journalIntro")}
+>
+  <div class="page">
+    <div class="g hero">
+      <div class="lab">
+        <p class="crumb">
+          <a href={locale === "en" ? "/" : "/it"}>{t(locale, "crumbHome")}</a>
+          {" / "}
+          {tag ? <a href={journalPath(locale)}>{t(locale, "journalTitle")}</a> : t(locale, "journalTitle")}
+        </p>
+      </div>
+      <h1 class="state">{heading}</h1>
+      <p class="lede">{t(locale, "journalIntro")}</p>
+    </div>
+
+    <div class="g sec">
+      <div class="lab">
+        <h2>{t(locale, "topicsLabel")}</h2>
+      </div>
+      <div class="con">
+        <nav aria-label={t(locale, "topicsNav")}>
+          <ul class="tags">
+            <li>
+              <a href={journalPath(locale)} aria-current={tag ? undefined : "page"}>
+                {t(locale, "allTopics")}
+              </a>
+            </li>
+            {TOPICS.map((topic) => (
+              <li>
+                <a href={journalPath(locale, topic)} aria-current={topic === tag ? "page" : undefined}>
+                  {topicName(locale, topic)}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+    <div class="g sec">
+      <div class="lab">
+        <h2>{page > 1 ? tf(locale, "pageOf", { page, pages: paged.pages }) : heading}</h2>
+        <p class="small muted">
+          <Arrows text={t(locale, "markLegend")} />
+        </p>
+      </div>
+      <div class="con">
+        {rows.length === 0 && <p class="muted">{t(locale, "noEntries")}</p>}
+        {years.map((year) => (
+          <EntryTable
+            locale={locale}
+            rows={paged.items.filter((r) => r.slot.date.getUTCFullYear() === year)}
+            caption={String(year)}
+          />
+        ))}
+        {paged.pages > 1 && (
+          <nav class="pager" aria-label={t(locale, "pagerNav")}>
+            {page > 1 ? (
+              <a class="go" rel="prev" href={journalPath(locale, tag, page - 1)}>
+                <Arrows text={t(locale, "newer")} />
+              </a>
+            ) : (
+              <span />
+            )}
+            {page < paged.pages ? (
+              <a class="go" rel="next" href={journalPath(locale, tag, page + 1)}>
+                <Arrows text={t(locale, "older")} />
+              </a>
+            ) : (
+              <span />
+            )}
+          </nav>
+        )}
+      </div>
+    </div>
+  </div>
+</BaseLayout>

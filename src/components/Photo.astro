@@ -1,0 +1,19 @@
+---
+/**
+ * A photograph in a .frame. Until the photo pipeline (ticket P2) delivers real
+ * images this draws the tone placeholder; swap the body for <picture> there and
+ * nothing else changes (the ratio class and tone stay on the frame).
+ */
+interface Props {
+  tone: number;
+  /** Alt text in the page's language: what is in it and why it matters. */
+  alt: string;
+  ratio?: "hero" | "wide" | "fig" | "tall" | "land" | "auto" | undefined;
+}
+
+const { tone, alt, ratio } = Astro.props;
+---
+
+<div class:list={["frame", ratio && `frame--${ratio}`, `tone-${tone}`]} role="img" aria-label={alt}>
+  <span aria-hidden="true">[ photo ]</span>
+</div>
