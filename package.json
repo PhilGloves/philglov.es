@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/postbuild.ts",
+    "build": "astro build && node scripts/share-images.ts && node scripts/postbuild.ts",
     "preview": "wrangler dev --port 8787 --ip 127.0.0.1",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",

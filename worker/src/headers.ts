@@ -47,6 +47,18 @@ export function baseHeaders(env: string, scriptHashes: readonly string[] = []): 
   return headers;
 }
 
+/**
+ * Extra headers for the files under /_assets/ (images among them), which the
+ * build serves straight from dist/_headers. Image-dataset tools such as
+ * img2dataset obey `noai, noimageai` by default. Cloudflare's _headers cannot
+ * match by file extension, so the whole folder carries it; for CSS, fonts and
+ * scripts it is harmless. The Worker's own responses get `tdm-reservation`
+ * from baseHeaders() instead, because _headers never applies to them.
+ */
+export function assetHeaders(): Record<string, string> {
+  return { "X-Robots-Tag": "noai, noimageai" };
+}
+
 /** Apply `headers` to a response, returning a new mutable response. */
 export function withHeaders(response: Response, headers: Record<string, string>): Response {
   const out = new Response(response.body, response);

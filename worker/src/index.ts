@@ -4,6 +4,8 @@
  * agent adds form tokens, comments, /api/* and /admin (TICKETS.md, B1–B10).
  */
 import { baseHeaders, withHeaders } from "./headers.ts";
+// SHA-256 of the inline theme script, written by scripts/postbuild.ts from the built HTML.
+import scriptHashes from "./script-hashes.json" with { type: "json" };
 
 export default {
   async fetch(request, env): Promise<Response> {
@@ -14,12 +16,12 @@ export default {
       const notFound = await env.ASSETS.fetch(new Request(new URL("/404", url), request));
       return withHeaders(
         new Response(notFound.body, { status: 404, headers: notFound.headers }),
-        baseHeaders(env.SITE_ENV),
+        baseHeaders(env.SITE_ENV, scriptHashes),
       );
     }
 
     const response = await env.ASSETS.fetch(request);
-    const headers = baseHeaders(env.SITE_ENV);
+    const headers = baseHeaders(env.SITE_ENV, scriptHashes);
     if ((response.headers.get("Content-Type") ?? "").startsWith("text/html")) {
       headers["Cache-Control"] = "no-cache";
     }
