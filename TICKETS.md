@@ -195,8 +195,8 @@ every page × en/it × light/dark × 1440/1024/768/390/320 × JS on/off in Chrom
       `assert.aggregationMethod: "median-run"`. A page then fails only when its middle run fails, so one cold-start
       outlier can't block a pull request, while a page that is slow every time still fails. Don't keep the default
       aggregation (`optimistic`, the best run): that is the retry this ticket rules out. Cost: two more Lighthouse
-      runs per URL, which lengthens the step. If one warm-up page load before the first URL removes the outlier on its own,
-      prefer that and keep one run.
+      runs per URL, which lengthens the step. If one warm-up page load before the first URL removes the outlier on
+      its own, prefer that and keep one run.
 - _Done when: the full matrix passes twice in a row with no flaky tests; `QA-REPORT.md` written._
 
 ## 8 · Security audit (S) — Opus, xhigh — runs last
