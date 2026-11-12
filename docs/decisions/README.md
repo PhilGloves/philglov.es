@@ -22,3 +22,4 @@ never renumber. To change a decision, add a new record that supersedes the old o
 | 0014 | [Design system: one stylesheet, pinned fonts](0014-design-system.md)                     | Accepted; typography superseded by 0015 |
 | 0015 | [One typeface, Crimson Pro, two files, 80 KB](0015-one-typeface-crimson-pro.md)          | Accepted                                |
 | 0016 | [Frontend: pages, Worker form contract, share images, footnotes](0016-frontend-pages.md) | Accepted                                |
+| 0017 | [Backend: the Worker, D1, Access, phone publishing](0017-backend-worker.md)              | Accepted                                |

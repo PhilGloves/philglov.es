@@ -22,8 +22,11 @@ as small as possible. RSS feeds and the sitemap are hand-written endpoints, not 
 | wrangler                                       | dev     | Local Worker runtime, `wrangler types`, deploys.                                             |
 | @playwright/test                               | dev     | End-to-end tests across widths, themes and JS on/off (QA).                                   |
 | @lhci/cli                                      | dev     | Lighthouse CI budgets (Lead prompt 5).                                                       |
+| jose                                           | runtime | Worker: verifies the Access JWT, signs the GitHub App JWT (0017). The only Worker package.   |
+| vitest                                         | dev     | Worker tests (backend prompt: "Vitest + Miniflare/Workers test pool").                       |
+| @cloudflare/vitest-plugin                      | dev     | Runs those tests inside workerd with D1, R2 and assets; pinned to our wrangler's release.    |
 
-Runtime count today: 1 (astro). Expected later: jose (Worker JWTs, backend agent).
+Runtime count today: 2 (astro, jose).
 
 **Rejected.** Counting dev tooling too (would drop required checks). Raising the cap for everything (no real safety gain
 over justifying each tool).

@@ -54,9 +54,11 @@ test("trailing slashes redirect to the slash-less URL", async ({ request }) => {
   expect(res.headers()["location"]).toMatch(/\/it$/);
 });
 
-test("/admin and /api are not served yet", async ({ request }) => {
-  for (const path of ["/admin", "/admin/write", "/ADMIN", "/api/comment"]) {
+test("/admin answers 403 without an Access token; the form endpoints only take POST", async ({ request }) => {
+  for (const path of ["/admin", "/admin/write", "/ADMIN"]) {
     const res = await request.get(path, { maxRedirects: 0 });
-    expect(res.status(), path).toBe(404);
+    expect(res.status(), path).toBe(403);
   }
+  expect((await request.get("/api/comment", { maxRedirects: 0 })).status()).toBe(405);
+  expect((await request.get("/api/nothing", { maxRedirects: 0 })).status()).toBe(404);
 });

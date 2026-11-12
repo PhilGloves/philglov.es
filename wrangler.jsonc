@@ -31,8 +31,41 @@
     ],
   },
   "observability": { "enabled": true },
-  "vars": { "SITE_ENV": "local" },
-  "d1_databases": [{ "binding": "DB", "database_name": "philglov-local", "database_id": "local" }],
+  // keep_names off: nothing relies on Function.name, and it keeps the bundle small.
+  "keep_names": false,
+  // Daily retention at 03:00 UTC, weekly backup on Monday 04:00 UTC (B6, B9). Not inherited: repeated per env.
+  "triggers": { "crons": ["0 3 * * *", "0 4 * * 1"] },
+  // Secrets live only in `wrangler secret put` (docs/setup.md, steps 9 and 10), never here.
+  // Declared at the top level only (local dev and `wrangler types`; `pnpm preview` writes random
+  // ones to .dev.vars). Not in the envs on purpose: there, `wrangler deploy` and `versions upload`
+  // refuse to run while a listed secret is unset. The Worker fails closed without them instead.
+  "secrets": {
+    "required": [
+      "FORM_HMAC_KEY",
+      "IP_SALT",
+      "GITHUB_APP_ID",
+      "GITHUB_APP_INSTALLATION_ID",
+      "GITHUB_APP_PRIVATE_KEY",
+      "NOTIFY_TO",
+    ],
+  },
+  // Not secret. ACCESS_* empty = /admin always answers 403. NOTIFY "off" logs "notification skipped".
+  "vars": {
+    "SITE_ENV": "local",
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": "",
+    "NOTIFY": "off",
+    "NOTIFY_FROM": "notify@philglov.es",
+    "GITHUB_REPO": "PhilGloves/philglov.es",
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "philglov-local",
+      "database_id": "local",
+      "migrations_dir": "worker/migrations",
+    },
+  ],
   "r2_buckets": [
     { "binding": "ORIGINALS", "bucket_name": "philglov-originals-local" },
     { "binding": "BACKUPS", "bucket_name": "philglov-backups-local" },
@@ -45,12 +78,22 @@
       "name": "philglov-staging",
       "workers_dev": true,
       "preview_urls": false,
-      "vars": { "SITE_ENV": "staging" },
+      // AUD tag: Workers & Pages → philglov-staging → Access tab (docs/setup.md, step 9).
+      "vars": {
+        "SITE_ENV": "staging",
+        "ACCESS_TEAM_DOMAIN": "gentle-hall-eae9.cloudflareaccess.com",
+        "ACCESS_AUD": "6203b8b8bca9a7acd793efad85ab2ec6e0c837f6f9fac6cb3054b33623b5f965",
+        "NOTIFY": "off",
+        "NOTIFY_FROM": "notify@philglov.es",
+        "GITHUB_REPO": "PhilGloves/philglov.es",
+      },
+      "triggers": { "crons": ["0 3 * * *", "0 4 * * 1"] },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "philglov-staging",
           "database_id": "f9316d32-65a5-4754-a860-359685786990",
+          "migrations_dir": "worker/migrations",
         },
       ],
       "r2_buckets": [
@@ -65,12 +108,22 @@
       "name": "philglov-preview",
       "workers_dev": true,
       "preview_urls": true,
-      "vars": { "SITE_ENV": "preview" },
+      // AUD tag: Workers & Pages → philglov-preview → Access tab (docs/setup.md, step 9).
+      "vars": {
+        "SITE_ENV": "preview",
+        "ACCESS_TEAM_DOMAIN": "gentle-hall-eae9.cloudflareaccess.com",
+        "ACCESS_AUD": "eafefe8a2e9044ba9c56afd4b2350e5f3945810fc07eb646c924a3e8cd6d8d77",
+        "NOTIFY": "off",
+        "NOTIFY_FROM": "notify@philglov.es",
+        "GITHUB_REPO": "PhilGloves/philglov.es",
+      },
+      "triggers": { "crons": ["0 3 * * *", "0 4 * * 1"] },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "philglov-preview",
           "database_id": "fd31ac04-4cde-4480-8b3a-48d0c38e1c17",
+          "migrations_dir": "worker/migrations",
         },
       ],
       "r2_buckets": [
@@ -85,12 +138,23 @@
       "workers_dev": false,
       "preview_urls": false,
       "routes": [{ "pattern": "philglov.es", "custom_domain": true }],
-      "vars": { "SITE_ENV": "production" },
+      // At launch: the /admin Access application (setup.md, step 13); NOTIFY "on" once
+      // Email Routing works and the send_email binding is added (setup.md, step 14).
+      "vars": {
+        "SITE_ENV": "production",
+        "ACCESS_TEAM_DOMAIN": "gentle-hall-eae9.cloudflareaccess.com",
+        "ACCESS_AUD": "REPLACE_WITH_PRODUCTION_ACCESS_AUD",
+        "NOTIFY": "off",
+        "NOTIFY_FROM": "notify@philglov.es",
+        "GITHUB_REPO": "PhilGloves/philglov.es",
+      },
+      "triggers": { "crons": ["0 3 * * *", "0 4 * * 1"] },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "philglov",
           "database_id": "REPLACE_WITH_PRODUCTION_D1_ID",
+          "migrations_dir": "worker/migrations",
         },
       ],
       "r2_buckets": [

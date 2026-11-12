@@ -14,6 +14,10 @@ a translation script, CI job, `translate`/`review` command, AI or translation AP
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------- |
 | O1  | **Placeholders:** contact email (guide suggests `phil@philglov.es`), city, launch date, partita IVA (only if any), the list of profiles for `sameAs`, a real photo for About, the 2–3 sentence bio. | F6a, F1, C5 | visible `[placeholder]` text; QA fails it before launch |
 
+Settled by the owner on 2026-11-12 (backend): O2, the notification address is only ever the `NOTIFY_TO` Worker secret,
+never in `wrangler.jsonc`; O3, every error report is deleted 12 months after it arrived, open or done, as the privacy
+notice says (decision 0017).
+
 Settled by the owner on 2026-11-12 (new guide and prototypes): one typeface, Crimson Pro, two files (upright 300–600,
 italic 300–400), font budget 80 KB (rule 8); shipped 64 KiB. Archivo, Source Serif 4 and JetBrains Mono are gone
 (decision 0015, which supersedes the typography of 0014).
@@ -134,29 +138,32 @@ Both versions are written by hand. The schema has no `translation` field: a page
 - _Done when: the sample entry shows the right label in both languages, the build check catches a deliberately broken
   twin, and the English-only entry is listed correctly in the Italian index._
 
-## 5 · Backend (B) — Opus, high
+## 5 · Backend (B) — Opus, high — built 2026-11-12, see decision 0017 and handover
+
+Done in code and tests (133 Worker tests, e2e green locally). Waiting on the owner before it works on staging: the
+secrets and AUD tags (`docs/setup.md` steps 9 and 10). B10's alert is a dashboard step (step 18), not verified.
 
 Only runtime dependency allowed: `jose`. No framework. Stay within 10 ms CPU per request. Never log personal data.
 
-- [ ] B1 D1 schema and migrations in `worker/migrations/` (comments, reports, rate_limits, drafts). CI already applies
+- [x] B1 D1 schema and migrations in `worker/migrations/` (comments, reports, rate_limits, drafts). CI already applies
       migrations when that folder has `.sql` files.
-- [ ] B2 `POST /api/comment` and `POST /api/report`, urlencoded, full server-side validation (lengths, ≤ 2 links,
+- [x] B2 `POST /api/comment` and `POST /api/report`, urlencoded, full server-side validation (lengths, ≤ 2 links,
       honeypot, HMAC timestamp 3 s–24 h, 5 per 10 min per salted IP hash); 303 with `?sent=…` on success; 422 with
       field errors and preserved, escaped input.
-- [ ] B3 Comments injected with HTMLRewriter (`html: false`), numbered, author replies set off; 60 s fragment cache;
+- [x] B3 Comments injected with HTMLRewriter (`html: false`), numbered, author replies set off; 60 s fragment cache;
       fail open; drop ETag on rewritten responses. Build writes `/_assets/entries.json`.
-- [ ] B3b Fresh signed token in every form on every HTML response; `Cache-Control: no-cache` on HTML (already set).
-- [ ] B4 `/admin` and `/admin/action`: Access JWT verified with jose (team domain and AUD per environment), CSRF token,
+- [x] B3b Fresh signed token in every form on every HTML response; `Cache-Control: no-cache` on HTML (already set).
+- [x] B4 `/admin` and `/admin/action`: Access JWT verified with jose (team domain and AUD per environment), CSRF token,
       approve / reject / reply / mark done / delete.
-- [ ] B5 Notifications behind a config switch, off on staging ("notification skipped"): page title and `/admin` link
+- [x] B5 Notifications behind a config switch, off on staging ("notification skipped"): page title and `/admin` link
       only.
-- [ ] B6 Scheduled retention job (IP hashes 30 d, rejected comments 30 d, done reports 12 months).
-- [ ] B7 Security headers on all responses (use `worker/src/headers.ts`); admin gets its own CSP and noindex.
-- [ ] B8 `/admin/write`: phone form, slug suggestion, R2 uploads (JPEG/PNG by signature, ≤ 25 MB, streamed, retry),
+- [x] B6 Scheduled retention job (IP hashes 30 d, rejected comments 30 d, every report 12 months after arrival, O3).
+- [x] B7 Security headers on all responses (use `worker/src/headers.ts`); admin gets its own CSP and noindex.
+- [x] B8 `/admin/write`: phone form, slug suggestion, R2 uploads (JPEG/PNG by signature, ≤ 25 MB, streamed, retry),
       drafts, Publish → PR through the GitHub App. When the slug already exists in the other language, the new text is
       that entry's other-language version: set `originalLang` from the existing file and show the existing text under
       the form for reference. No translation, no Mark reviewed.
-- [ ] B9 Weekly backup of comments and reports to the backups bucket, 12 weeks kept. B10 Workers Logs + error-rate alert.
+- [x] B9 Weekly backup of comments and reports to the backups bucket, 12 weeks kept. B10 Workers Logs + error-rate alert.
 - _Done when: forms work with JS off, spam is rejected with a clear message, an approved comment appears within a
   minute, `/admin` returns 403 without a valid Access token; unit tests for every validation rule, the rate limiter and
   an XSS payload rendering as text._

@@ -128,7 +128,10 @@ GitHub → Settings → Secrets and variables → Actions → **Variables**:
 
 Leave `PRODUCTION_DEPLOY` unset until launch.
 
-### 9. Worker secrets and config (when the backend agent asks)
+### 9. Worker secrets and config
+
+_Done 2026-11-12 for staging and preview (backend agent, values piped from `openssl` straight into wrangler, never
+printed or stored); AUD tags set in `wrangler.jsonc`. Production repeats this at launch (step 12)._
 
 Generate fresh random values per environment; never reuse them between environments.
 
@@ -140,8 +143,25 @@ openssl rand -base64 32 | pnpm exec wrangler secret put FORM_HMAC_KEY --env stag
 openssl rand -base64 32 | pnpm exec wrangler secret put IP_SALT --env staging
 ```
 
-Repeat both with `--env preview`. The Access team domain and AUD from step 7 go into `wrangler.jsonc` as vars
-(`ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`) per environment; they are not secret. The backend agent adds the exact keys.
+Repeat both for preview. The preview Worker's latest version is a PR preview, not its deployed version, so wrangler
+refuses `secret put` there; use `versions secret put` (a new version with the secret, nothing deployed; later
+`versions upload` runs keep it):
+
+```bash
+openssl rand -base64 32 | pnpm exec wrangler versions secret put FORM_HMAC_KEY --env preview
+```
+
+```bash
+openssl rand -base64 32 | pnpm exec wrangler versions secret put IP_SALT --env preview
+```
+
+Until both are set, the forms answer 503 and pages carry an empty token.
+
+The Access **AUD tag** of each Worker (Workers & Pages → the Worker → Access tab, from step 7) is not secret: it goes
+into `wrangler.jsonc` as `ACCESS_AUD`, one value per Worker (staging and preview are set). `ACCESS_TEAM_DOMAIN` is already `gentle-hall-eae9.cloudflareaccess.com`; change it if you rename
+the team. While an AUD is a placeholder, `/admin` on that Worker answers 403 to everyone, you included.
+
+`NOTIFY_TO` stays unset until launch (step 14).
 
 ### 10. GitHub App for phone publishing (when the backend agent asks)
 
@@ -165,7 +185,19 @@ pnpm exec wrangler secret put GITHUB_APP_PRIVATE_KEY --env staging < app.pkcs8.p
 rm app.private-key.pem app.pkcs8.pem
 ```
 
-`GITHUB_APP_ID` and `GITHUB_APP_INSTALLATION_ID` go in as vars or secrets as the backend agent specifies.
+`GITHUB_APP_ID` and `GITHUB_APP_INSTALLATION_ID` go in as secrets too (not secret values, but this keeps them out of
+the public repository and lets you set them without a pull request):
+
+```bash
+pnpm exec wrangler secret put GITHUB_APP_ID --env staging
+```
+
+```bash
+pnpm exec wrangler secret put GITHUB_APP_INSTALLATION_ID --env staging
+```
+
+Repeat the three for preview with `versions secret put` instead of `secret put` (same App, same key; see step 9). Until they are set, `/admin/write`
+saves drafts but says "Publishing is not set up". Photos go to `philglov-originals-staging/<slug>/`.
 
 ---
 
@@ -222,14 +254,26 @@ missing zone permission; add only that one.
 
 Zero Trust → Access → Applications → Add → **Self-hosted**: domain `philglov.es`, path `admin` (covers `/admin/*`),
 session duration **7 days**, policy Allow → Emails → your address, login method **One-time PIN**. Put its AUD tag in the
-production `ACCESS_AUD` var. The Worker also verifies the token itself.
+production `ACCESS_AUD` var (over `REPLACE_WITH_PRODUCTION_ACCESS_AUD`). The Worker also verifies the token itself: with
+no valid `Cf-Access-Jwt-Assertion` for that AUD, every `/admin` URL answers 403.
 
 ### 14. Email
 
 1. Email → **Email Routing** on philglov.es: route `phil@philglov.es` to your personal inbox; verify that destination
    address.
-2. The backend agent's `send_email` binding uses that verified address as `destination_address`. Turn notifications on
-   with its production config switch.
+2. Notifications for new comments and reports (page title and a link to `/admin`, nothing else). Your address is
+   **never written in the repository** (owner decision O2, 2026-11-12; the repository is public): it lives only in the
+   `NOTIFY_TO` secret. Set it (wrangler asks for the value; type or paste it there):
+
+   ```bash
+   pnpm exec wrangler secret put NOTIFY_TO --env production
+   ```
+
+   Then, in a pull request, add to the production env of `wrangler.jsonc` the binding **without** a
+   `destination_address`, `"send_email": [{ "name": "EMAIL" }]`, and set `"NOTIFY": "on"`. Without a
+   `destination_address` the binding can send to any verified destination address of the account; the Worker sends
+   only to `NOTIFY_TO`. The sender is `NOTIFY_FROM` (`notify@philglov.es`).
+
 3. Add SPF, DKIM and DMARC records as Email Routing suggests; to send as `phil@philglov.es`, add the outgoing service
    in your mail client's "Send mail as".
 
@@ -259,4 +303,9 @@ back to philglov.es (docs/guide.md, "Off-site checklist").
 ### 18. Uptime and alerts
 
 A free external checker (UptimeRobot or similar) loads `/` and one entry every 5 minutes. Workers Logs are on
-(`observability` in `wrangler.jsonc`); add a notification for the Worker's error rate under Notifications.
+(`observability` in `wrangler.jsonc`) and hold only fixed event names from `worker/src/log.ts`, never form data.
+
+Error alert (B10): dashboard → **Notifications** → Add, and pick the alert type for Worker errors that your plan lists,
+for the `philglov` Worker. The backend agent could not check from the repository which types the Free plan offers;
+if none is Worker-specific, use **Origin Error Rate** on the philglov.es zone (it counts 5xx answers). The scheduled
+jobs log `retention done` / `backup done` daily and weekly; Workers Logs → filter on `failed` shows any miss.
