@@ -120,6 +120,32 @@ code in the system monospace; interface arrows as one inline SVG; 16 px grid gap
   `pnpm exec wrangler dev --port 8788 --ip 127.0.0.1`. `pnpm build` empties `dist/`, which a running `wrangler dev`
   does not recover from: restart it after every build.
 
+## Frontend (agent 3) — 2026-11-12
+
+Tickets F1–F7 plus the Design agent's two open tickets (share-image PNG, footnote arrow); decision
+[0016](decisions/0016-frontend-pages.md) has the details and the **form contract the Backend agent must follow**
+(field names, slots, anchors).
+
+**Verified.** `pnpm lint`, `typecheck`, `build`, `validate:html`, 59 unit tests, 53 e2e tests (every sitemap page × both
+themes × 320/390/768/1024/1440 px, JS on and off: one h1, no overflow, no console noise, nothing third-party, no inline
+styles). Page weight about 80 KB. Share PNG looked at by eye.
+**One unexplained flake:** the page-matrix e2e failed once on its first run (problem list not captured) and passed in
+the nine runs after; not reproduced.
+**Not done / not verified:** Lighthouse (Windows `NO_NAVSTART`, Q17; I added `/journal`, `/lisbona`,
+`/photos/lisbon/tram-28` to `lighthouserc.json`, unverified, trust CI); Firefox/WebKit; a screen-reader pass; the
+visual comparison with the prototypes was by eye at 1440 only; photos are tone placeholders (P2); forms post to a
+Worker route that does not exist yet (404).
+
+**For the owner.** Everything marked `[placeholder]` is a stand-in: entries, Now, About, the photo series, contact email
+and city (`src/data/site.json`, rights and privacy texts), `sameAs`. Italian UI strings I added (home, journal, photos,
+forms) are drafts: please read them. Rights and privacy are the guide's texts with `originalLang: en`; change it if you
+wrote them in Italian first.
+
+**For other agents.** Content (C): `src/lib/entries.ts` already does C1's twin, label and marker helpers and
+`lib/topics.ts` is the topic list; add the C2 check (a slug used by an entry and a page collides in `[slug].astro`) and
+replace the seed. Photo (P): swap `Photo.astro` for `<picture>`; set `contentUrl` in the ImageObject. Design: I added
+`.field-error:empty{display:none}` and let `.series` style `h3` as well as `h4`.
+
 ## Next step
 
 Start the **Content** (agent 4), **Backend** (5) and **Photo** (6) agents, which can run in parallel, then **Frontend**

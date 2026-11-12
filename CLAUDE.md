@@ -75,7 +75,9 @@ WAY OF WORKING
 - Build phase. No domain yet; deploy only to the private staging Worker on workers.dev. Repository is **public**.
 - `main` is protected (ruleset "Protect main", 2026-11-11): every change goes through a pull request, the `Test`
   check must pass, no force pushes, no deletion, nobody can bypass. Read [docs/handover.md](docs/handover.md) first.
-- Placeholder home in both languages; everything else is in `TICKETS.md`.
+- 2026-11-12: all public pages built in both languages (Frontend, [0016](docs/decisions/0016-frontend-pages.md));
+  content is placeholder (entries, Now, About, one photo series) until the owner writes the real texts. Backend,
+  photo pipeline and the Content checks are still open in `TICKETS.md`.
 - `docs/setup.md` Part 1 is done (2026-11-11) except passkeys (owner to confirm). The CI deploy token has no zone
   access until launch (setup.md step 12). Steps 9 and 10 wait for the backend agent.
 - CI deploys: every pull request gets `pr-<n>-philglov-preview.philglov-es.workers.dev`; every merge to `main` deploys
@@ -95,6 +97,7 @@ src/content/pages/{en,it}/    about, now, rights, privacy …
 src/content/photos/<series>/photos.json
 src/pages/                    routes (en at /, it under /it)
 src/layouts/ src/components/  one Astro component per piece of UI
+src/views/ src/lib/           page views; pure logic (entries, seo, robots, xml) tested in tests/unit
 src/styles/tokens.css         design tokens, measured contrast (design agent)
 src/styles/site.css           the one stylesheet: layers, layout, components, admin, print (0014)
 src/assets/brand/             placeholder favicon, share-image template, brand.config.ts
@@ -117,7 +120,8 @@ docs/handover.md              state, open items and lessons, one section per fin
 ```
 pnpm install --frozen-lockfile   install (pnpm 12; builds allowed only for esbuild, workerd)
 pnpm dev                         Astro dev server (no Worker)
-pnpm build                       astro build + dist/_headers (SITE_ENV=production only at launch)
+pnpm build                       astro build + share-image PNGs (needs Chromium) + CSP hash + dist/_headers
+                                 (SITE_ENV=production only at launch)
 pnpm preview                     serve dist/ through the real Worker on http://127.0.0.1:8787
 pnpm lint | pnpm format          ESLint + Prettier
 pnpm typecheck                   wrangler types + astro check + worker tsc
@@ -150,6 +154,8 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
   `scripts/build-fonts.py` (pinned commit); keep `crimson-pro-OFL.txt` next to the fonts; rename a family if its
   licence reserves the name (`tests/unit/fonts.test.ts`, 0015). The font has no arrows: use `<Arrows text=…>` /
   `<Arrow>` (inline SVG) and never type an arrow character in a template.
+- Pages: the form field names and Worker slots are a contract (0016); keep them. The only inline JS is the theme
+  script. Footnote arrows and labels are fixed in `scripts/lib/footnotes.ts`.
 - Never log names, emails, comment text or IP addresses.
 - No translation tooling of any kind: no AI or translation API, script, CI job, key, secret or dependency. hreflang
   pairs only when both language versions exist (`hasTwin` in `BaseLayout.astro`).

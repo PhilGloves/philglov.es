@@ -79,36 +79,36 @@ Prototypes win over the prompt where they differ, except where the brief sets a 
 - [x] D8 One stylesheet with `@layer reset, tokens, base, layout, components, utilities`; container queries; logical
       properties; no `!important`, no IDs, no framework. _Done when: ≤ 20 KB compressed (rule 8)._
 - [x] D9 Placeholder brand in `src/assets/brand/` behind one config: moss rounded-square favicon (SVG, 32 px PNG,
-      180 px apple-touch-icon; replaces the Lead's `public/favicon.svg`) and the 1200×630 share-image template. _Done 2026-11-12 except one step: the template and its fill function exist and are tested; rasterising the SVG to the PNG that social networks need still needs a build step to be chosen (0014)._
+      180 px apple-touch-icon; replaces the Lead's `public/favicon.svg`) and the 1200×630 share-image template. _Done 2026-11-12 except one step: the template and its fill function exist and are tested; rasterising the SVG to the PNG that social networks need is done by `scripts/share-images.ts` (0016)._
 - [x] D10 Print stylesheet. D11 phone-first `/admin` styles. D12 no inline styles anywhere; per-item values via classes.
 
 ## 3 · Frontend (F) — Sonnet, medium
 
-- [ ] F1 Base layout: lang, meta description, canonical, hreflang en/it/x-default **only when the other-language version
+- [x] F1 Base layout: lang, meta description, canonical, hreflang en/it/x-default **only when the other-language version
       exists** (`hasTwin` in the Lead's `BaseLayout.astro`), Open Graph and Twitter tags, skip link, header, `main#main`,
       footer. Inline theme script ≤ 1 KB in `<head>` (localStorage in try/catch, system fallback); write its SHA-256 to a
       build file and feed it to `contentSecurityPolicy()` in `worker/src/headers.ts`. _Done when: public JS ≤ 1.5 KB
       (rule 3); CSP has the hash and no `unsafe-inline` (rule 4); no theme flash._
-- [ ] F2 Pages in both languages: Home, `/journal` and `/journal/<tag>` (paginated at 50: `/journal/page/2`), entry,
+- [x] F2 Pages in both languages: Home, `/journal` and `/journal/<tag>` (paginated at 50: `/journal/page/2`), entry,
       Photos, series, single photo, Now ("Updated <date>"), About, Rights, Privacy, bilingual 404. Entry numbers from
       publication order, reading time from word count. Journal index and topic pages also list entries that exist only
       in the other language, marked `IT only` / `solo EN`, linking to the existing version with the right `lang`.
-- [ ] F3 Entry page: comments slot `<section id="comments" data-slug>`, comment form POST to `/api/comment` (name,
+- [x] F3 Entry page: comments slot `<section id="comments" data-slug>`, comment form POST to `/api/comment` (name,
       email, comment, honeypot, empty token field, slug/lang), consent line linking `/privacy`, marked slots for the
       Worker's messages. _Done when: works with JS off (rule 3)._
-- [ ] F4 Footer on every page: bilingual error-report text and `<details>` POST form to `/api/report`; rights line
+- [x] F4 Footer on every page: bilingual error-report text and `<details>` POST form to `/api/report`; rights line
       linking `/rights`.
-- [ ] F5 Language switch to the twin; with no twin, link to the other home and say so. "Originally written in" label on
+- [x] F5 Language switch to the twin; with no twin, link to the other home and say so. "Originally written in" label on
       every entry from the guide's table: original with a twin, own translation, original not yet translated
       (decisions 0003, 0012).
-- [ ] F6 Feeds per language (an entry appears only in the feed of each language it exists in), `sitemap.xml` with
+- [x] F6 Feeds per language (an entry appears only in the feed of each language it exists in), `sitemap.xml` with
       hreflang pairs only where both versions exist, `robots.txt` from the guide. Add each new root file to
       `run_worker_first`'s `!` list. F6a `/rights`, `/privacy` and Italian twins from the guide's texts, unchanged apart
       from placeholders (rule 13). F6b AI opt-out from `src/data/ai-bots.json`: robots.txt, `/.well-known/tdmrep.json`,
       `<meta name="tdm-reservation">` (already in the placeholder layout), `X-Robots-Tag: noai, noimageai` on image files
       via `scripts/postbuild.ts`. F6c ImageObject JSON-LD on photo pages. Person JSON-LD on home and About, BlogPosting on
       entries (rule 12).
-- [ ] F7 No client framework, no hydration. _Done when: every page passes html-validate, a keyboard-only walkthrough,
+- [x] F7 No client framework, no hydration. _Done when: every page passes html-validate, a keyboard-only walkthrough,
       works with JS off, and matches the design at all four widths._
 
 ## 4 · Content & i18n (C) — Sonnet, medium
@@ -193,6 +193,15 @@ every page × en/it × light/dark × 1440/1024/768/390/320 × JS on/off in Chrom
 - [ ] Q17 Lighthouse on Windows: on the Lead's laptop `lhci autorun` sometimes dies with Lighthouse's `NO_NAVSTART`
       trace error (no assertion fails; about 2 in 9 runs with one run per URL, and 2 of 2 attempts with three). It has
       never happened on CI's Linux runner. Find the cause so the suite runs locally; do not paper over it with retries.
+- [ ] Q18 One-off e2e failure, not reproduced (2026-11-12, Frontend agent, Windows, Chromium, `pnpm test:e2e` right
+      after `pnpm build`): `tests/e2e/pages.spec.ts` "every page × language × theme × five widths…" failed once, at
+      `expect(problems).toEqual([])` (line 55): the `problems` array was not empty, so one of console error or warning,
+      page error, failed request, third-party request or HTTP ≥ 400 happened on some page. **The array's contents were
+      not captured** (the output was cut by `tail`), and the run's `test-results/` was overwritten by later runs. It then
+      passed in 9 consecutive runs (4 alone, 4 full suites, 1 after a fresh build). No retries were added. Find the cause:
+      run the full suite in a loop on a fresh `wrangler dev` start and keep the first failure's output
+      (`--reporter=list` into a file); suspect a cold-start request on the first page or a request aborted by the
+      next navigation.
 - _Done when: the full matrix passes twice in a row with no flaky tests; `QA-REPORT.md` written._
 
 ## 8 · Security audit (S) — Opus, xhigh — runs last
