@@ -200,15 +200,16 @@ every page × en/it × light/dark × 1440/1024/768/390/320 × JS on/off in Chrom
 - [ ] Q17 Lighthouse on Windows: on the Lead's laptop `lhci autorun` sometimes dies with Lighthouse's `NO_NAVSTART`
       trace error (no assertion fails; about 2 in 9 runs with one run per URL, and 2 of 2 attempts with three). It has
       never happened on CI's Linux runner. Find the cause so the suite runs locally; do not paper over it with retries.
-- [ ] Q18 One-off e2e failure, not reproduced (2026-11-12, Frontend agent, Windows, Chromium, `pnpm test:e2e` right
-      after `pnpm build`): `tests/e2e/pages.spec.ts` "every page × language × theme × five widths…" failed once, at
-      `expect(problems).toEqual([])` (line 55): the `problems` array was not empty, so one of console error or warning,
-      page error, failed request, third-party request or HTTP ≥ 400 happened on some page. **The array's contents were
-      not captured** (the output was cut by `tail`), and the run's `test-results/` was overwritten by later runs. It then
-      passed in 9 consecutive runs (4 alone, 4 full suites, 1 after a fresh build). No retries were added. Find the cause:
-      run the full suite in a loop on a fresh `wrangler dev` start and keep the first failure's output
-      (`--reporter=list` into a file); suspect a cold-start request on the first page or a request aborted by the
-      next navigation.
+- [x] Q18 One-off e2e failure in `tests/e2e/pages.spec.ts` (first seen 2026-11-12 by the Frontend agent, then on CI
+      on `main` after #10: `requestfailed: …/_assets/fonts/crimson-pro-italic.woff2`). _Cause:_ the upright Crimson Pro is
+      preloaded and done before `load`, but the italic file is fetched only when italic text is first drawn, which can
+      happen after `load` (a new viewport width in the matrix). The test then navigated to the next page while that
+      request was in flight; Chromium aborted it (`net::ERR_ABORTED`) and the test counted it as a failed request. Not a
+      site bug. Reproduced on purpose: italic drawn after `load` on a throttled connection, then an immediate
+      navigation, gives exactly that error. _Fix (2026-11-12, no retries):_ `tests/e2e/fonts.ts` `fontsSettled()` waits
+      for `document.fonts.ready` before each page is left and reports every font face whose load errored;
+      `requestfailed` lines now carry Chromium's reason. A new test serves the italic file as 404 and checks it is still
+      reported (HTTP 404 and `font failed`). The page matrix then passed 5 times in a row in both projects.
 - _Done when: the full matrix passes twice in a row with no flaky tests; `QA-REPORT.md` written._
 
 ## 8 · Security audit (S) — Opus, xhigh — runs last
