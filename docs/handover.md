@@ -61,9 +61,10 @@ Merged: #1 scaffold, #2 D1 IDs, #3 setup state. Decisions 0001–0012 are in `do
 
 - `docs/setup.md` steps 9 and 10 (Worker secrets, GitHub App) are deliberately not done; the backend agent asks for
   them when it needs them. Each Worker's AUD tag and the team JWKS URL are on its Access tab in the dashboard.
-- Lighthouse on the Lead's Windows laptop sometimes dies with `NO_NAVSTART` (TICKETS.md, Q16). CI once scored `/` at
-  0.81 performance and passed on the next run; the job summary now prints every run's metrics, so read it before
-  changing any budget.
+- Lighthouse on the Lead's Windows laptop sometimes dies with `NO_NAVSTART` (TICKETS.md, Q16). CI failed twice in 18
+  attempts, both times on performance for `/`, the first URL measured (0.81, then 0.87 with TBT 522 ms on a page with
+  no JavaScript), and passed on re-run. Q16 has the evidence and a proposed fix (median of 3 runs). Until it lands,
+  re-run that job and read the job summary's metrics before changing any budget.
 - `.claude/launch.json` (local preview server for the app's browser pane) exists only on the Lead's laptop, not in the
   repository.
 
