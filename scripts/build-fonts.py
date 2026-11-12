@@ -1,26 +1,33 @@
 #!/usr/bin/env python3
 """
-Rebuilds the four self-hosted fonts in public/_assets/fonts/ from their sources.
+Rebuilds the two self-hosted fonts in public/_assets/fonts/ from their source.
 Run by hand, only when the fonts change (the output is committed):
 
     python -m venv .venv-fonts && .venv-fonts/bin/pip install fonttools==4.68.0 brotli
     .venv-fonts/bin/python scripts/build-fonts.py [--cache DIR] [--system-fonts DIR]
 
-Sources: github.com/google/fonts at the commit pinned below (never `main`),
-each file checked against a SHA-256, so the same inputs always give the same
-fonts. Nothing here runs in CI or at build time, and no font is fetched by a
-visitor's browser from anywhere but philglov.es.
+Source: github.com/google/fonts at the commit pinned below (never `main`), each
+file checked against a SHA-256, so the same inputs always give the same fonts.
+Nothing here runs in CI or at build time, and no font is fetched by a visitor's
+browser from anywhere but philglov.es.
 
-What it does to each font (the exact steps; see docs/decisions/0013):
-  1. instancer: pin or narrow the variable axes (Archivo width, Source Serif
-     optical size pinned; weights narrowed to what the design uses)
-  2. subsetter: Latin + Latin Extended-A + the punctuation and arrows the
-     design uses, only the layout features in use, no hinting
-  3. rename (Source Serif 4 only): the font's own copyright line reserves the
-     font name "Source", so the modified files are named "PG Serif" inside the
-     file. The copyright (nameID 0), trademark (7) and licence (13, 14) strings
-     are left exactly as they were.
-  4. save as WOFF2
+One family, Crimson Pro (SIL OFL 1.1), two files:
+  crimson-pro.woff2         upright, variable weight 300-600
+  crimson-pro-italic.woff2  italic, variable weight 300-400
+
+Steps (see docs/decisions/0015):
+  1. instancer: narrow the weight axis to what the design uses
+  2. subsetter: Latin (English and Italian: à è é ì ò ù, curly quotes, dashes,
+     the middle dot, the euro sign, Latin Extended-A), only the layout features
+     in use (kerning, ligatures, tabular figures), no hinting
+  3. save as WOFF2
+Crimson Pro declares no Reserved Font Name (checked in OFL.txt and in the
+font's own name table, nameID 0), so the family name stays "Crimson Pro". Had
+it reserved one, the subsets would have to be renamed, as Source Serif 4 was in
+decision 0014. The copyright (nameID 0), trademark (7) and licence (13, 14)
+strings are kept as they were.
+Crimson Pro has no arrow glyphs: interface arrows are an inline SVG
+(src/components/Arrow.astro).
 Then it prints the sizes and the metric-matched fallback values for site.css.
 """
 from __future__ import annotations
@@ -42,44 +49,26 @@ RAW = f"https://raw.githubusercontent.com/google/fonts/{COMMIT}/ofl"
 
 # source file -> (path in google/fonts, sha256)
 SOURCES = {
-    "Archivo.ttf": ("archivo/Archivo[wdth,wght].ttf", "0e094a7d3c7c4c25cf1310c4b30014f1dae9332220b1c2c88f4fa996f0b05053"),
-    "SourceSerif4.ttf": ("sourceserif4/SourceSerif4[opsz,wght].ttf", "97b2d4da6e3cb494b5a1e66ae176914d852ccabef49e0c02c0df25f3e39aca0b"),
-    "SourceSerif4-Italic.ttf": ("sourceserif4/SourceSerif4-Italic[opsz,wght].ttf", "15fbc7e4679489a501998c3669272637a6646388ef7e4bd77eebb5bf967a1f42"),
-    "JetBrainsMono.ttf": ("jetbrainsmono/JetBrainsMono[wght].ttf", "48715a42ec242c21e9f02692891e147d022299a52e48d5e413e1a942193ffeda"),
-    "archivo-OFL.txt": ("archivo/OFL.txt", "108b4e57c9c796d3d38d0428ca7ee39de47ad93187302718d9b2d8864b9b716b"),
-    "sourceserif4-OFL.txt": ("sourceserif4/OFL.txt", "5f94c3fd3a23131a417ab5a0c8452de57e70c3cfb9f604d88241f7065ebf9fd9"),
-    "jetbrainsmono-OFL.txt": ("jetbrainsmono/OFL.txt", "b2fe5e8987594e9ffd1d2ca52a2f5d73eb8335243893c5d6254b5ad69269591d"),
+    "CrimsonPro.ttf": ("crimsonpro/CrimsonPro[wght].ttf", "16aa9fb7300a93637da51fac03a071b2ff08b6bbf65f99c794c25f040b58af6a"),
+    "CrimsonPro-Italic.ttf": ("crimsonpro/CrimsonPro-Italic[wght].ttf", "a74dc11dcf2fbb1452064e42395a40a907ca630b49cff86012223785e52b2559"),
+    "crimsonpro-OFL.txt": ("crimsonpro/OFL.txt", "1820869bd5baa1c2d88fa87c89eea532cf9442d841008acab720654b7f82823d"),
 }
 
 # Latin + Latin Extended-A (covers à è é ì ò ù and more), the punctuation the
-# design uses (dashes, quotes, ellipsis, thin spaces), arrows ← ↑ → ↓, minus, euro, ™.
-UNICODES = "U+0020-007E,U+00A0-017F,U+02C6,U+02DC,U+2009,U+200A,U+202F,U+2013-2014,U+2018-201E,U+2022,U+2026,U+2032-2033,U+2039-203A,U+20AC,U+2122,U+2190-2193,U+2212"
+# design uses (dashes, quotes, ellipsis, thin spaces, middle dot, ×), minus, euro, ™.
+UNICODES = "U+0020-007E,U+00A0-017F,U+02C6,U+02DC,U+2009,U+200A,U+202F,U+2013-2014,U+2018-201E,U+2022,U+2026,U+2032-2033,U+2039-203A,U+20AC,U+2122,U+2212"
 
-TEXT_FEATURES = ["kern", "liga", "ccmp", "locl", "tnum"]
-SANS_FEATURES = ["kern", "ccmp", "locl", "tnum"]
-MONO_FEATURES = ["ccmp", "locl"]
-
-# ARCHIVO'S WIDTH AXIS IS WHAT DECIDES THE FONT BUDGET (measured, bytes; total of
-# the four files). The owner chose the middle row on 2026-11-12 and set the budget
-# to 135 KB (decision 0014, TICKETS.md O2):
-#   wdth pinned 100, wght 400-700 ........  ~35 000   total ~106 KB
-#   wdth 100-110,   wght 400-700 ........  ~60 000   total ~131 KB   <- shipped
-#   wdth 75-110,    wght 400-700 ........  ~85 000   total ~157 KB (also the 75 %
-#                                                      condensed numerals)
-# Changing it: edit ARCHIVO_WDTH, rebuild, update the Archivo `font-stretch`
-# descriptor and the fallback faces in site.css, and the budget in the tests.
-ARCHIVO_WDTH = (100, 110)
+# kerning, ligatures (fi fl), composed characters, language forms, tabular figures
+FEATURES = ["kern", "liga", "ccmp", "locl", "tnum"]
 
 # name IDs kept: copyright, family, subfamily, unique id, full, version, PostScript,
 # trademark, licence, licence URL, typographic family/subfamily, variations prefix
 KEEP_NAMES = [0, 1, 2, 3, 4, 5, 6, 7, 13, 14, 16, 17, 25]
 
-# output name -> (source, axis limits, features, rename)
+# output name -> (source, axis limits)
 FONTS = {
-    "archivo.woff2": ("Archivo.ttf", {"wdth": ARCHIVO_WDTH, "wght": (400, 700)}, SANS_FEATURES, None),
-    "source-serif-4.woff2": ("SourceSerif4.ttf", {"wght": (400, 600), "opsz": 20}, TEXT_FEATURES, "PG Serif"),
-    "source-serif-4-italic.woff2": ("SourceSerif4-Italic.ttf", {"wght": 400, "opsz": 20}, TEXT_FEATURES, "PG Serif"),
-    "jetbrains-mono.woff2": ("JetBrainsMono.ttf", {"wght": (400, 500)}, MONO_FEATURES, None),
+    "crimson-pro.woff2": ("CrimsonPro.ttf", {"wght": (300, 600)}),
+    "crimson-pro-italic.woff2": ("CrimsonPro-Italic.ttf", {"wght": (300, 400)}),
 }
 
 
@@ -99,28 +88,16 @@ def fetch(cache: Path) -> None:
             sys.exit(f"{name}: SHA-256 mismatch (expected {digest}); delete it and retry")
 
 
-def rename(font: TTFont, family: str, source_family: str, source_ps: str) -> None:
-    """Replace the family name everywhere except the copyright, trademark and licence strings."""
-    ps = family.replace(" ", "")
-    for record in font["name"].names:
-        if record.nameID in (0, 7, 13, 14):
-            continue
-        text = record.toUnicode()
-        text = text.replace(source_family, family).replace(source_ps, ps)
-        record.string = text
-
-
 def build(name: str, cache: Path, out: Path) -> Path:
-    source, axes, features, new_family = FONTS[name]
-    font = TTFont(cache / source)
-    font = instancer.instantiateVariableFont(font, axes, inplace=False)
+    source, axes = FONTS[name]
+    font = instancer.instantiateVariableFont(TTFont(cache / source), axes, inplace=False)
     # round-trip through bytes so the subsetter sees plain, fully loaded tables
     buffer = io.BytesIO()
     font.save(buffer)
     buffer.seek(0)
     font = TTFont(buffer)
     opts = subset.Options()
-    opts.layout_features = features
+    opts.layout_features = FEATURES
     opts.hinting = False
     opts.name_IDs = KEEP_NAMES
     opts.name_legacy = False
@@ -130,8 +107,6 @@ def build(name: str, cache: Path, out: Path) -> Path:
     sub = subset.Subsetter(opts)
     sub.populate(unicodes=subset.parse_unicodes(UNICODES))
     sub.subset(font)
-    if new_family:
-        rename(font, new_family, "Source Serif 4", "SourceSerif4")
     font.flavor = "woff2"
     target = out / name
     font.save(target)
@@ -151,40 +126,25 @@ def average_width(font: TTFont) -> float:
     return sum(hmtx[cmap[ord(c)]][0] * w for c, w in FREQ.items() if ord(c) in cmap) / total / upm
 
 
-def metrics(web: Path, system: Path | None, limits: dict | None = None) -> None:
-    f = TTFont(web)
+def metrics(web: Path, system: Path, weight: int) -> None:
+    if not system.exists():
+        print(f"  (no {system.name}: not measured)")
+        return
+    f = instancer.instantiateVariableFont(TTFont(web), {"wght": weight}, inplace=False) if "fvar" in TTFont(web) else TTFont(web)
     upm = f["head"].unitsPerEm
     asc, desc, gap = f["hhea"].ascent / upm, -f["hhea"].descent / upm, f["hhea"].lineGap / upm
-    line = f"  {web.name}: ascent {asc:.3f} descent {desc:.3f} lineGap {gap:.3f}"
-    if system and system.exists():
-        sw = average_width(TTFont(system))
-        adjust = average_width(f) / sw
-        line += (
-            f" | vs {system.name}: size-adjust {adjust * 100:.1f}% ascent-override {asc / adjust * 100:.1f}%"
-            f" descent-override {desc / adjust * 100:.1f}% line-gap-override {gap / adjust * 100:.1f}%"
-        )
-    print(line)
-
-
-def archivo_fallbacks(cache: Path, system: Path) -> None:
-    """Fallback metrics at each end of the shipped width range, for one fallback face per width."""
-    lo, hi = ARCHIVO_WDTH if isinstance(ARCHIVO_WDTH, tuple) else (ARCHIVO_WDTH, ARCHIVO_WDTH)
-    if not system.exists():
-        return
-    arial = average_width(TTFont(system))
-    for wdth in sorted({lo, hi}):
-        font = instancer.instantiateVariableFont(TTFont(cache / "Archivo.ttf"), {"wdth": wdth, "wght": 500}, inplace=False)
-        upm = font["head"].unitsPerEm
-        adjust = average_width(font) / arial
-        asc, desc = font["hhea"].ascent / upm, -font["hhea"].descent / upm
-        print(f"  Archivo wdth {wdth} wght 500: size-adjust {adjust * 100:.1f}% ascent-override {asc / adjust * 100:.1f}% descent-override {desc / adjust * 100:.1f}%")
+    adjust = average_width(f) / average_width(TTFont(system))
+    print(
+        f"  {web.name} wght {weight} vs {system.name}: size-adjust {adjust * 100:.1f}% ascent-override {asc / adjust * 100:.1f}% "
+        f"descent-override {desc / adjust * 100:.1f}% line-gap-override {gap / adjust * 100:.1f}%"
+    )
 
 
 def main() -> None:
     root = Path(__file__).resolve().parent.parent
     ap = argparse.ArgumentParser()
     ap.add_argument("--cache", type=Path, default=root / ".fonts-cache", help="where the source fonts are kept (not committed)")
-    ap.add_argument("--system-fonts", type=Path, default=Path("C:/Windows/Fonts"), help="folder with arial.ttf, georgia.ttf, consola.ttf")
+    ap.add_argument("--system-fonts", type=Path, default=Path("C:/Windows/Fonts"), help="folder with pala.ttf, georgia.ttf")
     args = ap.parse_args()
     out = root / "public" / "_assets" / "fonts"
     out.mkdir(parents=True, exist_ok=True)
@@ -195,14 +155,12 @@ def main() -> None:
         size = path.stat().st_size
         total += size
         print(f"{name}: {size:,} bytes")
-    print(f"total: {total:,} bytes ({total / 1024:.1f} KiB), budget 135 KiB")
-    for src, dest in (("archivo-OFL.txt", "archivo-OFL.txt"), ("sourceserif4-OFL.txt", "source-serif-4-OFL.txt"), ("jetbrainsmono-OFL.txt", "jetbrains-mono-OFL.txt")):
-        (out / dest).write_bytes((args.cache / src).read_bytes())
-    print("fallback metrics (paste into site.css):")
+    print(f"total: {total:,} bytes ({total / 1024:.1f} KiB), budget 80 KiB")
+    (out / "crimson-pro-OFL.txt").write_bytes((args.cache / "crimsonpro-OFL.txt").read_bytes())
+    print("fallback metrics (paste into site.css), from the upright at weight 400:")
     sf = args.system_fonts
-    archivo_fallbacks(args.cache, sf / "arial.ttf")
-    metrics(out / "source-serif-4.woff2", sf / "georgia.ttf")
-    metrics(out / "jetbrains-mono.woff2", sf / "consola.ttf")
+    metrics(args.cache / "CrimsonPro.ttf", sf / "pala.ttf", 400)
+    metrics(args.cache / "CrimsonPro.ttf", sf / "georgia.ttf", 400)
 
 
 if __name__ == "__main__":
