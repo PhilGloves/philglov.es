@@ -14,6 +14,10 @@ a translation script, CI job, `translate`/`review` command, AI or translation AP
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------- |
 | O1  | **Placeholders:** contact email (guide suggests `phil@philglov.es`), city, launch date, partita IVA (only if any), the list of profiles for `sameAs`, a real photo for About, the 2–3 sentence bio. | F6a, F1, C5 | visible `[placeholder]` text; QA fails it before launch |
 
+Settled by the owner on 2026-11-12: the font budget is raised to 135 KB (rule 8) so Archivo keeps its width axis from 100
+to 110 %; the shipped fonts are 128 KiB. The prototypes' condensed 75 % numerals would need about 25 KB more and are not
+shipped (decision 0014).
+
 Settled by the owner on 2026-11-11 (new guide): the font budget is 4 files (Archivo upright only, Source Serif 4 upright
 and italic, JetBrains Mono); there is no AI translation, so the questions about the translation job, branch protection
 and the translation provider no longer exist.
@@ -51,33 +55,33 @@ message; add a decision record for anything architectural.
 - [x] L5 CI green on GitHub (PRs #1–#3 merged after green `Test`); first preview and staging deploys from CI.
 - [x] L7 `main` protected by the "Protect main" ruleset; handover note in `docs/handover.md`.
 
-## 2 · Design system (D) — Sonnet, high
+## 2 · Design system (D) — Sonnet, high — done 2026-11-12, see decision 0014 and handover
 
 Prototypes win over the prompt where they differ, except where the brief sets a budget (then ask the owner).
 
-- [ ] D1 `src/styles/tokens.css`: light/dark colour tokens via `[data-theme]` with `prefers-color-scheme` default;
+- [x] D1 `src/styles/tokens.css`: light/dark colour tokens via `[data-theme]` with `prefers-color-scheme` default;
       measured contrast ratios in a comment. _Done when: body text ≥ 7:1 and every other pair ≥ 4.5:1 in both themes
       (rule 6)._
-- [ ] D2 Self-hosted WOFF2 fonts in `public/_assets/fonts/`, Latin + Latin Extended-A, `font-display: swap`: Archivo
+- [x] D2 Self-hosted WOFF2 fonts in `public/_assets/fonts/`, Latin + Latin Extended-A, `font-display: swap`: Archivo
       upright (width axis; no italic, which the prototypes never use), Source Serif 4 upright and italic, JetBrains Mono.
       Preload Archivo and Source Serif upright, not the italic. Size-adjusted fallbacks. If the variable files exceed the
       budget, pin unused axes, narrow axis ranges to what the design uses, or use static instances, and report the real
-      sizes before asking to raise it. _Done when: ≤ 4 files and ≤ 120 KB (rule 8)._
-- [ ] D3 Spacing (4 px base), radius (pill buttons, 5 px inputs, 0 photos), motion tokens (150/250 ms ease-out) off
+      sizes before asking to raise it. _Done when: ≤ 4 files and ≤ 120 KB (rule 8; raised to 135 KB by the owner)._ _Done 2026-11-12: 4 files, 128 KiB, Archivo width 100–110 %._
+- [x] D3 Spacing (4 px base), radius (pill buttons, 5 px inputs, 0 photos), motion tokens (150/250 ms ease-out) off
       under `prefers-reduced-motion`.
-- [ ] D4 12-column grid (labels left 3, content right 9), labels above content below ~1040 px, one column on phones.
+- [x] D4 12-column grid (labels left 3, content right 9), labels above content below ~1040 px, one column on phones.
       _Done when: art-directed at 1440, 1024, 768, 390 and fluid to 320 with no horizontal scroll (rule 7)._
-- [ ] D5 Components (header/nav, theme toggle, language switch, language label with its marker — IT, EN, IT→EN, EN→IT,
+- [x] D5 Components (header/nav, theme toggle, language switch, language label with its marker — IT, EN, IT→EN, EN→IT,
       `IT only`, `solo EN` — journal table with stacked phone layout, latest entry, Now band, article body, photo grid,
       single photo, numbered comments with author replies, comment form, footer with `<details>` report form, focus and
       error states). _Done when: they match Home.dc.html and Article.dc.html side by side._
-- [ ] D6 Cross-document view transitions, CSS only.
-- [ ] D7 `/styleguide` (not in nav, noindex) with every component in both themes.
-- [ ] D8 One stylesheet with `@layer reset, tokens, base, layout, components, utilities`; container queries; logical
+- [x] D6 Cross-document view transitions, CSS only.
+- [x] D7 `/styleguide` (not in nav, noindex) with every component in both themes.
+- [x] D8 One stylesheet with `@layer reset, tokens, base, layout, components, utilities`; container queries; logical
       properties; no `!important`, no IDs, no framework. _Done when: ≤ 20 KB compressed (rule 8)._
-- [ ] D9 Placeholder brand in `src/assets/brand/` behind one config: moss rounded-square favicon (SVG, 32 px PNG,
-      180 px apple-touch-icon; replaces the Lead's `public/favicon.svg`) and the 1200×630 share-image template.
-- [ ] D10 Print stylesheet. D11 phone-first `/admin` styles. D12 no inline styles anywhere; per-item values via classes.
+- [x] D9 Placeholder brand in `src/assets/brand/` behind one config: moss rounded-square favicon (SVG, 32 px PNG,
+      180 px apple-touch-icon; replaces the Lead's `public/favicon.svg`) and the 1200×630 share-image template. _Done 2026-11-12 except one step: the template and its fill function exist and are tested; rasterising the SVG to the PNG that social networks need still needs a build step to be chosen (0014)._
+- [x] D10 Print stylesheet. D11 phone-first `/admin` styles. D12 no inline styles anywhere; per-item values via classes.
 
 ## 3 · Frontend (F) — Sonnet, medium
 

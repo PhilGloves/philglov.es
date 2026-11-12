@@ -19,3 +19,4 @@ never renumber. To change a decision, add a new record that supersedes the old o
 | 0011 | [Translation inside the pull-request run](0011-ci-translation.md)            | Superseded by 0012 |
 | 0012 | [Both languages written by hand](0012-hand-written-translations.md)          | Accepted           |
 | 0013 | [Lighthouse: median of three runs](0013-lighthouse-median-of-three.md)       | Accepted           |
+| 0014 | [Design system: one stylesheet, pinned fonts](0014-design-system.md)         | Accepted           |
