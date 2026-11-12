@@ -1,0 +1,16 @@
+---
+/**
+ * Text that may contain → or ←, with each arrow replaced by the inline SVG
+ * (the font has no arrow glyphs). Use it for any string from src/i18n that
+ * ends in or contains an arrow, e.g. "Report an error →" and "IT→EN".
+ */
+import Arrow from "./Arrow.astro";
+
+interface Props {
+  text: string;
+}
+
+const parts = Astro.props.text.split(/([→←])/);
+---
+
+{parts.map((part) => (part === "→" ? <Arrow /> : part === "←" ? <Arrow left /> : part))}

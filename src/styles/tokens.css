@@ -144,16 +144,19 @@
     --tone-12: #2b2f33;
   }
 
-  /* ---------- typeface stacks (the web fonts are declared in site.css) ---------- */
+  /* ---------- typeface: one family, Crimson Pro (two WOFF2 files, declared in
+   * site.css). Fallbacks are metric-matched where the browser has the font. Code
+   * samples use the reader's own monospace: no download. ---------- */
   :root {
-    --font-sans: archivo, "Archivo Fallback", "Helvetica Neue", arial, sans-serif;
-    --font-serif: "PG Serif", "PG Serif Fallback", georgia, serif;
-    --font-mono: "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, menlo, consolas, monospace;
+    --font:
+      "Crimson Pro", "Crimson Pro Fallback", "Crimson Pro Fallback Georgia", "Iowan Old Style", "Palatino Linotype",
+      palatino, georgia, serif;
+    --font-code: ui-monospace, "SF Mono", menlo, consolas, "Liberation Mono", monospace;
 
     /* ---------- type scale: rem, named by pixels at 16 px/rem, so the
-     * visitor's browser font setting and zoom always work ---------- */
-    --fs-12: 0.75rem;
-    --fs-13: 0.8125rem;
+     * visitor's browser font setting and zoom always work. Weights: 300 only at
+     * 28 px and larger, 400 for text and interface, 600 for emphasis. ---------- */
+    --fs-13-5: 0.84375rem;
     --fs-14: 0.875rem;
     --fs-15: 0.9375rem;
     --fs-16: 1rem;
@@ -161,17 +164,19 @@
     --fs-18: 1.125rem;
     --fs-19: 1.1875rem;
     --fs-20: 1.25rem;
+    --fs-21: 1.3125rem;
     --fs-22: 1.375rem;
     --fs-23: 1.4375rem;
-    --fs-25: 1.5625rem;
-    --fs-27: 1.6875rem;
-    --fs-28: 1.75rem;
-    --fs-30: 1.875rem;
+    --fs-24: 1.5rem;
+    --fs-26: 1.625rem;
+    --fs-29: 1.8125rem;
+    --fs-32: 2rem;
     --fs-36: 2.25rem;
-    --fs-ui: var(--fs-17); /* interface: 17 px, 16 px on phones (below) */
-    --fs-display: clamp(2.2rem, 4cqi, 3.5rem); /* home statement and entry title */
-    --lh-ui: 1.55;
-    --lh-read: 1.65;
+    --fs-42: 2.625rem;
+    --fs-ui: var(--fs-19); /* interface: 19 px, 18 px on phones (below) */
+    --fs-display: clamp(2.5rem, 4.6cqi, 4rem); /* home statement and entry title: 40 to 64 px */
+    --lh-ui: 1.5;
+    --lh-read: 1.5;
 
     /* ---------- spacing: 4 px base, named by pixels at 16 px/rem ----------
      * Mostly multiples of 4. 14, 18, 22 and 28 are kept because the approved
@@ -202,7 +207,7 @@
     --page-max: 82.5rem; /* 1320 px */
     --gutter: var(--sp-20); /* 20 px phones; 48 px from tablet up */
     --col-gap: var(--sp-32);
-    --measure: 38rem; /* about 66 characters of 20 px Source Serif */
+    --measure: 36rem; /* about 66 characters of 22 px Crimson Pro */
     --measure-form: 46rem;
     --section-y: var(--sp-44); /* 44 phone, 56 tablet, 72 desktop */
     --touch: 2.75rem; /* 44 px */
@@ -222,7 +227,7 @@
 
   @media (max-width: 40rem) {
     :root {
-      --fs-ui: var(--fs-16);
+      --fs-ui: var(--fs-18);
     }
   }
 

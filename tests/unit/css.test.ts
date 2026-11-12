@@ -73,3 +73,41 @@ test("no inline style attributes or third-party URLs in templates and styles", (
     if (file.endsWith(".css")) assert.doesNotMatch(stripComments(text), /https?:\/\//, `${file}: external URL`);
   }
 });
+
+test("one typeface: every font-family is the --font token, the code stack or inherited", () => {
+  const uses = [...siteCode.matchAll(/font-family:\s*([^;]+);/g)].map((m) => (m[1] ?? "").trim());
+  const allowed = new Set(["var(--font)", "var(--font-code)", "archivo"]);
+  for (const u of uses) {
+    if (u.startsWith('"Crimson Pro')) continue; // the @font-face declarations
+    assert.ok(allowed.has(u) && u !== "archivo", `font-family: ${u}`);
+  }
+});
+
+test("on phones the grid gap is 16 px and from tablet up 32 px", () => {
+  assert.match(tokens, /--col-gap: var\(--sp-32\)/);
+  assert.match(siteCode, /\.page \{\s*--col-gap: var\(--sp-16\)/);
+  assert.match(
+    siteCode,
+    /@container page \(width > 40rem\) \{\s*\.page \{\s*--gutter: var\(--sp-48\);\s*--col-gap: var\(--sp-32\)/,
+  );
+});
+
+test("no arrow characters in templates: the SVG component draws them (strings in src/i18n are rendered through <Arrows>)", () => {
+  const files: string[] = [];
+  const walk = (dir: string): void => {
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (/\.astro$/.test(name)) files.push(full);
+    }
+  };
+  walk(new URL("src/", root).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
+  for (const file of files) {
+    if (/Arrows?\.astro$/.test(file)) continue;
+    const bare = readFileSync(file, "utf8")
+      .replace(/<Arrows[^>]*\/>/g, "")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^---[\s\S]*?^---/m, (fm) => fm.replace(/(?:text|link|marker|mark|label): "[^"]*"/g, ""));
+    assert.doesNotMatch(bare, /[→←↑↓↩]/, `${file}: an arrow character outside <Arrows>`);
+  }
+});
