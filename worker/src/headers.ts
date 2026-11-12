@@ -32,6 +32,38 @@ export function contentSecurityPolicy(scriptHashes: readonly string[] = []): str
   ].join("; ");
 }
 
+/**
+ * The admin pages' own CSP (B7): like the site's, plus their one script, which
+ * the Worker serves from /admin/write.js behind Access, and blob: images for
+ * the photo previews on /admin/write. No inline script or style.
+ */
+export function adminContentSecurityPolicy(): string {
+  return [
+    "default-src 'none'",
+    "script-src 'self'",
+    "style-src 'self'",
+    "img-src 'self' blob:",
+    "font-src 'self'",
+    "connect-src 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'none'",
+    "object-src 'none'",
+    "upgrade-insecure-requests",
+  ].join("; ");
+}
+
+/** Headers for every /admin response: never indexed, never stored, own CSP. */
+export function adminHeaders(env: string): Record<string, string> {
+  return {
+    ...baseHeaders(env),
+    "Content-Security-Policy": adminContentSecurityPolicy(),
+    "X-Robots-Tag": "noindex, nofollow",
+    "Cache-Control": "no-store",
+    "Referrer-Policy": "same-origin",
+  };
+}
+
 /** Headers every response carries, whatever its type. */
 export function baseHeaders(env: string, scriptHashes: readonly string[] = []): Record<string, string> {
   const headers: Record<string, string> = {
