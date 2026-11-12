@@ -1,4 +1,5 @@
 ---
+import Arrows from "../Arrows.astro";
 /** Photos: series cards, a series grid, the single photo page, topic tags and paging. */
 const series = [
   { title: "Lisbon", meta: "12 photos · 2026", tone: "tone-1" },
@@ -73,7 +74,9 @@ const grid = [
         </div>
         <figcaption class="cap">
           <span>Tram 28 on Rua da Graça · Lisbon, 2026</span>
-          <a href="#sg-top">Series →</a>
+          <a href="#sg-top">
+            <Arrows text="Series →" />
+          </a>
         </figcaption>
       </figure>
       <dl class="exif">
@@ -101,11 +104,15 @@ const grid = [
       <div class="pn">
         <div class="pn-grid">
           <a href="#sg-top">
-            <span class="k">← Previous</span>
+            <span class="k">
+              <Arrows text="← Previous" />
+            </span>
             <span class="v">Graça</span>
           </a>
           <a href="#sg-top">
-            <span class="k">Next →</span>
+            <span class="k">
+              <Arrows text="Next →" />
+            </span>
             <span class="v">Alfama</span>
           </a>
         </div>
@@ -139,10 +146,10 @@ const grid = [
       </ul>
       <div class="pager">
         <a class="go" href="#sg-top">
-          ← Newer
+          <Arrows text="← Newer" />
         </a>
         <a class="go" href="#sg-top">
-          Older →
+          <Arrows text="Older →" />
         </a>
       </div>
     </div>

@@ -4,7 +4,7 @@ const escapeXml = (text: string): string =>
   text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /** Break a title into at most `maxLines` lines of about `maxChars` characters. */
-export function wrapTitle(title: string, maxChars = 22, maxLines = 3): string[] {
+export function wrapTitle(title: string, maxChars = 26, maxLines = 3): string[] {
   const lines: string[] = [];
   let line = "";
   for (const word of title.trim().split(/\s+/)) {
@@ -25,7 +25,7 @@ export function wrapTitle(title: string, maxChars = 22, maxLines = 3): string[] 
 /** Writes the title into the share-image template (pure; no file access, so it is unit-tested). */
 export function fillShareTemplate(title: string, template: string): string {
   const tspans = wrapTitle(title)
-    .map((line, i) => `<tspan x="72" y="${200 + i * 88}">${escapeXml(line)}</tspan>`)
+    .map((line, i) => `<tspan x="72" y="${208 + i * 100}">${escapeXml(line)}</tspan>`)
     .join("");
   return template.replace("<!--TITLE-->", `<text>${tspans}</text>`);
 }

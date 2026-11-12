@@ -1,4 +1,5 @@
 ---
+import Arrows from "./Arrows.astro";
 import { t, twinPath, type Locale } from "../i18n";
 
 interface Props {
@@ -13,10 +14,10 @@ const otherHome = twinPath(locale, locale === "en" ? "/" : "/it");
 <div class="page">
   <div class="g hero">
     <div class="lab">
-      <p class="mono muted">
+      <p class="fine muted">
         {t(locale, "writtenIn")} ·{" "}
         <a href={otherHome} hreflang={other} lang={other}>
-          {t(locale, "readOther")}
+          <Arrows text={t(locale, "readOther")} />
         </a>
       </p>
     </div>

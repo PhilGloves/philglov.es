@@ -1,4 +1,5 @@
 ---
+import Arrows from "../Arrows.astro";
 /** Home page pieces: hero, photograph, latest entry, journal table, Now band, photo grid, footer. */
 import SiteFooter from "../SiteFooter.astro";
 interface Props {
@@ -88,7 +89,9 @@ const shots = [
     </div>
     <figcaption class="cap">
       <span>[Photo title] · [Place], [Year]</span>
-      <a href="#sg-top">All photos →</a>
+      <a href="#sg-top">
+        <Arrows text="All photos →" />
+      </a>
     </figcaption>
   </figure>
 
@@ -97,7 +100,10 @@ const shots = [
       <h3>Journal</h3>
       <p class="small muted">42 entries since 2025.</p>
       <p class="small muted">
-        <span class="mono">IT→EN</span> marks entries I wrote in Italian and translated myself.
+        <span class="fine">
+          <Arrows text="IT→EN" />
+        </span>{" "}
+        marks entries I wrote in Italian and translated myself.
       </p>
     </div>
     <div class="con">
@@ -106,7 +112,9 @@ const shots = [
           <span>No. 042</span>
           <span>2026-10-21</span>
           <span>Travel</span>
-          <b>IT→EN</b>
+          <b>
+            <Arrows text="IT→EN" />
+          </b>
         </p>
         <h3>
           <a href="#sg-top">Three weeks in Lisbon, mostly on foot</a>
@@ -117,7 +125,7 @@ const shots = [
             walk until my feet chose the route.
           </p>
           <a class="go" href="#sg-top">
-            Read · 8 min →
+            <Arrows text="Read · 8 min →" />
           </a>
         </div>
       </div>
@@ -147,7 +155,9 @@ const shots = [
               </td>
               <td class="tp">{e.topic}</td>
               <td class="ln">
-                <span class:list={{ only: e.only }}>{e.mark}</span>
+                <span class:list={{ only: e.only }}>
+                  <Arrows text={e.mark} />
+                </span>
               </td>
               <td class="mn">{e.min}</td>
             </tr>
@@ -156,7 +166,7 @@ const shots = [
       </table>
       <p class="idx-more">
         <a class="go" href="#sg-top">
-          Full index, by year and topic →
+          <Arrows text="Full index, by year and topic →" />
         </a>
       </p>
     </div>
@@ -167,7 +177,7 @@ const shots = [
   <div class="page g">
     <div class="lab">
       <h3>Now</h3>
-      <p class="small mono">Updated 2026-10-29</p>
+      <p class="small fine">Updated 2026-10-29</p>
     </div>
     <div class="con">
       <p>
@@ -175,7 +185,7 @@ const shots = [
         on [camera].
       </p>
       <a class="small" href="#sg-top">
-        More on /now →
+        <Arrows text="More on /now →" />
       </a>
     </div>
   </div>
@@ -188,7 +198,7 @@ const shots = [
       <p class="small muted">
         4 series ·{" "}
         <a class="go" href="#sg-top">
-          See all →
+          <Arrows text="See all →" />
         </a>
       </p>
     </div>

@@ -22,7 +22,9 @@ test("share template is 1200×630 and has a slot for the title, the name and a m
   assert.match(template, /<!--TITLE-->/);
   assert.match(template, /Filippo Guanti/);
   assert.match(template, /#4a5d23/i);
-  assert.match(template, /font-family="Archivo/);
+  assert.match(template, /font-family="Crimson Pro/);
+  assert.match(template, /font-weight="300"/);
+  assert.doesNotMatch(template, /Archivo|Source Serif|JetBrains/);
 });
 
 test("titles wrap to at most three lines and get an ellipsis when cut", () => {

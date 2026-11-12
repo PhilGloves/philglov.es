@@ -68,18 +68,20 @@ function nameRecords(buffer: Buffer): Map<number, string[]> {
   throw new Error("no name table");
 }
 
-test("four font files, 135 KB in total (brief rule 8, owner ruling 2026-11-12)", () => {
-  assert.equal(files.length, 4, files.join(", "));
+test("two font files, 80 KB in total (brief rule 8)", () => {
+  assert.deepEqual(files, ["crimson-pro-italic.woff2", "crimson-pro.woff2"]);
   const total = files.reduce((sum, f) => sum + readFileSync(new URL(f, dir)).length, 0);
-  assert.ok(total <= 135 * 1024, `${total} bytes`);
+  assert.ok(total <= 80 * 1024, `${total} bytes`);
 });
 
-test("each font family has its OFL.txt next to it", () => {
-  for (const f of ["archivo", "source-serif-4", "jetbrains-mono"]) {
-    const licence = readFileSync(new URL(`${f}-OFL.txt`, dir), "utf8");
-    assert.match(licence, /SIL OPEN FONT LICENSE Version 1\.1/i);
-    assert.match(licence, /^Copyright /);
-  }
+test("the family has its OFL.txt next to it", () => {
+  const licence = readFileSync(new URL("crimson-pro-OFL.txt", dir), "utf8");
+  assert.match(licence, /SIL OPEN FONT LICENSE Version 1\.1/i);
+  assert.match(licence, /^Copyright .*Crimson Pro/);
+  assert.deepEqual(
+    readdirSync(dir).filter((f) => !f.endsWith(".woff2")),
+    ["crimson-pro-OFL.txt"],
+  );
 });
 
 test("every font keeps its copyright and licence notice inside the file", () => {
@@ -96,23 +98,22 @@ test("every font keeps its copyright and licence notice inside the file", () => 
   }
 });
 
-test("fonts that reserve a name are renamed: Source Serif 4 is PG Serif inside the files", () => {
-  for (const f of ["source-serif-4.woff2", "source-serif-4-italic.woff2"]) {
+test("a font that reserves a name is renamed; Crimson Pro reserves none, so it keeps its own", () => {
+  for (const f of files) {
     const names = nameRecords(readFileSync(new URL(f, dir)));
-    assert.ok(
-      (names.get(0) ?? []).some((s) => /Reserved Font Name .?Source/.test(s)),
-      `${f} still carries Adobe's notice`,
+    const reserved = (names.get(0) ?? []).flatMap((s) =>
+      [...s.matchAll(/Reserved Font Name\s*[‘'"“]?([^’'"”.]+)/gi)].map((m) => m[1] ?? ""),
     );
-    for (const id of [1, 4, 6, 16]) {
-      for (const s of names.get(id) ?? []) {
-        assert.doesNotMatch(s, /Source/i, `${f}: name ${id} = ${s}`);
-        assert.match(s, /PG ?Serif/, `${f}: name ${id} = ${s}`);
-      }
-    }
+    assert.deepEqual(
+      reserved,
+      [],
+      `${f} now declares a reserved name: rename the family (decision 0014 did so for Source Serif 4)`,
+    );
+    for (const s of names.get(1) ?? []) assert.equal(s, "Crimson Pro");
   }
 });
 
-test("the stylesheet uses the renamed family and never the reserved name", () => {
+test("one family only: no other web font anywhere in the styles or templates", () => {
   const css = readFileSync(new URL("../../src/styles/site.css", import.meta.url), "utf8").replace(
     /\/\*[\s\S]*?\*\//g,
     "",
@@ -121,13 +122,37 @@ test("the stylesheet uses the renamed family and never the reserved name", () =>
     /\/\*[\s\S]*?\*\//g,
     "",
   );
-  assert.match(css, /font-family: "PG Serif"/);
-  assert.doesNotMatch(css + tokens, /Source Serif/);
+  const families = [...css.matchAll(/@font-face\s*\{[^}]*font-family:\s*"?([^";]+)"?/g)].map((m) => m[1]);
+  assert.deepEqual([...new Set(families)].sort(), [
+    "Crimson Pro",
+    "Crimson Pro Fallback",
+    "Crimson Pro Fallback Georgia",
+  ]);
+  assert.equal([...css.matchAll(/url\("\/_assets\/fonts\/[^"]+"\)/g)].length, 2);
+  assert.doesNotMatch(css + tokens, /Archivo|Source Serif|PG Serif|JetBrains/);
 });
 
-test("fonts are preloaded for Archivo and PG Serif upright, not the italic", () => {
+test("fonts: only the upright file is preloaded, never the italic", () => {
   const layout = readFileSync(new URL("../../src/layouts/BaseLayout.astro", import.meta.url), "utf8");
-  assert.match(layout, /preload" href="\/_assets\/fonts\/archivo\.woff2"/);
-  assert.match(layout, /preload" href="\/_assets\/fonts\/source-serif-4\.woff2"/);
-  assert.doesNotMatch(layout, /preload[^>]*italic/);
+  assert.match(layout, /preload" href="\/_assets\/fonts\/crimson-pro\.woff2"/);
+  assert.equal((layout.match(/rel="preload"/g) ?? []).length, 1);
+});
+
+test("weight 300 is used only at 28 px and larger", () => {
+  const css = readFileSync(new URL("../../src/styles/site.css", import.meta.url), "utf8").replace(
+    /\/\*[\s\S]*?\*\//g,
+    "",
+  );
+  const tokens = readFileSync(new URL("../../src/styles/tokens.css", import.meta.url), "utf8");
+  const px = new Map<string, number>();
+  for (const [, name, rem] of tokens.matchAll(/--(fs-[0-9-]+):\s*([\d.]+)rem/g))
+    px.set(`var(--${name})`, Number(rem) * 16);
+  px.set("var(--fs-display)", 40);
+  for (const [, body] of css.matchAll(/\{([^{}]*font-weight:\s*300\s*;[^{}]*)\}/g)) {
+    const size = /font-size:\s*(var\(--[a-z0-9-]+\)|clamp[^;]*)/.exec(body ?? "");
+    assert.ok(size, `a weight-300 rule without its own font-size: ${body?.trim().slice(0, 80)}`);
+    const clamp = /^clamp\(([\d.]+)rem/.exec(size[1] ?? ""); // the smallest the clamp can be
+    const value = clamp ? Number(clamp[1]) * 16 : (px.get(size[1] ?? "") ?? 0);
+    assert.ok(value >= 28, `${size[1]} = ${value} px is too small for weight 300`);
+  }
 });

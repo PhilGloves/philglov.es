@@ -1,4 +1,5 @@
 ---
+import Arrows from "./Arrows.astro";
 /**
  * Footer on every page: the error-report form inside a <details> (works with
  * JavaScript off: it is a plain POST), the secondary links and the rights line.
@@ -37,7 +38,9 @@ const links = [
     <div class="txt">
       <p>{t(locale, "reportText")}</p>
       <details>
-        <summary>{t(locale, "reportSummary")}</summary>
+        <summary>
+          <Arrows text={t(locale, "reportSummary")} />
+        </summary>
         <form class="rform" method="post" action="/api/report">
           <div class="field field--small">
             <label for={`${idPrefix}-msg`}>{t(locale, "reportMessage")}</label>

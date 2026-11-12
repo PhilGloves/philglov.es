@@ -1,4 +1,6 @@
 ---
+import Arrows from "../Arrows.astro";
+import Arrow from "../Arrow.astro";
 /** Journal entry: head, language label in all six states, prose, figure, pull quote, previous/next. */
 interface Props {
   theme: "light" | "dark";
@@ -51,7 +53,9 @@ const labels = [
         <div>
           <dt>Comments</dt>
           <dd>
-            <a href="#sg-top">2 →</a>
+            <a href="#sg-top">
+              <Arrows text="2 →" />
+            </a>
           </dd>
         </div>
       </dl>
@@ -60,12 +64,12 @@ const labels = [
       <h2 class="title">Three weeks in Lisbon, mostly on foot</h2>
       <p class="label">
         <span class="marker" aria-hidden="true">
-          IT→EN
+          <Arrows text="IT→EN" />
         </span>
         <span>Originally written in Italian</span>
         <span aria-hidden="true">·</span>
         <a href="#sg-top" lang="it">
-          Read the original →
+          <Arrows text="Read the original →" />
         </a>
       </p>
       <p class="stand">
@@ -85,7 +89,7 @@ const labels = [
         </p>
         <h2>A second-level heading</h2>
         <p>
-          Body text is <strong>Source Serif</strong> at 20 px with <em>italics</em>, <code>inline code</code>, and a
+          Body text is <strong>Crimson Pro</strong> at 22 px with <em>italics</em>, <code>inline code</code>, and a
           footnote.
           <sup>
             <a href={`#${fn}`} id={fnref} data-footnote-ref aria-describedby={fn}>
@@ -131,7 +135,7 @@ const labels = [
               <p>
                 A footnote, set small and muted.{" "}
                 <a href={`#${fnref}`} data-footnote-backref aria-label="Back to reference 1">
-                  ↩
+                  <Arrow left />
                 </a>
               </p>
             </li>
@@ -161,11 +165,15 @@ const labels = [
       <div class="pn">
         <div class="pn-grid">
           <a href="#sg-top">
-            <span class="k">← Previous · No. 041</span>
+            <span class="k">
+              <Arrows text="← Previous · No. 041" />
+            </span>
             <span class="v">Why I shoot one roll a week</span>
           </a>
           <a href="#sg-top">
-            <span class="k">All entries →</span>
+            <span class="k">
+              <Arrows text="All entries →" />
+            </span>
             <span class="v">Back to the journal</span>
           </a>
         </div>
@@ -181,11 +189,13 @@ const labels = [
       {labels.map((l) => (
         <p class="label">
           <span class={l.cls} aria-hidden="true">
-            {l.marker}
+            <Arrows text={l.marker} />
           </span>
           <span>{l.text}</span>
           <span aria-hidden="true">·</span>
-          <span>{l.link}</span>
+          <span>
+            <Arrows text={l.link} />
+          </span>
         </p>
       ))}
     </div>
