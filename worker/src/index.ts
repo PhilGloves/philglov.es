@@ -16,6 +16,7 @@ import { adminHeaders, withHeaders } from "./headers.ts";
 import { log } from "./log.ts";
 import { pageHeaders, plain, servePage } from "./page.ts";
 import { runScheduled } from "./scheduled.ts";
+import { required } from "./secrets.ts";
 import { checkCsrfToken } from "./tokens.ts";
 
 /** /admin in any case or encoding: /ADMIN, /%61dmin, /admin/… all count. */
@@ -87,14 +88,14 @@ async function adminRoute(
 
   if (method === "PUT" && path === "/admin/upload") {
     const token = request.headers.get("X-CSRF-Token") ?? "";
-    if (!(await checkCsrfToken(env.FORM_HMAC_KEY, identity.sub, token)))
+    if (!(await checkCsrfToken(required(env.FORM_HMAC_KEY), identity.sub, token)))
       return new Response("Forbidden\n", { status: 403 });
     return upload(request, env);
   }
   if (method !== "POST" || (path !== "/admin/action" && path !== "/admin/write")) return notFound();
   const form = await readAdminForm(request);
   if (!form) return new Response("Bad request\n", { status: 400 });
-  if (!(await checkCsrfToken(env.FORM_HMAC_KEY, identity.sub, form.get("csrf") ?? "")))
+  if (!(await checkCsrfToken(required(env.FORM_HMAC_KEY), identity.sub, form.get("csrf") ?? "")))
     return new Response("The page was open too long. Go back, reload it and try again.\n", { status: 403 });
   return path === "/admin/action" ? moderationAction(env, identity, url, form) : writeAction(env, identity, form);
 }

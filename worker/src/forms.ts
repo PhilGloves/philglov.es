@@ -11,6 +11,7 @@ import { entryFor, langOfPath, manifest, pathFor, type Lang } from "./manifest.t
 import { notify } from "./notify.ts";
 import { plain, servePage, type Failure, type FormName } from "./page.ts";
 import { allow } from "./ratelimit.ts";
+import { required } from "./secrets.ts";
 import type { FormError } from "./strings.ts";
 import { checkFormToken } from "./tokens.ts";
 import { readComment, readReport, sitePath, validateComment, validateReport, type Errors } from "./validate.ts";
@@ -38,7 +39,7 @@ function sameOrigin(request: Request): boolean {
 
 async function spamCheck(env: Env, form: URLSearchParams): Promise<FormError | null> {
   if ((form.get("website") ?? "") !== "") return "honeypot";
-  const check = await checkFormToken(env.FORM_HMAC_KEY, form.get("token") ?? "");
+  const check = await checkFormToken(required(env.FORM_HMAC_KEY), form.get("token") ?? "");
   if (check === "ok") return null;
   return check === "fast" ? "fast" : "expired";
 }

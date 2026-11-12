@@ -7,6 +7,7 @@
  */
 import { importPKCS8, SignJWT } from "jose";
 import { base64ToUtf8, utf8ToBase64 } from "./crypto.ts";
+import { required } from "./secrets.ts";
 
 const API = "https://api.github.com";
 let installation: { token: string; expires: number; for: string } | undefined;
@@ -25,11 +26,11 @@ export const githubConfigured = (env: Env): boolean =>
   Boolean(env.GITHUB_APP_ID && env.GITHUB_APP_INSTALLATION_ID && env.GITHUB_APP_PRIVATE_KEY && env.GITHUB_REPO);
 
 async function appJwt(env: Env): Promise<string> {
-  const key = await importPKCS8(env.GITHUB_APP_PRIVATE_KEY, "RS256");
+  const key = await importPKCS8(required(env.GITHUB_APP_PRIVATE_KEY), "RS256");
   const now = Math.floor(Date.now() / 1000);
   return new SignJWT({})
     .setProtectedHeader({ alg: "RS256" })
-    .setIssuer(env.GITHUB_APP_ID)
+    .setIssuer(required(env.GITHUB_APP_ID))
     .setIssuedAt(now - 60)
     .setExpirationTime(now + 540)
     .sign(key);
@@ -57,7 +58,11 @@ async function token(env: Env): Promise<string> {
   });
   if (!res.ok) throw new GitHubError(res.status, "installation token");
   const data = (await res.json()) as { token: string; expires_at: string };
-  installation = { token: data.token, expires: Date.parse(data.expires_at), for: env.GITHUB_APP_INSTALLATION_ID };
+  installation = {
+    token: data.token,
+    expires: Date.parse(data.expires_at),
+    for: required(env.GITHUB_APP_INSTALLATION_ID),
+  };
   return data.token;
 }
 

@@ -170,6 +170,7 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
 - Worker output: text into pages only via `Parts`/HTMLRewriter `html: false`; admin markup only via the escaping
   `html` template. The admin script is served from `/admin/write.js` behind Access, never from `/_assets/`.
 - Every `/admin` path verifies the Access JWT; there is no local or test bypass. Secrets only via `wrangler secret
-put`; non-secret config as per-env vars in `wrangler.jsonc` (`secrets.required` lists the names).
+put`; non-secret config as per-env vars in `wrangler.jsonc` (`secrets.required` lists the names at the top level only: in an env it makes every deploy fail until the secret is set;
+  `tests/unit/wrangler-config.test.ts`).
 - No translation tooling of any kind: no AI or translation API, script, CI job, key, secret or dependency. hreflang
   pairs only when both language versions exist (`hasTwin` in `BaseLayout.astro`).

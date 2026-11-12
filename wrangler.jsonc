@@ -36,7 +36,9 @@
   // Daily retention at 03:00 UTC, weekly backup on Monday 04:00 UTC (B6, B9). Not inherited: repeated per env.
   "triggers": { "crons": ["0 3 * * *", "0 4 * * 1"] },
   // Secrets live only in `wrangler secret put` (docs/setup.md, steps 9 and 10), never here.
-  // Locally, `pnpm preview` writes random ones to .dev.vars (gitignored). Not inherited: repeated per env.
+  // Declared at the top level only (local dev and `wrangler types`; `pnpm preview` writes random
+  // ones to .dev.vars). Not in the envs on purpose: there, `wrangler deploy` and `versions upload`
+  // refuse to run while a listed secret is unset. The Worker fails closed without them instead.
   "secrets": {
     "required": [
       "FORM_HMAC_KEY",
@@ -86,16 +88,6 @@
         "GITHUB_REPO": "PhilGloves/philglov.es",
       },
       "triggers": { "crons": ["0 3 * * *", "0 4 * * 1"] },
-      "secrets": {
-        "required": [
-          "FORM_HMAC_KEY",
-          "IP_SALT",
-          "GITHUB_APP_ID",
-          "GITHUB_APP_INSTALLATION_ID",
-          "GITHUB_APP_PRIVATE_KEY",
-          "NOTIFY_TO",
-        ],
-      },
       "d1_databases": [
         {
           "binding": "DB",
@@ -126,16 +118,6 @@
         "GITHUB_REPO": "PhilGloves/philglov.es",
       },
       "triggers": { "crons": ["0 3 * * *", "0 4 * * 1"] },
-      "secrets": {
-        "required": [
-          "FORM_HMAC_KEY",
-          "IP_SALT",
-          "GITHUB_APP_ID",
-          "GITHUB_APP_INSTALLATION_ID",
-          "GITHUB_APP_PRIVATE_KEY",
-          "NOTIFY_TO",
-        ],
-      },
       "d1_databases": [
         {
           "binding": "DB",
@@ -167,16 +149,6 @@
         "GITHUB_REPO": "PhilGloves/philglov.es",
       },
       "triggers": { "crons": ["0 3 * * *", "0 4 * * 1"] },
-      "secrets": {
-        "required": [
-          "FORM_HMAC_KEY",
-          "IP_SALT",
-          "GITHUB_APP_ID",
-          "GITHUB_APP_INSTALLATION_ID",
-          "GITHUB_APP_PRIVATE_KEY",
-          "NOTIFY_TO",
-        ],
-      },
       "d1_databases": [
         {
           "binding": "DB",

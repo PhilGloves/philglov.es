@@ -55,6 +55,13 @@ repository and to Contents and Pull requests. Photos are written as
 is the intended safety net. The App ID and installation ID are secrets, not vars, so the owner sets them without a
 pull request.
 
+**Secrets.** Read from `env` and typed optional: they may be missing on a deployed Worker, and every path that
+needs one checks first (forms 503, `/admin` 403, publishing "not set up"); `secrets.ts` `required()` is the guard
+behind that check. `secrets.required` is declared at the top level of `wrangler.jsonc` only (local dev and
+`wrangler types`). In a deployed env it would make `wrangler deploy` and `versions upload` refuse to run until
+every listed secret is set, which broke the first preview deploy of this branch. Wrangler warns that the envs lack
+it; that is intended.
+
 **Notifications (B5).** `NOTIFY` var, "off" everywhere until launch, and an optional `send_email` binding `EMAIL`
 plus `NOTIFY_TO`; anything missing logs `notification skipped`. The message is hand-built MIME (no library): subject
 and body hold the page title and `https://philglov.es/admin`, nothing about the visitor.

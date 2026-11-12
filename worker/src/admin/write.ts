@@ -26,6 +26,7 @@ import { html, Safe } from "../html.ts";
 import { log } from "../log.ts";
 import { manifest, pathFor, type Lang } from "../manifest.ts";
 import { randomId } from "../crypto.ts";
+import { required } from "../secrets.ts";
 import { csrfToken } from "../tokens.ts";
 import { TOPICS } from "../../../src/lib/topics.ts";
 import en from "../../../src/i18n/en.json" with { type: "json" };
@@ -148,7 +149,7 @@ const CHEAT_SHEET = html`<details>
 </details>`;
 
 async function writePage(env: Env, identity: Identity, state: FormState, status = 200): Promise<Response> {
-  const csrf = await csrfToken(env.FORM_HMAC_KEY, identity.sub);
+  const csrf = await csrfToken(required(env.FORM_HMAC_KEY), identity.sub);
   const { input, errors } = state;
   const found = input.slug ? await lookup(env, input.slug, input.lang).catch(() => null) : null;
   const drafts = await env.DB.prepare(

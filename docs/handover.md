@@ -197,5 +197,7 @@ email sending (off until launch), a real GitHub App, uploads from an iPhone, Fir
   of the two text areas now matches the brief (5,000 and 3,000).
 - `pnpm build` rewrites `worker/src/script-hashes.json` pretty-printed, which `prettier --check` then flags; it was so
   before this branch. Restore it with `git checkout` unless the hash really changed.
+- Deploy logs warn that `secrets` is not on `env.preview` / `env.staging`: deliberate (0017, "Secrets"). Do not add
+  it there; a unit test fails if someone does.
 - The `html` tagged template in `worker/src` escapes every value; Prettier's embedded formatting is off for that folder
   so it never reflows markup inside `<textarea>` or `<pre>`.

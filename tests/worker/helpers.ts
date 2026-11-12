@@ -1,5 +1,6 @@
 import { env, SELF } from "cloudflare:test";
 import type { Manifest } from "../../worker/src/manifest.ts";
+import { required } from "../../worker/src/secrets.ts";
 import { formToken } from "../../worker/src/tokens.ts";
 
 export const ORIGIN = "https://example.com";
@@ -22,7 +23,7 @@ export async function twinEntry(): Promise<{ slug: string; en: string; it: strin
 }
 
 /** A token as the page would have written it `ageMs` ago. */
-export const agedToken = (ageMs = 5_000): Promise<string> => formToken(env.FORM_HMAC_KEY, Date.now() - ageMs);
+export const agedToken = (ageMs = 5_000): Promise<string> => formToken(required(env.FORM_HMAC_KEY), Date.now() - ageMs);
 
 export async function post(
   path: string,

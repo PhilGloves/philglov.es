@@ -7,6 +7,7 @@ import type { Identity } from "../access.ts";
 import { html, Safe } from "../html.ts";
 import { log } from "../log.ts";
 import { manifest, pathFor, type Lang, type Manifest } from "../manifest.ts";
+import { required } from "../secrets.ts";
 import { csrfToken } from "../tokens.ts";
 import { clean, isEmail, length, LIMITS } from "../validate.ts";
 import { adminPage, multiline, when, type Counts } from "./layout.ts";
@@ -156,7 +157,7 @@ export async function moderationPage(
   url: URL,
   found?: { email: string; rows: CommentRow[] },
 ): Promise<Response> {
-  const csrf = await csrfToken(env.FORM_HMAC_KEY, identity.sub);
+  const csrf = await csrfToken(required(env.FORM_HMAC_KEY), identity.sub);
   const site = await manifest(env);
   const [pending, reports, recent, total] = await Promise.all([
     env.DB.prepare(
