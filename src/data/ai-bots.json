@@ -1,0 +1,38 @@
+{
+  "contentSignal": "search=yes, ai-train=no",
+  "disallowForEveryone": ["/api/"],
+  "trainingBots": [
+    "GPTBot",
+    "ClaudeBot",
+    "anthropic-ai",
+    "Google-Extended",
+    "GoogleOther",
+    "CloudVertexBot",
+    "Applebot-Extended",
+    "meta-externalagent",
+    "Amazonbot",
+    "Bytespider",
+    "CCBot",
+    "cohere-ai",
+    "cohere-training-data-crawler",
+    "Diffbot",
+    "omgili",
+    "omgilibot",
+    "ImagesiftBot",
+    "img2dataset",
+    "AI2Bot",
+    "KimiBot",
+    "Timpibot"
+  ],
+  "notBlockedOnPurpose": [
+    "Googlebot",
+    "Bingbot",
+    "Applebot",
+    "DuckDuckBot",
+    "OAI-SearchBot",
+    "ChatGPT-User",
+    "Claude-SearchBot",
+    "Claude-User",
+    "PerplexityBot"
+  ]
+}

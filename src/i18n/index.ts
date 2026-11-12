@@ -11,6 +11,14 @@ export function t(locale: Locale, key: UiKey): string {
   return strings[locale][key];
 }
 
+/** Name of a journal topic (travel, photography, projects, thoughts) in the given language. */
+export const topicName = (locale: Locale, tag: string): string => t(locale, `topic_${tag}` as UiKey);
+
+/** Interface string with {name} placeholders filled in. */
+export function tf(locale: Locale, key: UiKey, values: Record<string, string | number>): string {
+  return t(locale, key).replace(/\{(\w+)\}/g, (_, name: string) => String(values[name] ?? ""));
+}
+
 /**
  * Path of the same page in the other language: the switch only adds or
  * removes the /it prefix. `path` has no trailing slash ("/" for home).

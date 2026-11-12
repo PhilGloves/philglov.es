@@ -1,6 +1,7 @@
 import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
+import { TOPICS } from "./lib/topics.ts";
 
 /**
  * The content schema is the contract: an entry missing a field fails the
@@ -14,7 +15,7 @@ import { z } from "astro/zod";
  */
 
 export const LOCALES = ["en", "it"] as const;
-export const TOPICS = ["travel", "photography", "projects", "thoughts"] as const;
+export { TOPICS } from "./lib/topics.ts";
 
 const locale = z.enum(LOCALES);
 
