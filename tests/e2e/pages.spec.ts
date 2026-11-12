@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { fontsSettled, requestFailure } from "./fonts.ts";
 
 const widths = [320, 390, 768, 1024, 1440];
 
@@ -23,7 +24,7 @@ test("every page × language × theme × five widths: one h1, no overflow, no st
     if (msg.type() === "error" || msg.type() === "warning") problems.push(`console ${msg.type()}: ${msg.text()}`);
   });
   page.on("pageerror", (err) => problems.push(`pageerror: ${err.message}`));
-  page.on("requestfailed", (req) => problems.push(`requestfailed: ${req.url()}`));
+  page.on("requestfailed", (req) => problems.push(requestFailure(req)));
   page.on("request", (req) => {
     if (new URL(req.url()).origin !== new URL(baseURL ?? "").origin) problems.push(`third-party: ${req.url()}`);
   });
@@ -50,9 +51,25 @@ test("every page × language × theme × five widths: one h1, no overflow, no st
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
         expect(overflow, `${path} at ${width}px (${colorScheme}) overflows by ${overflow}px`).toBeLessThanOrEqual(0);
       }
+      // Before the next navigation: let late font loads (the italic) finish, and record any that failed (Q18).
+      problems.push(...(await fontsSettled(page)).map((p) => `${path}: ${p}`));
     }
   }
   expect(problems).toEqual([]);
+});
+
+test("a font that really fails is still reported: 404 on the italic file", async ({ page }) => {
+  const problems: string[] = [];
+  page.on("requestfailed", (req) => problems.push(requestFailure(req)));
+  page.on("response", (res) => {
+    if (res.status() >= 400) problems.push(`HTTP ${res.status()}: ${new URL(res.url()).pathname}`);
+  });
+  await page.route("**/_assets/fonts/crimson-pro-italic.woff2", (route) => route.fulfill({ status: 404, body: "" }));
+  // The home page draws italic text (the hero's emphasis), so the italic file is fetched.
+  await page.goto("/");
+  problems.push(...(await fontsSettled(page)));
+  expect(problems).toContain("HTTP 404: /_assets/fonts/crimson-pro-italic.woff2");
+  expect(problems.some((p) => /^font failed: .+ italic /.test(p))).toBe(true);
 });
 
 test("a missing page answers 404 with the bilingual help page", async ({ page }) => {
