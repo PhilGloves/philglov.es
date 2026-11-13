@@ -166,6 +166,12 @@
     }
   }
 
+  /* Arriving at a form's message after sending it without JavaScript (#comment-status,
+   * #report-status): jump there at once, never glide down from the top. */
+  html:has([data-slot$="-status"]:target) {
+    scroll-behavior: auto;
+  }
+
   body {
     container: page / inline-size;
     min-block-size: 100vh;

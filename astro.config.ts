@@ -30,5 +30,8 @@ export default defineConfig({
   },
   // No client router (<ClientRouter />), no prefetch script, no dev toolbar.
   prefetch: false,
+  // Astro inlines small <script>s below this limit; an inline script would need its own CSP hash.
+  // 0 keeps src/scripts/forms.ts an external same-origin file under /_assets/ (script-src 'self').
+  vite: { build: { assetsInlineLimit: 0 } },
   devToolbar: { enabled: false },
 });

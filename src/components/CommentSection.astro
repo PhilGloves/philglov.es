@@ -41,8 +41,8 @@ const { locale, slug } = Astro.props;
   <div class="con">
     <h3 class="big">{t(locale, "commentFormTitle")}</h3>
     <p class="intro">{t(locale, "commentIntro")}</p>
-    <div id="comment-status" data-slot="comment-status"></div>
-    <form class="form" method="post" action="/api/comment" id="comment-form">
+    <div id="comment-status" data-slot="comment-status" tabindex="-1"></div>
+    <form class="form" method="post" action="/api/comment#comment-status" id="comment-form">
       <div class="field">
         <label for="c-name">{t(locale, "fieldName")}</label>
         <input
