@@ -11,10 +11,13 @@
  * pressed, `Accept: application/json`, same origin only, no redirect followed.
  * The Worker answers a `RowReply` (worker/src/admin/moderation.ts) and only the
  * cards of that item change: badge, buttons, reply, the counts, and a line in
- * the card's status slot, which takes focus. On anything else (network error,
- * an expired Access login redirecting away, an expired CSRF token, `ok: false`)
- * the form is posted again the plain way, exactly as without JavaScript. Every
- * action is idempotent, so a request that did arrive is safe to repeat.
+ * the card's status slot, which takes focus. A redirect can only come from
+ * Access (the Worker never redirects a JSON request): the login has expired, so
+ * the page reloads and Access shows its sign-in (owner decision O5; a form post
+ * there would be blocked by form-action 'self'). On anything else (network
+ * error, an expired CSRF token, `ok: false`) the form is posted again the plain
+ * way, exactly as without JavaScript. Every action is idempotent, so a request
+ * that did arrive is safe to repeat.
  */
 export const MODERATION_SCRIPT = String.raw`"use strict";
 (function () {
@@ -60,6 +63,7 @@ export const MODERATION_SCRIPT = String.raw`"use strict";
       headers: { Accept: "application/json" }
     })
       .then(function (r) {
+        if (r.type === "opaqueredirect") { location.reload(); return new Promise(function () {}); }
         if (r.status !== 200 || (r.headers.get("Content-Type") || "").indexOf("application/json")) throw 0;
         return r.json();
       })

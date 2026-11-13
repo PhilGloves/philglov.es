@@ -19,10 +19,8 @@ test.beforeEach(async ({ page }) => {
     if (msg.type() === "error" || msg.type() === "warning") consoleNoise.push(`${msg.type()}: ${msg.text()}`);
   });
   page.on("pageerror", (err) => consoleNoise.push(`pageerror: ${err.message}`));
-  // Reduced motion turns the site's cross-document view transitions off (site.css). Chromium aborts some of them
-  // with "Transition was aborted because of invalid state" on plain link clicks on public pages too, before this
-  // work; that is tracked on its own (TICKETS.md, Q19) and kept out of these tests, which are about moderation.
-  await page.emulateMedia({ reducedMotion: "reduce" });
+  // Motion allowed, as for most visitors: the site has no view transitions any more (Q19, decision 0021).
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   admin = await serveAdmin();
   ADMIN = admin.origin;
 });
@@ -196,25 +194,16 @@ test.describe("JavaScript on: in the background", () => {
     expect(status(id)?.status).toBe("approved");
   });
 
-  test("the Access login has expired: the redirect is not followed, the form falls back to the plain post", async ({
-    page,
-  }) => {
-    // The plain post then meets Access's redirect to its sign-in page on another origin, and the admin CSP
-    // (form-action 'self') makes the browser block it: exactly what happens today without JavaScript. Open owner
-    // question O5 (TICKETS.md); this test changes with the answer.
-    expectedNoise = [/^error: Sending form data to '.*\/admin\/action' violates .*"form-action 'self'"/];
+  test("the Access login has expired: the page reloads, and Access's sign-in page opens (O5)", async ({ page }) => {
+    // Owner decision O5: no form post (the admin CSP's form-action 'self' would block Access's redirect), a reload.
     const id = admin.comment({});
     await page.goto(`${ADMIN}/admin`);
     admin.expireLogin();
     const form = card(page, `comment-${id}`).locator("form.actions");
     await form.getByRole("button", { name: "Approve" }).click();
-    await expect(form).toHaveAttribute("data-plain", "");
-    await expect.poll(() => consoleNoise.length).toBe(1);
-    expect(page.url()).toBe(`${ADMIN}/admin`);
-    expect(status(id)?.status).toBe("pending");
-    // A reload (a plain GET) is not a form submission: Access's sign-in page opens.
-    await page.reload();
+    await page.waitForURL(/^http:\/\/localhost:\d+\/cdn-cgi\/access\/login$/);
     await expect(page.locator("h1")).toHaveText("Sign in");
+    expect(status(id)?.status).toBe("pending");
   });
 
   test("the CSRF token is no longer valid: the plain post shows the Worker's message, nothing changes", async ({
@@ -282,7 +271,8 @@ test.describe("JavaScript off: plain posts", () => {
   test("the Access login has expired: the browser blocks the post (form-action 'self'), nothing changes", async ({
     page,
   }) => {
-    // The behaviour the script's fallback reproduces; open owner question O5 (TICKETS.md).
+    // Without the script there is only the post, and the admin CSP stays as it is (owner decision O5): the browser
+    // blocks Access's redirect. Reloading the page signs in again.
     expectedNoise = [/^error: Sending form data to '.*\/admin\/action' violates .*"form-action 'self'"/];
     const id = admin.comment({});
     await page.goto(`${ADMIN}/admin`);
