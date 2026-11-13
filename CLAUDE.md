@@ -101,6 +101,8 @@ WAY OF WORKING
 - 2026-11-13: photo pipeline built (P1–P6, [0019](docs/decisions/0019-photo-pipeline.md)): originals fetched from R2,
   Astro `<Picture>` AVIF/WebP/JPEG, dominant-colour classes, rights metadata written by exiftool after the build.
   Entry photos: responsive WebP ≤ 1600 px via `image.layout` and `src/lib/entry-image-service.ts`. Placeholders show until the originals exist. Dark backdrop (P7): the owner decides after seeing real photos on staging.
+- 2026-11-13: moderation on `/admin` sent in the background with JavaScript on, only the affected card updating;
+  plain posts without it ([0020](docs/decisions/0020-background-moderation.md)). Open: O5 (expired Access login).
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -127,7 +129,8 @@ worker/migrations/            D1 migrations, applied by CI (migrations_dir in wr
 tests/worker/                 Vitest inside workerd (vitest.config.ts: test JWKS and a GitHub stand-in)
 scripts/lib/content-check.ts    the build check; scripts/lib/new-entry.ts the `pnpm new` template
 scripts/                      build helpers, run with plain `node` (type stripping); build-fonts.py by hand
-tests/unit/ tests/e2e/        node:test unit tests; Playwright e2e
+tests/unit/ tests/e2e/        node:test unit tests; Playwright e2e (admin-worker.ts: the real Worker behind a test
+                              Access, for /admin in a browser, 0020)
 docs/guide.md docs/design/    owner's guide and prototypes — never edit
 docs/decisions/               one record per architectural decision
 docs/setup.md                 steps only the owner can do
@@ -188,7 +191,9 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
 - Never log names, emails, comment text or IP addresses. The Worker logs only through `worker/src/log.ts` (fixed
   event names). Never put personal data in a URL: Workers Logs record URLs.
 - Worker output: text into pages only via `Parts`/HTMLRewriter `html: false`; admin markup only via the escaping
-  `html` template. The admin script is served from `/admin/write.js` behind Access, never from `/_assets/`.
+  `html` template. The admin scripts are served from `/admin/write.js` and `/admin/moderation.js` behind Access,
+  never from `/_assets/`; each admin page loads only its own. Background admin requests get JSON, always 200, never
+  HTML (0020).
 - Every `/admin` path verifies the Access JWT; there is no local or test bypass. Secrets only via `wrangler secret
 put`; non-secret config as per-env vars in `wrangler.jsonc` (`secrets.required` lists the names at the top level only: in an env it makes every deploy fail until the secret is set;
   `tests/unit/wrangler-config.test.ts`).

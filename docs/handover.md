@@ -223,3 +223,16 @@ failing, fix `rightsArgs()` in `scripts/lib/photo-rights.ts` first. Also unverif
 `R2_*` secrets and a photo in `philglov-originals-staging/photos/<series>/`), and the 400 KB first-screen budget on a
 real 20-photo series. Entry photos: `image.layout: "constrained"` plus `src/lib/entry-image-service.ts` (≤ 1600 px, text-column `sizes`, WebP); verified in a local build with a temporary entry. P7 (dark backdrop) is skipped until the owner has seen real photos on staging. Owner to do:
 upload the series originals to `photos/<series>/<file>` (setup step 5 bucket) and the real alt texts and captions.
+
+## Background moderation — 2026-11-13
+
+Owner request, decision [0020](decisions/0020-background-moderation.md), ticket B11. With JavaScript on,
+`/admin/moderation.js` sends approve, reject, reply, mark done and delete in the background; the Worker answers a
+`RowReply` (JSON, always 200, no HTML) and only that item's cards change, the counts follow and focus goes to the card's
+status line. Without JavaScript, or when a background request fails, the plain post as before. Tested in a real
+browser by `tests/e2e/admin.spec.ts` through `tests/e2e/admin-worker.ts`, which runs the real Worker behind a test
+Access (signed JWT, its own JWKS) on `node:sqlite`; that harness is the way to test any `/admin` page in a browser.
+Found on the way, both pre-existing and left open: **O5**, an expired Access login blocks any admin post because of
+`form-action 'self'` (nothing happens on screen; a reload signs in again); **Q19**, Chromium aborts some view transitions
+on plain link clicks with an uncaught error. Not checked: a real Access session expiring on staging (the harness
+imitates Access's redirect), Firefox/WebKit, a real screen reader.

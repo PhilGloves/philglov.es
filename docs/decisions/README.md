@@ -25,3 +25,4 @@ never renumber. To change a decision, add a new record that supersedes the old o
 | 0017 | [Backend: the Worker, D1, Access, phone publishing](0017-backend-worker.md)                 | Accepted                                |
 | 0018 | [Forms sent in the background, instant jump without JavaScript](0018-background-forms.md)   | Accepted                                |
 | 0019 | [Photo pipeline: R2 originals, `<Picture>`, rights after the build](0019-photo-pipeline.md) | Accepted                                |
+| 0020 | [Moderation in the background on /admin](0020-background-moderation.md)                     | Accepted                                |

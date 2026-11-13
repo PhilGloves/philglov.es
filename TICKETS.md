@@ -10,9 +10,10 @@ a translation script, CI job, `translate`/`review` command, AI or translation AP
 
 ## Open owner questions — do not guess these
 
-| #   | Question                                                                                                                                                                                            | Blocks      | Default until answered                                  |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------- |
-| O1  | **Placeholders:** contact email (guide suggests `phil@philglov.es`), city, launch date, partita IVA (only if any), the list of profiles for `sameAs`, a real photo for About, the 2–3 sentence bio. | F6a, F1, C5 | visible `[placeholder]` text; QA fails it before launch |
+| #   | Question                                                                                                                                                                                                                                                                                                                                     | Blocks      | Default until answered                                  |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------- |
+| O1  | **Placeholders:** contact email (guide suggests `phil@philglov.es`), city, launch date, partita IVA (only if any), the list of profiles for `sameAs`, a real photo for About, the 2–3 sentence bio.                                                                                                                                          | F6a, F1, C5 | visible `[placeholder]` text; QA fails it before launch |
+| O5  | **Expired Access login on /admin:** Access redirects a post to its sign-in page on another origin, and the admin CSP (`form-action 'self'`) makes the browser block it, so nothing happens on screen (with or without JavaScript). Add the team domain to `form-action`, or have the script reload the page instead of posting in that case? | B11         | the plain post, blocked as today; reload to sign in     |
 
 Settled by the owner on 2026-11-13: O4, rule 11 means no errors from the site's own code. The browser's own "Failed
 to load resource" line for a page served with a 4xx status (404, and the 422/429 answer to a failed plain form post) is
@@ -168,6 +169,10 @@ Only runtime dependency allowed: `jose`. No framework. Stay within 10 ms CPU per
       that entry's other-language version: set `originalLang` from the existing file and show the existing text under
       the form for reference. No translation, no Mark reviewed.
 - [x] B9 Weekly backup of comments and reports to the backups bucket, 12 weeks kept. B10 Workers Logs + error-rate alert.
+- [x] B11 Moderation in the background (owner request 2026-11-13, decision 0020): with JavaScript on, approve, reject,
+      reply, mark done and delete go through `/admin/moderation.js` and only that item's cards change (status, buttons,
+      counts); without it, the plain posts as before. Same Access, CSRF and origin checks; fallback to the plain post.
+      Open: O5.
 - _Done when: forms work with JS off, spam is rejected with a clear message, an approved comment appears within a
   minute, `/admin` returns 403 without a valid Access token; unit tests for every validation rule, the rate limiter and
   an XSS payload rendering as text._
@@ -216,6 +221,12 @@ every page × en/it × light/dark × 1440/1024/768/390/320 × JS on/off in Chrom
       for `document.fonts.ready` before each page is left and reports every font face whose load errored;
       `requestfailed` lines now carry Chromium's reason. A new test serves the italic file as 404 and checks it is still
       reported (HTTP 404 and `font failed`). The page matrix then passed 5 times in a row in both projects.
+- [ ] Q19 View transitions: in Chromium (Playwright, motion allowed), plain same-origin link clicks on public pages
+      raise an uncaught InvalidStateError, "Transition was aborted because of invalid state. ViewTransition opt-in
+      disabled", in about 5 of 8 clicks (found 2026-11-13 while testing B11; `/` ↔ `/about` against `pnpm preview`).
+      None with reduced motion, which turns `@view-transition` off in `site.css`. Existing tests never click links with
+      motion allowed, so they miss it. Find the cause (headless only, or real), then fix it or settle it as browser
+      noise with the owner; `tests/e2e/admin.spec.ts` runs with reduced motion until then.
 - _Done when: the full matrix passes twice in a row with no flaky tests; `QA-REPORT.md` written._
 
 ## 8 · Security audit (S) — Opus, xhigh — runs last
