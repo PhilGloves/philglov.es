@@ -163,7 +163,12 @@ the team. While an AUD is a placeholder, `/admin` on that Worker answers 403 to 
 
 `NOTIFY_TO` stays unset until launch (step 14).
 
-### 10. GitHub App for phone publishing (when the backend agent asks)
+### 10. GitHub App for phone publishing
+
+_Done 2026-11-13: App `philglov-publisher`, installed on this repository only,
+Contents and Pull requests write, Metadata read, no webhook events. Key converted to PKCS#8 and piped straight into the
+staging and preview secrets with the two IDs; the downloaded key file is deleted. Production repeats the three
+`secret put` commands at launch (step 12); generate a new key then if this one is ever exposed._
 
 1. GitHub → Settings → Developer settings → GitHub Apps → **New GitHub App**. Name it, e.g. `philglov-publisher`.
    Homepage: the repository URL. Webhook: **off**.

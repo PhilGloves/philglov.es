@@ -90,4 +90,5 @@ away from an open admin).
 are deleted within 12 months. Owner decision 2026-11-12: follow the notice. Every report is deleted 12 months after
 it arrived, whether or not it was marked done, so no open report outlives the promise.
 
-**Open for the owner.** The GitHub App and its secrets (`docs/setup.md` step 10).
+**Set up.** The GitHub App and its secrets are in place on staging and preview (`docs/setup.md` step 10,
+2026-11-13); production gets them at launch.

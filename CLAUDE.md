@@ -94,7 +94,8 @@ WAY OF WORKING
   new guide: one family, Crimson Pro, two files, 64 KiB of the 80 KB budget ([0015](docs/decisions/0015-one-typeface-crimson-pro.md)).
 - 2026-11-12: backend built (B1–B10, [0017](docs/decisions/0017-backend-worker.md)): forms, comments, `/admin`,
   `/admin/write`, crons. Staging and preview have their form secrets and Access AUD tags (setup step 9, done);
-  publishing waits for the GitHub App (step 10). Settled: O2 (address only in `NOTIFY_TO`), O3 (reports 12 months).
+  the GitHub App secrets (step 10, done 2026-11-13), so `/admin/write` can publish there. Settled: O2 (address only in
+  `NOTIFY_TO`), O3 (reports 12 months).
 - 2026-11-13: forms sent in the background with JavaScript on, instant jump to the message without it
   ([0018](docs/decisions/0018-background-forms.md)). Public JavaScript: 1,525 of 1,536 bytes.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
