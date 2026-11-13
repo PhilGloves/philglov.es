@@ -43,7 +43,7 @@ const FIELD_IDS: Record<FormName, Partial<Record<Field, string>>> = {
 };
 const FORM_SELECTOR: Record<FormName, string> = {
   comment: "#comment-form",
-  report: 'form[action="/api/report"]',
+  report: 'form[action^="/api/report"]',
 };
 const STATUS_SELECTOR: Record<FormName, string> = { comment: "#comment-status", report: "#report-status" };
 const ERROR_SLOT: Record<FormName, (f: Field) => string> = {
@@ -52,6 +52,54 @@ const ERROR_SLOT: Record<FormName, (f: Field) => string> = {
 };
 
 export const pageHeaders = (env: Env): Record<string, string> => baseHeaders(env.SITE_ENV, scriptHashes);
+
+/**
+ * The answer to a form sent in the background by src/scripts/forms.ts: the
+ * same messages as the page, as plain text, so the script only places text
+ * (and stays small enough for the 1.5 KB budget).
+ * s: id of the status slot; t: the alert's title ("" on success); m: the
+ * thank-you, or the form-level message, or the field problems in one line;
+ * e: every field of the form as [field id, message next to it, "" if valid].
+ */
+export interface FormReply {
+  ok: boolean;
+  s: string;
+  t: string;
+  m: string;
+  e: [string, string][];
+}
+
+const fieldsOf = (form: FormName): [Field, string][] => Object.entries(FIELD_IDS[form]) as [Field, string][];
+
+const statusId = (form: FormName): string => (form === "comment" ? "comment-status" : "report-status");
+
+export const sentReply = (lang: Lang, form: FormName): FormReply => ({
+  ok: true,
+  s: statusId(form),
+  t: "",
+  m: t(lang, form === "comment" ? "w_sentComment" : "w_sentReport"),
+  e: fieldsOf(form).map(([, id]) => [id, ""]),
+});
+
+export function failureReply(lang: Lang, failure: Failure): FormReply {
+  const { form, errors, formError } = failure;
+  const lines: string[] = [];
+  const e = fieldsOf(form).map(([field, id]): [string, string] => {
+    const error = errors[field];
+    if (!error) return [id, ""];
+    const message = fieldMessage(lang, field, error);
+    lines.push(`${fieldLabel(lang, form, field)}: ${message}.`);
+    return [id, message];
+  });
+  return {
+    ok: false,
+    s: statusId(form),
+    t: t(lang, form === "comment" ? "w_notSentComment" : "w_notSentReport"),
+    // The leading space separates it from the bold title.
+    m: ` ${formError ? formMessage(lang, formError) : lines.join(" ")}`,
+    e,
+  };
+}
 
 export async function servePage(
   request: Request,

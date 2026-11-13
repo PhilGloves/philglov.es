@@ -7,9 +7,19 @@
  */
 import { ipHash } from "./crypto.ts";
 import { log } from "./log.ts";
+import { withHeaders } from "./headers.ts";
 import { entryFor, langOfPath, manifest, pathFor, type Lang } from "./manifest.ts";
 import { notify } from "./notify.ts";
-import { plain, servePage, type Failure, type FormName } from "./page.ts";
+import {
+  failureReply,
+  pageHeaders,
+  plain,
+  sentReply,
+  servePage,
+  type Failure,
+  type FormName,
+  type FormReply,
+} from "./page.ts";
 import { allow } from "./ratelimit.ts";
 import { required } from "./secrets.ts";
 import type { FormError } from "./strings.ts";
@@ -44,7 +54,22 @@ async function spamCheck(env: Env, form: URLSearchParams): Promise<FormError | n
   return check === "fast" ? "fast" : "expired";
 }
 
-function redirect(path: string, sent: FormName): Response {
+/** The page's own script sends the form in the background and asks for JSON; a plain form post does not. */
+const wantsJson = (request: Request): boolean => (request.headers.get("Accept") ?? "").includes("application/json");
+
+/**
+ * Always 200: the outcome is in the body (`ok`). A 4xx answer to fetch() makes Chrome log "Failed to load
+ * resource" in the console, which rule 11 forbids. Plain form posts keep the brief's 422 and 429.
+ */
+function reply(env: Env, body: FormReply): Response {
+  return withHeaders(new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } }), {
+    ...pageHeaders(env),
+    "Cache-Control": "no-store",
+  });
+}
+
+function done(request: Request, env: Env, path: string, sent: FormName): Response {
+  if (wantsJson(request)) return reply(env, sentReply(langOfPath(path), sent));
   const anchor = sent === "comment" ? "comment-status" : "report-status";
   return new Response(null, { status: 303, headers: { Location: `${path}?sent=${sent}#${anchor}` } });
 }
@@ -57,6 +82,7 @@ function again(
   failure: Failure,
   status = 422,
 ): Promise<Response> {
+  if (wantsJson(request)) return Promise.resolve(reply(env, failureReply(langOfPath(path), failure)));
   return servePage(request, env, ctx, { path, status, failure });
 }
 
@@ -98,7 +124,7 @@ export async function handleComment(request: Request, env: Env, ctx: ExecutionCo
     .run();
   log("comment stored");
   ctx.waitUntil(notify(env, "comment", entry.title));
-  return redirect(path, "comment");
+  return done(request, env, path, "comment");
 }
 
 export async function handleReport(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -140,5 +166,5 @@ export async function handleReport(request: Request, env: Env, ctx: ExecutionCon
   log("report stored");
   const title = site.entries.find((e) => e.path === pagePath)?.title ?? pagePath;
   ctx.waitUntil(notify(env, "report", title));
-  return redirect(path, "report");
+  return done(request, env, path, "report");
 }
