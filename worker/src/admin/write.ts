@@ -314,7 +314,7 @@ ${input.body}</textarea
           </ol>`
         : html`<p class="muted">No drafts on the server.</p>`
     }`;
-  return adminPage(env, { title: "Write", current: "write", body, script: true, status });
+  return adminPage(env, { title: "Write", current: "write", body, script: "write", status });
 }
 
 /** GET /admin/write: a blank form, a server draft (?draft=), or an existing entry (?slug=&lang=&edit=1). */
@@ -474,7 +474,7 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
       </p>
       <p><a class="btn" href="${url}">Open the pull request</a></p>
       <p><a href="/admin/write">Write another entry</a></p>`;
-    return adminPage(env, { title: "Published", current: "write", body, script: true });
+    return adminPage(env, { title: "Published", current: "write", body, script: "write" });
   } catch (error) {
     log("publish failed", error);
     const step = error instanceof GitHubError ? ` (GitHub: ${error.step}, ${error.status})` : "";

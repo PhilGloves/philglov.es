@@ -1,13 +1,93 @@
 /**
- * The one script of the admin pages (served at /admin/write.js, behind Access,
- * under the admin CSP). Public pages never load it. It adds, on /admin/write:
+ * The two scripts of the admin pages, served by the Worker behind Access under
+ * the admin CSP (never from /_assets/; public pages never load them). Each is
+ * kept as a string so the Worker can serve it; tests/unit/admin-client.test.ts
+ * parses both. Plain ES2017, no framework, DOM built with createElement/textContent only.
+ */
+
+/**
+ * /admin/moderation.js, on /admin (decision 0020). Approve, reject, reply, mark
+ * done and delete go in the background: the same form fields plus the button
+ * pressed, `Accept: application/json`, same origin only, no redirect followed.
+ * The Worker answers a `RowReply` (worker/src/admin/moderation.ts) and only the
+ * cards of that item change: badge, buttons, reply, the counts, and a line in
+ * the card's status slot, which takes focus. On anything else (network error,
+ * an expired Access login redirecting away, an expired CSRF token, `ok: false`)
+ * the form is posted again the plain way, exactly as without JavaScript. Every
+ * action is idempotent, so a request that did arrive is safe to repeat.
+ */
+export const MODERATION_SCRIPT = String.raw`"use strict";
+(function () {
+  var hides = { approve: "approved", reject: "rejected", done: "done" };
+  function lines(node, text) {
+    while (node.firstChild) node.removeChild(node.firstChild);
+    text.split("\n").forEach(function (line, i) {
+      if (i) node.appendChild(document.createElement("br"));
+      node.appendChild(document.createTextNode(line));
+    });
+  }
+  function update(card, data) {
+    var slot = card.querySelector("[data-row-status]");
+    if (data.status === "deleted") {
+      while (card.firstChild) card.removeChild(card.firstChild);
+      card.appendChild(slot);
+    } else {
+      var badge = card.querySelector(".badge");
+      badge.textContent = data.status;
+      badge.className = "badge" + (data.status === "approved" ? " badge--ok" : data.status === "rejected" ? " badge--bad" : "");
+      card.querySelectorAll('button[name="action"]').forEach(function (b) {
+        if (hides[b.value]) b.hidden = hides[b.value] === data.status;
+      });
+      if (typeof data.reply === "string") {
+        var box = card.querySelector("[data-reply]"), text = card.querySelector('textarea[name="reply"]');
+        lines(box.querySelector("p"), data.reply);
+        box.hidden = data.reply === "";
+        text.value = data.reply;
+        text.closest("details").open = false;
+      }
+    }
+    slot.textContent = data.notice;
+  }
+  document.addEventListener("submit", function (e) {
+    var form = e.target, button = e.submitter, card = form.closest("[data-row]");
+    if (!card || !button || form.getAttribute("action") !== "/admin/action" || form.hasAttribute("data-plain")) return;
+    e.preventDefault();
+    var body = new URLSearchParams(new FormData(form));
+    body.append(button.name, button.value);
+    button.disabled = true;
+    fetch("/admin/action", {
+      method: "POST", body: body, mode: "same-origin", credentials: "same-origin", redirect: "manual",
+      headers: { Accept: "application/json" }
+    })
+      .then(function (r) {
+        if (r.status !== 200 || (r.headers.get("Content-Type") || "").indexOf("application/json")) throw 0;
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data.ok) throw 0;
+        button.disabled = false;
+        document.querySelectorAll('[data-row="' + data.row + '"]').forEach(function (c) { update(c, data); });
+        document.querySelectorAll("[data-count]").forEach(function (n) {
+          n.textContent = data.counts[n.getAttribute("data-count")];
+        });
+        card.querySelector("[data-row-status]").focus();
+      })
+      .catch(function () {
+        button.disabled = false;
+        form.setAttribute("data-plain", "");
+        form.requestSubmit(button);
+      });
+  });
+})();
+`;
+
+/**
+ * /admin/write.js, on /admin/write. It adds:
  *  - the slug suggested from the title while the slug field is untouched;
  *  - what the slug means (new, other-language version, existing) and the
  *    reference text, from /admin/write/reference;
  *  - autosave in this browser (localStorage), restored when newer than the server copy;
  *  - photo uploads one at a time, with progress and automatic retry.
- * Plain ES2017, no framework, DOM built with createElement/textContent only.
- * Kept as a string so the Worker can serve it; tests/unit/admin-client.test.ts parses it.
  */
 export const WRITE_SCRIPT = String.raw`"use strict";
 (function () {

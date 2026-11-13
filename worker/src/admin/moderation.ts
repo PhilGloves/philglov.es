@@ -2,6 +2,8 @@
  * GET /admin and POST /admin/action (B4): the moderation queue and the open
  * error reports, with approve / reject / reply / mark done / delete as plain
  * forms carrying a CSRF token. Everything shown is escaped (html``).
+ * With JavaScript on, /admin/moderation.js sends the same forms in the
+ * background and gets a `RowReply` (JSON) instead of the 303 (decision 0020).
  */
 import type { Identity } from "../access.ts";
 import { html, Safe } from "../html.ts";
@@ -44,6 +46,28 @@ const NOTICES: Record<string, string> = {
   "delete-draft": "Draft deleted.",
 };
 
+const GONE = "Already deleted.";
+
+/** What /admin/moderation.js needs to update one row in place: never HTML, only text and states. */
+export interface RowReply {
+  ok: true;
+  /** The `data-row` of every card that shows this item ("comment-12", "report-3"). */
+  row: string;
+  status: "approved" | "rejected" | "done" | "deleted";
+  notice: string;
+  /** After a reply: the saved text ("" when it was cleared). */
+  reply?: string;
+  counts: Counts;
+}
+
+/** The page carries the counts in these spans, so the script can update them. */
+const count = (kind: keyof Counts, n: number): Safe => html`<span data-count="${kind}">${n}</span>`;
+
+/** One per card, after its buttons: the script writes the outcome here and moves focus to it. */
+const rowStatus = new Safe('<p class="notice row-status" role="status" tabindex="-1" data-row-status></p>');
+
+const hiddenIf = (yes: boolean): Safe | string => (yes ? new Safe(" hidden") : "");
+
 export async function counts(env: Env): Promise<Counts> {
   const row = await env.DB.prepare(
     "SELECT (SELECT COUNT(*) FROM comments WHERE status = 'pending') AS comments, (SELECT COUNT(*) FROM reports WHERE status = 'open') AS reports",
@@ -62,26 +86,27 @@ function entryLink(site: Manifest, slug: string, lang: Lang): Safe {
 
 function commentCard(c: CommentRow, csrf: string, site: Manifest): Safe {
   const badge = c.status === "approved" ? "badge badge--ok" : c.status === "rejected" ? "badge badge--bad" : "badge";
-  return html`<li class="card">
+  return html`<li class="card" data-row="comment-${c.id}">
     <h3>${c.name} <span class="${badge}">${c.status}</span></h3>
     <p class="fine muted">
       ${when(c.created_at)} UTC · ${entryLink(site, c.slug, c.lang)} · written on the
       ${c.lang === "en" ? "English" : "Italian"} page · <a href="mailto:${c.email}">${c.email}</a>
     </p>
     <p class="body" lang="${c.lang}">${multiline(c.body)}</p>
-    ${
-      c.reply_body
-        ? html`<div class="c-reply">
-            <span class="fine">Your reply</span>
-            <p>${multiline(c.reply_body)}</p>
-          </div>`
-        : ""
-    }
+    <div class="c-reply" data-reply${hiddenIf(!c.reply_body)}>
+      <span class="fine">Your reply</span>
+      <p>${multiline(c.reply_body ?? "")}</p>
+    </div>
     <form method="post" action="/admin/action" class="actions">
       ${hidden(csrf, c.id)}
-      ${c.status !== "approved" ? html`<button type="submit" name="action" value="approve" class="btn">Approve</button>` : ""}
-      ${c.status !== "rejected" ? html`<button type="submit" name="action" value="reject" class="btn btn--danger">Reject</button>` : ""}
+      <button type="submit" name="action" value="approve" class="btn"${hiddenIf(c.status === "approved")}>
+        Approve
+      </button>
+      <button type="submit" name="action" value="reject" class="btn btn--danger"${hiddenIf(c.status === "rejected")}>
+        Reject
+      </button>
     </form>
+    ${rowStatus}
     <details>
       <summary>Reply</summary>
       <form method="post" action="/admin/action" class="form">
@@ -115,7 +140,7 @@ ${c.reply_body ?? ""}</textarea>
 }
 
 function reportCard(r: ReportRow, csrf: string): Safe {
-  return html`<li class="card">
+  return html`<li class="card" data-row="report-${r.id}">
     <h3><a href="${r.page_url}">${r.page_url}</a> <span class="badge">open</span></h3>
     <p class="fine muted">
       ${when(r.created_at)} UTC${r.email ? html` · <a href="mailto:${r.email}">${r.email}</a>` : " · no email"}
@@ -125,6 +150,7 @@ function reportCard(r: ReportRow, csrf: string): Safe {
       ${hidden(csrf, r.id)}
       <button type="submit" name="action" value="done" class="btn">Mark done</button>
     </form>
+    ${rowStatus}
     <details>
       <summary>Delete for good</summary>
       <form method="post" action="/admin/action" class="form">
@@ -183,12 +209,12 @@ export async function moderationPage(
             )}`
         : ""
     }
-    <h2 class="admin-title" id="comments">Comments to moderate (${total.comments})</h2>
+    <h2 class="admin-title" id="comments">Comments to moderate (${count("comments", total.comments)})</h2>
     ${list(
       pending.results.map((c) => commentCard(c, csrf, site)),
       "Nothing waiting.",
     )}
-    <h2 class="admin-title" id="reports">Error reports (${total.reports})</h2>
+    <h2 class="admin-title" id="reports">Error reports (${count("reports", total.reports)})</h2>
     ${list(
       reports.results.map((r) => reportCard(r, csrf)),
       "No open reports.",
@@ -208,15 +234,19 @@ export async function moderationPage(
       </div>
       <div class="actions"><button type="submit" name="action" value="find" class="btn btn--ghost">Find</button></div>
     </form>`;
-  return adminPage(env, { title: "Moderation", current: "comments", counts: total, body });
+  return adminPage(env, { title: "Moderation", current: "comments", counts: total, body, script: "moderation" });
 }
 
-/** POST /admin/action. The CSRF token has been checked by the router. */
+/**
+ * POST /admin/action. The CSRF token has been checked by the router. `json`: the request came from
+ * /admin/moderation.js, which gets a `RowReply`, or `{ ok: false }` and then posts the form the plain way.
+ */
 export async function moderationAction(
   env: Env,
   identity: Identity,
   url: URL,
   form: URLSearchParams,
+  json = false,
 ): Promise<Response> {
   const action = form.get("action") ?? "";
   const id = Number(form.get("id"));
@@ -242,40 +272,69 @@ export async function moderationAction(
     return back("/admin/write", action);
   }
 
-  if (!Number.isSafeInteger(id) || id < 1) return back("/admin", "");
+  const refuse = (): Response => (json ? answer({ ok: false }) : back("/admin", ""));
+  if (!Number.isSafeInteger(id) || id < 1) return refuse();
+  let changes: number;
+  let reply: string | undefined;
   switch (action) {
     case "approve":
-      await db.prepare("UPDATE comments SET status = 'approved' WHERE id = ?1").bind(id).run();
+      changes = await change(db.prepare("UPDATE comments SET status = 'approved' WHERE id = ?1").bind(id));
       break;
     case "reject":
-      await db.prepare("UPDATE comments SET status = 'rejected' WHERE id = ?1").bind(id).run();
+      changes = await change(db.prepare("UPDATE comments SET status = 'rejected' WHERE id = ?1").bind(id));
       break;
-    case "reply": {
-      const reply = clean(form.get("reply"), true);
-      if (length(reply) > LIMITS.comment) return back("/admin", "");
-      await db
-        .prepare("UPDATE comments SET reply_body = ?2, status = 'approved' WHERE id = ?1")
-        .bind(id, reply || null)
-        .run();
+    case "reply":
+      reply = clean(form.get("reply"), true);
+      if (length(reply) > LIMITS.comment) return refuse();
+      changes = await change(
+        db.prepare("UPDATE comments SET reply_body = ?2, status = 'approved' WHERE id = ?1").bind(id, reply || null),
+      );
       break;
-    }
     case "delete":
-      if (!confirmed) return back("/admin", "");
-      await db.prepare("DELETE FROM comments WHERE id = ?1").bind(id).run();
+      if (!confirmed) return refuse();
+      changes = await change(db.prepare("DELETE FROM comments WHERE id = ?1").bind(id));
       break;
     case "done":
-      await db.prepare("UPDATE reports SET status = 'done', done_at = ?2 WHERE id = ?1").bind(id, Date.now()).run();
+      changes = await change(
+        db.prepare("UPDATE reports SET status = 'done', done_at = ?2 WHERE id = ?1").bind(id, Date.now()),
+      );
       break;
     case "delete-report":
-      if (!confirmed) return back("/admin", "");
-      await db.prepare("DELETE FROM reports WHERE id = ?1").bind(id).run();
+      if (!confirmed) return refuse();
+      changes = await change(db.prepare("DELETE FROM reports WHERE id = ?1").bind(id));
       break;
     default:
-      return back("/admin", "");
+      return refuse();
   }
   log("admin action");
-  return back("/admin", action);
+  if (!json) return back("/admin", action);
+  const gone = changes === 0;
+  return answer({
+    ok: true,
+    row: `${action === "done" || action === "delete-report" ? "report" : "comment"}-${id}`,
+    status: gone ? "deleted" : (STATUS[action] ?? "deleted"),
+    notice: gone ? GONE : (NOTICES[action] ?? ""),
+    ...(reply !== undefined && !gone ? { reply } : {}),
+    counts: await counts(env),
+  });
 }
+
+/** The state an item is in after each action that succeeded. */
+const STATUS: Record<string, RowReply["status"]> = {
+  approve: "approved",
+  reject: "rejected",
+  reply: "approved",
+  delete: "deleted",
+  done: "done",
+  "delete-report": "deleted",
+};
+
+/** Rows the statement changed: 0 means the item was already gone (deleted in another tab). */
+const change = async (statement: D1PreparedStatement): Promise<number> => (await statement.run()).meta.changes;
+
+/** Always 200 with the outcome in the body: a 4xx answer to fetch() would put a line in the console (rule 11). */
+const answer = (body: RowReply | { ok: false }): Response =>
+  new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json; charset=utf-8" } });
 
 function back(path: string, done: string): Response {
   const query = NOTICES[done] ? `?done=${done}` : "";

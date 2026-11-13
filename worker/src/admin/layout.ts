@@ -12,10 +12,18 @@ export interface Counts {
 
 export async function adminPage(
   env: Env,
-  options: { title: string; current: Section; counts?: Counts; body: Safe; script?: boolean; status?: number },
+  options: {
+    title: string;
+    current: Section;
+    counts?: Counts;
+    body: Safe;
+    /** Each admin page loads at most its own script, served by the Worker behind Access. */
+    script?: "write" | "moderation";
+    status?: number;
+  },
 ): Promise<Response> {
   const { stylesheets } = await manifest(env);
-  const nav = (section: Section, href: string, label: string) =>
+  const nav = (section: Section, href: string, label: string | Safe) =>
     html`<li>
       <a href="${href}" ${section === options.current ? new Safe(' aria-current="page"') : ""}>${label}</a>
     </li>`;
@@ -28,15 +36,23 @@ export async function adminPage(
         <meta name="robots" content="noindex, nofollow" />
         <title>${options.title} · philglov.es admin</title>
         ${stylesheets.map((href) => html`<link rel="stylesheet" href="${href}" />`)}
-        ${options.script ? html`<script src="/admin/write.js" defer></script>` : ""}
+        ${options.script ? html`<script src="/admin/${options.script}.js" defer></script>` : ""}
       </head>
       <body class="admin">
         <div class="admin-bar">
           <b>philglov.es admin</b>
           <nav class="admin-nav" aria-label="Admin">
             <ul>
-              ${nav("comments", "/admin#comments", counts ? `Comments (${counts.comments})` : "Comments")}
-              ${nav("reports", "/admin#reports", counts ? `Reports (${counts.reports})` : "Reports")}
+              ${nav(
+                "comments",
+                "/admin#comments",
+                counts ? html`Comments (<span data-count="comments">${counts.comments}</span>)` : "Comments",
+              )}
+              ${nav(
+                "reports",
+                "/admin#reports",
+                counts ? html`Reports (<span data-count="reports">${counts.reports}</span>)` : "Reports",
+              )}
               ${nav("write", "/admin/write", "Write")}
             </ul>
           </nav>
