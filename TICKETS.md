@@ -239,6 +239,12 @@ every page × en/it × light/dark × 1440/1024/768/390/320 × JS on/off in Chrom
       `tests/e2e/navigation.spec.ts` clicks through the site with motion allowed and expects an empty console (it fails
       with the old rule back); `tests/unit/css.test.ts` keeps the rules out; the admin tests no longer emulate reduced
       motion.
+- [ ] Q20 Flaky page matrix with real photos (found 2026-11-13, also on `main`): with photo originals in
+      `src/.originals/`, `tests/e2e/pages.spec.ts` fails about 2 runs in 30 with
+      `requestfailed: …/_assets/<photo>.avif (net::ERR_ABORTED)`. A lazy photo that starts loading after `load` (a new
+      width picks another source) is cut off when the test moves to the next page, the same pattern as Q18 for fonts.
+      CI has not shown it yet, likely because R2 has no photos so far. Fix like Q18, no retries: before leaving a page,
+      wait for the images that started loading to finish, and still report one that really fails.
 - _Done when: the full matrix passes twice in a row with no flaky tests; `QA-REPORT.md` written._
 
 ## 8 · Security audit (S) — Opus, xhigh — runs last
