@@ -176,7 +176,7 @@ email sending (off until launch), a real GitHub App, uploads from an iPhone, Fir
 **For the owner (in this order).**
 
 1. ~~`docs/setup.md` step 9~~: done 2026-11-12 (secrets for staging and preview, AUD tags in `wrangler.jsonc`).
-2. Step 10: create the GitHub App, then the three `GITHUB_APP_*` secrets per environment.
+2. ~~Step 10~~: done 2026-11-13 (App `philglov-publisher`, secrets on staging and preview, key file deleted).
 3. O2 and O3 are settled (2026-11-12): the address lives only in `NOTIFY_TO`; reports go 12 months after arrival. Read the Italian `w_*`
    strings in `src/i18n/it.json`: they are drafts, except the comment thank-you, which is the guide's.
 4. Step 18: the error alert in Notifications (I could not check which alert types your plan offers).

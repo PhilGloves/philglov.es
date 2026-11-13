@@ -144,8 +144,8 @@ Both versions are written by hand. The schema has no `translation` field: a page
 
 ## 5 · Backend (B) — Opus, high — built 2026-11-12, see decision 0017 and handover
 
-Done in code and tests (133 Worker tests, e2e green locally). Waiting on the owner before it works on staging: the
-secrets and AUD tags (`docs/setup.md` steps 9 and 10). B10's alert is a dashboard step (step 18), not verified.
+Done in code and tests. Staging and preview have every secret and the AUD tags (`docs/setup.md` steps 9 and 10, done
+2026-11-12/13). B10's alert is a dashboard step (step 18), not verified.
 
 Only runtime dependency allowed: `jose`. No framework. Stay within 10 ms CPU per request. Never log personal data.
 
