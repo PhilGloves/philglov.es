@@ -10,3 +10,5 @@ playwright-report/
 # owner-provided reference files: kept byte-for-byte
 docs/guide.md
 docs/design/
+src/styles/photo-colours.generated.css
+src/.originals/

@@ -1,19 +1,169 @@
 ---
 /**
- * A photograph in a .frame. Until the photo pipeline (ticket P2) delivers real
- * images this draws the tone placeholder; swap the body for <picture> there and
- * nothing else changes (the ratio class and tone stay on the frame).
+ * A photograph in a .frame. With an original in src/.originals it draws a
+ * <picture>: AVIF + WebP + JPEG at 480/800/1200/1600/2400 px wide, width and
+ * height always set, lazy except the one `priority` image per page, and the
+ * photo's dominant colour as the box background through a generated class
+ * (never an inline style: the CSP blocks those). Photos that have art direction
+ * (photos.json `art`) get one <source media> per breakpoint. Without an
+ * original it draws the tone placeholder, so the site builds before any photo
+ * is uploaded (ticket P2).
  */
+import { Picture, getImage } from "astro:assets";
+import { colourClass } from "../../scripts/lib/photo-meta.ts";
+import { originals, records } from "../lib/photo-meta.ts";
+
+type Gravity =
+  "center" | "top" | "bottom" | "left" | "right" | "top left" | "top right" | "bottom left" | "bottom right";
+type Crop = { file: string } | { ratio: string; position: Gravity };
+interface Art {
+  desktop?: Crop | undefined;
+  tablet?: Crop | undefined;
+  mobile?: Crop | undefined;
+}
+
 interface Props {
   tone: number;
   /** Alt text in the page's language: what is in it and why it matters. */
   alt: string;
   ratio?: "hero" | "wide" | "fig" | "tall" | "land" | "auto" | undefined;
+  /** Key of the original, "photos/<series>/<file>"; undefined draws the placeholder. */
+  src?: string | undefined;
+  art?: Art | undefined;
+  /** The `sizes` attribute for the layout this photo sits in. */
+  sizes?: string | undefined;
+  /** The first image on the page: eager and fetchpriority high. All others are lazy. */
+  priority?: boolean | undefined;
 }
 
-const { tone, alt, ratio } = Astro.props;
+const { tone, alt, ratio, src, art, sizes = "100vw", priority = false } = Astro.props;
+
+const WIDTHS = [480, 800, 1200, 1600, 2400];
+const QUALITY = { avif: 55, webp: 70, jpeg: 78 } as const;
+const record = src ? records[src] : undefined;
+const load = src ? originals[`/src/.originals/${src}`] : undefined;
+const meta = record && load ? (await load()).default : undefined;
+const seriesDir = src ? src.slice(0, src.lastIndexOf("/") + 1) : "";
+
+async function cropSource(crop: Crop | undefined) {
+  if (!meta) return undefined;
+  if (crop && "file" in crop) {
+    const other = originals[`/src/.originals/${seriesDir}${crop.file}`];
+    return other ? { image: (await other()).default, fit: undefined, position: undefined } : undefined;
+  }
+  if (crop) {
+    const [rw, rh] = crop.ratio.split(":").map(Number) as [number, number];
+    const width = Math.min(meta.width, Math.round((meta.height * rw) / rh));
+    const height = Math.round((width * rh) / rw);
+    return { image: meta, width, height, fit: "cover" as const, position: crop.position };
+  }
+  return { image: meta, fit: undefined, position: undefined };
+}
+
+const FORMATS = [
+  ["avif", "image/avif"],
+  ["webp", "image/webp"],
+] as const;
+
+/** One <source> per format for a breakpoint's crop. */
+async function sourcesFor(crop: Crop | undefined, media: string | undefined) {
+  const c = await cropSource(crop);
+  if (!c) return [];
+  return Promise.all(
+    FORMATS.map(async ([format, type]) => {
+      const img = await getImage({
+        src: c.image,
+        format,
+        widths: WIDTHS,
+        sizes,
+        quality: QUALITY[format],
+        ...(c.fit && { width: c.width, height: c.height, fit: c.fit, position: c.position }),
+      });
+      return {
+        media,
+        type,
+        srcset: img.srcSet.attribute,
+        width: img.attributes["width"],
+        height: img.attributes["height"],
+      };
+    }),
+  );
+}
+
+const directed = art && (art.mobile || art.tablet || art.desktop);
+const sources = directed
+  ? [
+      ...(art.mobile ? await sourcesFor(art.mobile, "(max-width: 40rem)") : []),
+      ...(art.tablet ? await sourcesFor(art.tablet, "(max-width: 65rem)") : []),
+      ...(await sourcesFor(art.desktop, "")),
+    ]
+  : [];
+const fallback = directed ? await cropSource(art.desktop) : undefined;
+const fallbackImg =
+  directed && fallback
+    ? await getImage({
+        src: fallback.image,
+        format: "jpeg",
+        widths: WIDTHS,
+        sizes,
+        quality: QUALITY.jpeg,
+        ...(fallback.fit && {
+          width: fallback.width,
+          height: fallback.height,
+          fit: fallback.fit,
+          position: fallback.position,
+        }),
+      })
+    : undefined;
+
+const boxClass = ["frame", ratio && `frame--${ratio}`, record ? colourClass(record.colour) : `tone-${tone}`];
+const placeholderClass = ratio === "auto" ? [...boxClass.slice(0, 1), "frame--land", ...boxClass.slice(2)] : boxClass;
+const loading = priority ? "eager" : "lazy";
 ---
 
-<div class:list={["frame", ratio && `frame--${ratio}`, `tone-${tone}`]} role="img" aria-label={alt}>
-  <span aria-hidden="true">[ photo ]</span>
-</div>
+{meta && !directed ? (
+  <div class:list={boxClass}>
+    <Picture
+      src={meta}
+      alt={alt}
+      formats={["avif", "webp"]}
+      fallbackFormat="jpeg"
+      widths={WIDTHS}
+      sizes={sizes}
+      quality={QUALITY.jpeg}
+      loading={loading}
+      fetchpriority={priority ? "high" : "auto"}
+      decoding="async"
+    />
+  </div>
+) : meta && directed && fallbackImg ? (
+  <div class:list={boxClass}>
+    <picture>
+      {sources.map((s) => (
+        <source
+          media={s.media || undefined}
+          type={s.type}
+          srcset={s.srcset}
+          sizes={sizes}
+          width={s.width}
+          height={s.height}
+        />
+      ))}
+      <img
+        src={fallbackImg.src}
+        srcset={fallbackImg.srcSet.attribute}
+        sizes={sizes}
+        width={fallbackImg.attributes["width"]}
+        height={fallbackImg.attributes["height"]}
+        alt={alt}
+        loading={loading}
+        fetchpriority={priority ? "high" : "auto"}
+        decoding="async"
+      />
+    </picture>
+  </div>
+) : (
+  <div class:list={placeholderClass} role="img" aria-label={alt}>
+    <span aria-hidden="true">[ photo ]</span>
+  </div>
+)}

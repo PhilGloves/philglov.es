@@ -11,7 +11,7 @@
     "dev": "astro dev",
     "check:content": "node scripts/check-content.ts",
     "new": "node scripts/new.ts",
-    "build": "node scripts/check-content.ts && astro build && node scripts/share-images.ts && node scripts/postbuild.ts",
+    "build": "node scripts/check-content.ts && node scripts/photo-meta.ts && astro build && node scripts/share-images.ts && node scripts/photo-rights.ts && node scripts/postbuild.ts",
     "preview": "node scripts/preview.ts",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
@@ -22,11 +22,13 @@
     "test:lighthouse": "lhci autorun",
     "test": "pnpm test:unit && pnpm test:worker && pnpm test:e2e",
     "deploy:staging": "wrangler deploy --env staging",
-    "test:worker": "vitest run"
+    "test:worker": "vitest run",
+    "photos:fetch": "node scripts/fetch-originals.ts"
   },
   "dependencies": {
     "astro": "7.4.8",
-    "jose": "6.2.17"
+    "jose": "6.2.17",
+    "sharp": "0.35.5"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.12",

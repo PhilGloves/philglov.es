@@ -71,6 +71,27 @@ const exifOverrides = z
   .partial()
   .strict();
 
+const fileName = z.string().regex(/^[a-z0-9][a-z0-9-]*\.(jpe?g|png)$/, "lowercase name, .jpg/.jpeg/.png");
+
+/**
+ * Art direction: a separate crop for a breakpoint. Either another original of
+ * the same series (`file`), or the same photo cut to a ratio around a side or
+ * corner (`position`, sharp's gravity words). Breakpoints are the page tiers:
+ * mobile ≤ 640 px, tablet ≤ 1040 px, desktop above.
+ */
+const crop = z.union([
+  z.object({ file: fileName }).strict(),
+  z
+    .object({
+      ratio: z.string().regex(/^[1-9]\d?:[1-9]\d?$/, 'width:height, e.g. "4:5"'),
+      position: z
+        .enum(["center", "top", "bottom", "left", "right", "top left", "top right", "bottom left", "bottom right"])
+        .default("center"),
+    })
+    .strict(),
+]);
+const art = z.object({ desktop: crop, tablet: crop, mobile: crop }).partial().strict();
+
 /**
  * One photos.json per series: src/content/photos/<series>/photos.json.
  * `file` names the original in the private R2 bucket philglov-originals.
@@ -85,11 +106,12 @@ const photos = defineCollection({
         .array(
           z
             .object({
-              file: z.string().regex(/^[a-z0-9][a-z0-9-]*\.(jpe?g|png)$/, "lowercase name, .jpg/.jpeg/.png"),
+              file: fileName,
               alt: bilingual,
               caption: bilingual,
               takenAt: z.coerce.date(),
               exif: exifOverrides.optional(),
+              art: art.optional(),
             })
             .strict(),
         )
