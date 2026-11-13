@@ -102,7 +102,12 @@ WAY OF WORKING
   Astro `<Picture>` AVIF/WebP/JPEG, dominant-colour classes, rights metadata written by exiftool after the build.
   Entry photos: responsive WebP ≤ 1600 px via `image.layout` and `src/lib/entry-image-service.ts`. Placeholders show until the originals exist. Dark backdrop (P7): the owner decides after seeing real photos on staging.
 - 2026-11-13: moderation on `/admin` sent in the background with JavaScript on, only the affected card updating;
-  plain posts without it ([0020](docs/decisions/0020-background-moderation.md)). Open: O5 (expired Access login).
+  plain posts without it ([0020](docs/decisions/0020-background-moderation.md)).
+- 2026-11-13: Publish goes live by itself: auto-merge on publisher pull requests, guarded by an inline step in the Test
+  job that fails any that change more than `src/content/journal/{en,it}/<slug>.md`; published entries are edited from
+  `/admin/write` (slug and language fixed, refused if changed on GitHub meanwhile); O5 settled (an expired login
+  reloads the page); view transitions removed, Q19 closed ([0021](docs/decisions/0021-publishing-goes-live.md)).
+  "Allow auto-merge" is on in the repository settings.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -194,6 +199,9 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
   `html` template. The admin scripts are served from `/admin/write.js` and `/admin/moderation.js` behind Access,
   never from `/_assets/`; each admin page loads only its own. Background admin requests get JSON, always 200, never
   HTML (0020).
+- Publisher pull requests auto-merge, so the step "Publisher pull requests change entry files only" in `ci.yml` is a
+  security boundary: keep it inline in the Test job, keep `PUBLISHER` in `worker/src/github.ts` equal to its login, and
+  never give the GitHub App the Workflows permission (0021). No view transitions (`tests/unit/css.test.ts`).
 - Every `/admin` path verifies the Access JWT; there is no local or test bypass. Secrets only via `wrangler secret
 put`; non-secret config as per-env vars in `wrangler.jsonc` (`secrets.required` lists the names at the top level only: in an env it makes every deploy fail until the secret is set;
   `tests/unit/wrangler-config.test.ts`).

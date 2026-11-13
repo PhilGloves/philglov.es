@@ -10,6 +10,8 @@ export interface Entry {
   originalLang: Lang;
   path: string;
   title: string;
+  /** The entry's date, YYYY-MM-DD. */
+  date: string;
   comments: boolean;
 }
 

@@ -52,9 +52,8 @@ test("components respond to containers", () => {
   assert.match(siteCode, /container: page \/ inline-size/);
 });
 
-test("cross-document view transitions are on, and off for reduced motion", () => {
-  assert.match(siteCode, /@view-transition\s*\{\s*navigation: auto/);
-  assert.match(siteCode, /prefers-reduced-motion: reduce\)\s*\{\s*@view-transition\s*\{\s*navigation: none/);
+test("no view transitions: page changes are plain navigations (Q19, decision 0021)", () => {
+  assert.doesNotMatch(siteCode, /@view-transition|view-transition-name|::view-transition/);
 });
 
 test("no inline style attributes or third-party URLs in templates and styles", () => {

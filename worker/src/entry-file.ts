@@ -112,8 +112,11 @@ const titleText = (text: string): string => text.replace(/[\\"]/g, "\\$&");
  */
 export const photoPath = (key: string): string => `../../../.originals/${key}`;
 
-/** The entry file. The caption is the image title, which the photo pipeline turns into a figcaption. */
-export function entryMarkdown(input: EntryInput, originalLang: Lang, date: string): string {
+/**
+ * The entry file. The caption is the image title, which the photo pipeline turns into a figcaption. `comments`
+ * keeps an existing entry's choice when it is edited; new entries have comments on.
+ */
+export function entryMarkdown(input: EntryInput, originalLang: Lang, date: string, comments = true): string {
   const photos = input.photos.map(
     (p) => `![${altText(p.alt)}](${photoPath(p.key)}${p.caption ? ` "${titleText(p.caption)}"` : ""})`,
   );
@@ -125,7 +128,7 @@ export function entryMarkdown(input: EntryInput, originalLang: Lang, date: strin
     `originalLang: ${originalLang}`,
     `description: ${yamlString(input.description)}`,
     `tags: [${input.tags.join(", ")}]`,
-    "comments: true",
+    `comments: ${comments}`,
     "---",
     "",
     [input.body, ...photos].filter(Boolean).join("\n\n"),
@@ -140,6 +143,8 @@ export interface ParsedEntry {
   lang: string;
   originalLang: string;
   tags: string[];
+  /** undefined when the file does not say (the schema then fails the build anyway). */
+  comments: boolean | undefined;
   body: string;
 }
 
@@ -161,23 +166,51 @@ export function parseEntry(text: string): ParsedEntry | null {
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(text);
   if (!match) return null;
   const fields = new Map<string, string>();
+  /** Items of a block list ("tags:" then "  - travel" lines), the other way laptop files write a list. */
+  const items = new Map<string, string[]>();
+  let current = "";
   for (const line of (match[1] ?? "").split(/\r?\n/)) {
     const m = /^([A-Za-z]+):\s*(.*)$/.exec(line);
-    if (m?.[1]) fields.set(m[1], m[2] ?? "");
+    const item = /^\s+-\s+(.*)$/.exec(line);
+    if (m?.[1]) {
+      current = m[1];
+      fields.set(current, m[2] ?? "");
+    } else if (item && current) items.set(current, [...(items.get(current) ?? []), item[1] ?? ""]);
   }
-  const tags = /^\[(.*)\]$/.exec((fields.get("tags") ?? "").trim())?.[1] ?? "";
+  const inline = /^\[(.*)\]$/.exec((fields.get("tags") ?? "").trim())?.[1];
+  const tags = inline !== undefined ? inline.split(",") : (items.get("tags") ?? []);
+  const comments = (fields.get("comments") ?? "").trim();
   return {
     title: unquote(fields.get("title") ?? ""),
     description: unquote(fields.get("description") ?? ""),
     date: (fields.get("date") ?? "").trim(),
     lang: (fields.get("lang") ?? "").trim(),
     originalLang: (fields.get("originalLang") ?? "").trim(),
-    tags: tags
-      .split(",")
-      .map((t) => unquote(t))
-      .filter(Boolean),
+    tags: tags.map((t) => unquote(t)).filter(Boolean),
+    comments: comments === "true" ? true : comments === "false" ? false : undefined,
     body: (match[2] ?? "").replace(/^\n+/, "").trimEnd(),
   };
 }
 
 export const entryFilePath = (lang: Lang, slug: string): string => `src/content/journal/${lang}/${slug}.md`;
+
+/** One photo paragraph as entryMarkdown writes it: ![alt](../../../.originals/<key> "caption"). */
+const PHOTO_LINE = /^!\[((?:\\.|[^\]\\])*)\]\(\.\.\/\.\.\/\.\.\/\.originals\/([^\s)]+)(?: "((?:\\.|[^"\\])*)")?\)$/;
+const unescape = (text: string): string => text.replace(/\\(.)/g, "$1");
+
+/**
+ * The photos at the end of an entry's text, as /admin/write wrote them (entryMarkdown), taken back out so the edit
+ * form shows them as photos with their alt text and caption. Only whole paragraphs after the last text, and only
+ * photos of this slug: anything else stays in the text, so saving changes nothing the form did not show.
+ */
+export function splitPhotos(body: string, slug: string): { body: string; photos: PhotoRef[] } {
+  const blocks = body.split(/\n{2,}/);
+  const photos: PhotoRef[] = [];
+  while (blocks.length) {
+    const m = PHOTO_LINE.exec((blocks[blocks.length - 1] ?? "").trim());
+    if (!m?.[2] || !isPhotoKey(slug, m[2])) break;
+    photos.unshift({ key: m[2], alt: unescape(m[1] ?? ""), caption: unescape(m[3] ?? "") });
+    blocks.pop();
+  }
+  return { body: blocks.join("\n\n").trimEnd(), photos };
+}

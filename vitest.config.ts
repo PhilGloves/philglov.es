@@ -7,8 +7,11 @@
  *  - https://test-team.cloudflareaccess.com/cdn-cgi/access/certs: a JWKS made
  *    for this run, so the Access JWT check runs for real against it;
  *  - https://api.github.com: a small stand-in for the GitHub App calls that
- *    reads files from this checkout and records what the Worker sent.
+ *    reads files from this checkout and records what the Worker sent. A test
+ *    can set, through /__set: files that differ from the checkout, the open
+ *    pull requests, a refused auto-merge, and a write refused as a conflict.
  */
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import { exportJWK, exportPKCS8, generateKeyPair, SignJWT } from "jose";
@@ -48,7 +51,19 @@ interface Recorded {
   body: unknown;
 }
 
+interface FakeState {
+  files: Record<string, string>;
+  pulls: unknown[];
+  autoMergeRefused: boolean;
+  writeConflict: boolean;
+}
+
+const fresh = (): FakeState => ({ files: {}, pulls: [], autoMergeRefused: false, writeConflict: false });
+/** A blob sha that changes with the text, like GitHub's. */
+const blobSha = (text: string): string => createHash("sha1").update(text).digest("hex");
+
 function fakeGitHub() {
+  let state = fresh();
   const recorded: Recorded[] = [];
   // Every call since the start: the installation token is cached per isolate, so it is asked for once.
   const all: Recorded[] = [];
@@ -59,6 +74,11 @@ function fakeGitHub() {
     if (url.pathname === "/__recorded") return json(200, url.searchParams.has("all") ? all : recorded);
     if (url.pathname === "/__reset") {
       recorded.length = 0;
+      state = fresh();
+      return json(200, {});
+    }
+    if (url.pathname === "/__set") {
+      state = { ...state, ...((await request.json()) as Partial<FakeState>) };
       return json(200, {});
     }
     const body = request.method === "GET" ? null : await request.json().catch(() => null);
@@ -69,9 +89,10 @@ function fakeGitHub() {
     const contents = /^\/repos\/[^/]+\/[^/]+\/contents\/(.+)$/.exec(url.pathname);
     if (contents && request.method === "GET") {
       try {
-        const text = readFileSync(new URL(`./${contents[1]}`, import.meta.url), "utf8");
+        const path = contents[1] ?? "";
+        const text = state.files[path] ?? readFileSync(new URL(`./${path}`, import.meta.url), "utf8");
         return json(200, {
-          sha: `sha-of-${contents[1]}`,
+          sha: blobSha(text),
           encoding: "base64",
           content: Buffer.from(text).toString("base64"),
         });
@@ -79,10 +100,20 @@ function fakeGitHub() {
         return json(404, { message: "Not Found" });
       }
     }
-    if (contents && request.method === "PUT") return json(201, { content: {} });
+    if (contents && request.method === "PUT")
+      return state.writeConflict ? json(409, { message: "does not match" }) : json(201, { content: {} });
+    if (url.pathname === "/graphql")
+      return json(
+        200,
+        state.autoMergeRefused
+          ? { errors: [{ message: "Auto merge is not allowed for this repository" }] }
+          : { data: { enablePullRequestAutoMerge: { clientMutationId: null } } },
+      );
+    if (url.pathname.endsWith("/pulls") && request.method === "GET") return json(200, state.pulls);
     if (url.pathname.endsWith("/git/ref/heads/main")) return json(200, { object: { sha: "main-sha" } });
     if (url.pathname.endsWith("/git/refs")) return json(201, {});
-    if (url.pathname.endsWith("/pulls")) return json(201, { html_url: "https://github.com/test/repo/pull/99" });
+    if (url.pathname.endsWith("/pulls"))
+      return json(201, { html_url: "https://github.com/test/repo/pull/99", number: 99, node_id: "PR_node99" });
     return json(404, { message: "Not Found" });
   };
 }

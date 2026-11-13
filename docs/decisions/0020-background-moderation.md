@@ -41,12 +41,11 @@ but the script stays small and apart from the public pages.
 - Delete keeps its confirmation: the `required` box is checked by the browser before `submit` fires, with or without
   JavaScript.
 
-**Expired Access login (open, O5).** Access answers an expired session with a redirect to its sign-in page on
-`<team>.cloudflareaccess.com`. The admin CSP has `form-action 'self'`, and Chrome applies it to the redirect of a form
-post, so the plain post is blocked (a console line, nothing happens on screen). That is already the behaviour without
-JavaScript; the script's fallback reproduces it exactly, as asked, and a reload opens the sign-in page. Changing it
-means changing the CSP (adding the team domain to `form-action`) or a different fallback for this one case (reload
-instead of post): the owner's call, recorded in TICKETS.md.
+**Expired Access login (O5, settled 2026-11-13 in [0021](0021-publishing-goes-live.md)).** Access answers an expired
+session with a redirect to its sign-in page on `<team>.cloudflareaccess.com`. The admin CSP has `form-action 'self'`,
+and Chrome applies it to the redirect of a form post, so a plain post is blocked. The owner kept the CSP as it is: the
+script now treats the redirect (an `opaqueredirect`, which only Access can cause) as the expired login and reloads the
+page, and Access then shows its sign-in. Without JavaScript the post is still blocked, and a reload signs in.
 
 **Tests.** `tests/worker/admin.test.ts`: the markup hooks, the JSON answer of every action, the confirmation, gone
 items, refusals, and the same 403s for no or forged Access token, no or bad CSRF token, and another origin.

@@ -3,11 +3,18 @@
  * request. Text works without JavaScript; photos need the page's one script
  * (/admin/write.js: slug suggestion, autosave, uploads with progress and retry).
  *
+ * Publish goes live by itself (decision 0021): the pull request gets GitHub
+ * auto-merge, and merges once the required Test check passes, which also
+ * proves it changes entry files only. The page lists the publisher's pull
+ * requests still open, and flags any older than 15 minutes.
+ *
  * Same slug, other language: the new text is that entry's other-language
  * version. originalLang comes from the existing file, which is shown under
  * the form for reference. Nothing is translated (decision 0012).
- * Same slug, same language: the entry is opened for editing (to add photos
- * later, say) and Publish replaces the file in a new pull request.
+ *
+ * Editing (decision 0021): a published entry, picked from the list, opens in
+ * the same form with its slug and language fixed. Saving replaces only that
+ * file, and only if it is still the version that was opened (`base_sha`).
  */
 import type { Identity } from "../access.ts";
 import {
@@ -16,15 +23,26 @@ import {
   parseEntry,
   readEntry,
   slugFromTitle,
+  SLUG,
+  splitPhotos,
   validateEntry,
   type EntryErrors,
   type EntryInput,
   type PhotoRef,
 } from "../entry-file.ts";
-import { GitHubError, githubConfigured, openPullRequest, readFile, type RepoFile } from "../github.ts";
+import {
+  enableAutoMerge,
+  GitHubError,
+  githubConfigured,
+  openPublications,
+  openPullRequest,
+  readFile,
+  type OpenPublication,
+  type RepoFile,
+} from "../github.ts";
 import { html, Safe } from "../html.ts";
 import { log } from "../log.ts";
-import { manifest, pathFor, type Lang } from "../manifest.ts";
+import { manifest, pathFor, type Entry, type Lang } from "../manifest.ts";
 import { randomId } from "../crypto.ts";
 import { required } from "../secrets.ts";
 import { csrfToken } from "../tokens.ts";
@@ -37,6 +55,11 @@ const LANG_NAME: Record<Lang, string> = { en: "English", it: "Italian" };
 const other = (lang: Lang): Lang => (lang === "en" ? "it" : "en");
 const asLang = (value: string | null): Lang => (value === "it" ? "it" : "en");
 
+/** A publisher pull request still open after this long needs a look: a check failed, or auto-merge is off. */
+export const ATTENTION_AFTER = 15 * 60 * 1000;
+/** Published entries listed for editing (newest first); a search finds older ones. */
+const LISTED = 30;
+
 interface DraftRow {
   id: string;
   slug: string;
@@ -47,16 +70,22 @@ interface DraftRow {
   tags: string;
   photos: string;
   updated_at: number;
+  base_sha: string;
 }
 
 interface FormState {
   input: EntryInput;
   draftId: string;
+  /** The blob sha of the entry file when it was opened for editing; "" for a new entry. */
   baseSha: string;
   updated: number;
   errors?: EntryErrors;
   message?: Safe;
+  /** The title search of the list of published entries. */
+  query?: string;
 }
+
+const editing = (state: FormState): boolean => state.baseSha !== "";
 
 const empty = (lang: Lang): EntryInput => ({
   title: "",
@@ -93,7 +122,7 @@ export async function lookup(env: Env, slug: string, lang: Lang): Promise<Lookup
   if (same || live(lang))
     return {
       kind: "update",
-      message: `This entry already exists in ${LANG_NAME[lang]}. Open it to edit; Publish then replaces it in a pull request.`,
+      message: `This entry already exists in ${LANG_NAME[lang]}: pick it under "Edit a published entry" to change it.`,
     };
   if (twin || live(other(lang))) {
     const parsed = twin ? parseEntry(twin.text) : null;
@@ -148,21 +177,101 @@ const CHEAT_SHEET = html`<details>
   </ul>
 </details>`;
 
+/** Lowercase, accents dropped: "Città" matches "citta". */
+const folded = (text: string): string => text.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
+
+/** Published entries whose title contains the search, newest first. */
+export function entriesFor(entries: readonly Entry[], query: string): Entry[] {
+  const q = folded(query.trim());
+  return entries
+    .filter((e) => !q || folded(e.title).includes(q))
+    .sort((a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title) || a.lang.localeCompare(b.lang));
+}
+
+const editLink = (slug: string, lang: Lang): string => `/admin/write?edit=1&slug=${slug}&lang=${lang}`;
+
+function publishedList(entries: readonly Entry[], query: string): Safe {
+  const found = entriesFor(entries, query);
+  const shown = found.slice(0, LISTED);
+  return html`<h2 class="admin-title" id="published-entries">Edit a published entry</h2>
+    <form method="get" action="/admin/write#published-entries" class="form">
+      <div class="field">
+        <label for="e-q">Search by title</label
+        ><input id="e-q" name="q" type="search" maxlength="120" autocomplete="off" value="${query}" />
+      </div>
+      <div class="actions"><button type="submit" class="btn btn--ghost">Search</button></div>
+    </form>
+    ${
+      shown.length
+        ? html`<ol class="queue" data-entries>
+            ${shown.map(
+              (e) =>
+                html`<li class="card">
+                  <h3><a href="${editLink(e.slug, e.lang)}" lang="${e.lang}">${e.title}</a></h3>
+                  <p class="fine muted">${e.date} · ${LANG_NAME[e.lang]} · ${e.path}</p>
+                </li>`,
+            )}
+          </ol>`
+        : html`<p class="muted">${query ? "No published entry has that in its title." : "Nothing published yet."}</p>`
+    }
+    ${
+      found.length > shown.length
+        ? html`<p class="fine muted">The newest ${shown.length} of ${found.length}. Search to find the others.</p>`
+        : ""
+    }`;
+}
+
+/** The publisher's pull requests that are not merged yet: on their way, or (after 15 minutes) needing a look. */
+function goingLive(open: OpenPublication[] | null, now: number): Safe {
+  if (open === null) return html`<p class="fine muted">Could not ask GitHub which entries are still on their way.</p>`;
+  if (!open.length) return html``;
+  return html`<h2 class="admin-title" id="going-live">On their way</h2>
+    <ol class="queue">
+      ${open.map((p) => {
+        const late = now - p.openedAt > ATTENTION_AFTER;
+        return html`<li class="card" data-publication="${late ? "attention" : "pending"}">
+          <h3>
+            <a href="${p.url}">${p.title}</a>
+            <span class="${late ? "badge badge--bad" : "badge"}">${late ? "needs attention" : "going live"}</span>
+          </h3>
+          <p class="fine muted">Pull request opened ${when(p.openedAt)} UTC</p>
+          ${
+            late
+              ? html`<p>Still not merged after 15 minutes. Open the pull request to see which check failed.</p>`
+              : html`<p class="fine">It merges by itself once the checks pass, usually within a few minutes.</p>`
+          }
+        </li>`;
+      })}
+    </ol>`;
+}
+
 async function writePage(env: Env, identity: Identity, state: FormState, status = 200): Promise<Response> {
   const csrf = await csrfToken(required(env.FORM_HMAC_KEY), identity.sub);
   const { input, errors } = state;
-  const found = input.slug ? await lookup(env, input.slug, input.lang).catch(() => null) : null;
-  const drafts = await env.DB.prepare(
-    "SELECT id, slug, lang, title, updated_at FROM drafts ORDER BY updated_at DESC LIMIT 20",
-  ).all<Pick<DraftRow, "id" | "slug" | "lang" | "title" | "updated_at">>();
+  const isEdit = editing(state);
+  const found = input.slug && !isEdit ? await lookup(env, input.slug, input.lang).catch(() => null) : null;
+  const [drafts, site, open] = await Promise.all([
+    env.DB.prepare(
+      "SELECT id, slug, lang, title, updated_at, base_sha FROM drafts ORDER BY updated_at DESC LIMIT 20",
+    ).all<Pick<DraftRow, "id" | "slug" | "lang" | "title" | "updated_at" | "base_sha">>(),
+    manifest(env),
+    githubConfigured(env)
+      ? openPublications(env).catch((error: unknown) => {
+          log("publications unavailable", error);
+          return null;
+        })
+      : Promise.resolve([]),
+  ]);
+  // The autosave key in this browser: per server draft, per entry being edited, or the one new entry.
+  const autosave = state.draftId || (isEdit ? `edit-${input.lang}-${input.slug}` : "");
 
   const errorList = errors && Object.values(errors).filter(Boolean);
-  const body = html` <h2 class="admin-title">Write</h2>
+  const body = html` <h2 class="admin-title">${isEdit ? "Edit" : "Write"}</h2>
     ${state.message ?? ""}
     ${
       errorList?.length
         ? html`<div class="alert" role="alert">
-            <strong>Not published.</strong>
+            <strong>${isEdit ? "Not saved." : "Not published."}</strong>
             <ul>
               ${errorList.map((e) => html`<li>${e}</li>`)}
             </ul>
@@ -170,12 +279,13 @@ async function writePage(env: Env, identity: Identity, state: FormState, status 
         : ""
     }
     ${githubConfigured(env) ? "" : html`<p class="alert" role="alert"><strong>Publishing is not set up.</strong> The GitHub App secrets are missing (docs/setup.md, step 10). Save drafts until then.</p>`}
+    ${goingLive(open, Date.now())}
     <form
       method="post"
       action="/admin/write"
       class="form"
       id="write-form"
-      data-draft="${state.draftId}"
+      data-draft="${autosave}"
       data-updated="${state.updated}"
       data-max="${MAX_PHOTO}"
     >
@@ -194,32 +304,46 @@ async function writePage(env: Env, identity: Identity, state: FormState, status 
           ${invalid(errors, "title")}
         />${fieldError(errors, "title", "w-title")}
       </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="w-slug">Slug</label
-          ><input
-            id="w-slug"
-            name="slug"
-            maxlength="60"
-            autocapitalize="none"
-            autocomplete="off"
-            spellcheck="false"
-            value="${input.slug}"
-            aria-describedby="w-slug-hint w-slug-err"
-            ${invalid(errors, "slug")}
-          />
-          <span id="w-slug-hint" class="hint" aria-live="polite"
-            >${found?.message ?? "Suggested from the title; you can change it."}</span
-          >${fieldError(errors, "slug", "w-slug")}
-        </div>
-        <div class="field">
-          <label for="w-lang">Language</label
-          ><select id="w-lang" name="lang">
-            <option value="en" ${input.lang === "en" ? new Safe(" selected") : ""}>English</option>
-            <option value="it" ${input.lang === "it" ? new Safe(" selected") : ""}>Italiano</option>
-          </select>
-        </div>
-      </div>
+      ${
+        isEdit
+          ? html`<div class="field-row">
+              <div class="field">
+                <label for="w-slug">Slug</label
+                ><input id="w-slug" name="slug" readonly value="${input.slug}" aria-describedby="w-slug-hint" />
+                <span id="w-slug-hint" class="hint">Fixed while editing, so links to it never break.</span>
+              </div>
+              <div class="field">
+                <p>Language: <strong>${LANG_NAME[input.lang]}</strong></p>
+                <input type="hidden" id="w-lang" name="lang" value="${input.lang}" />
+              </div>
+            </div>`
+          : html`<div class="field-row">
+              <div class="field">
+                <label for="w-slug">Slug</label
+                ><input
+                  id="w-slug"
+                  name="slug"
+                  maxlength="60"
+                  autocapitalize="none"
+                  autocomplete="off"
+                  spellcheck="false"
+                  value="${input.slug}"
+                  aria-describedby="w-slug-hint w-slug-err"
+                  ${invalid(errors, "slug")}
+                />
+                <span id="w-slug-hint" class="hint" aria-live="polite"
+                  >${found?.message ?? "Suggested from the title; you can change it."}</span
+                >${fieldError(errors, "slug", "w-slug")}
+              </div>
+              <div class="field">
+                <label for="w-lang">Language</label
+                ><select id="w-lang" name="lang">
+                  <option value="en" ${input.lang === "en" ? new Safe(" selected") : ""}>English</option>
+                  <option value="it" ${input.lang === "it" ? new Safe(" selected") : ""}>Italiano</option>
+                </select>
+              </div>
+            </div>`
+      }
       <div class="field">
         <label for="w-desc">Description: one sentence for search results and link previews</label
         ><input
@@ -248,8 +372,8 @@ ${input.body}</textarea
         <label for="w-photos">Photos: JPEG or PNG, up to 25 MB each</label>
         <input id="w-photos" type="file" accept="image/jpeg,image/png" multiple aria-describedby="w-photos-hint" />
         <span id="w-photos-hint" class="hint"
-          >They upload one at a time and retry by themselves. You can publish the text first and add photos later with
-          the same slug.</span
+          >They upload one at a time and retry by themselves. You can publish the text first and add photos later by
+          editing the entry.</span
         >
         <div id="upload-status" role="status"></div>
       </div>
@@ -259,9 +383,10 @@ ${input.body}</textarea
         ${input.photos.map(photoItem)}
       </ol>
       <div class="actions">
-        <button type="submit" name="intent" value="publish" class="btn">Publish</button>
+        <button type="submit" name="intent" value="publish" class="btn">${isEdit ? "Save changes" : "Publish"}</button>
         <button type="submit" name="intent" value="save" class="btn btn--ghost">Save draft</button>
       </div>
+      ${isEdit ? html`<p class="fine"><a href="/admin/write">Write a new entry instead</a></p>` : ""}
     </form>
     <div id="reference">
       ${
@@ -273,24 +398,7 @@ ${input.body}</textarea
           : ""
       }
     </div>
-    <h2 class="admin-title">Open an existing entry</h2>
-    <form method="get" action="/admin/write" class="form">
-      <input type="hidden" name="edit" value="1" />
-      <div class="field-row">
-        <div class="field">
-          <label for="e-slug">Slug</label
-          ><input id="e-slug" name="slug" required autocapitalize="none" autocomplete="off" spellcheck="false" />
-        </div>
-        <div class="field">
-          <label for="e-lang">Language</label
-          ><select id="e-lang" name="lang">
-            <option value="en">English</option>
-            <option value="it">Italiano</option>
-          </select>
-        </div>
-      </div>
-      <div class="actions"><button type="submit" class="btn btn--ghost">Open</button></div>
-    </form>
+    ${publishedList(site.entries, state.query ?? "")}
     <h2 class="admin-title">Drafts</h2>
     ${
       drafts.results.length
@@ -299,7 +407,10 @@ ${input.body}</textarea
               (d) =>
                 html`<li class="card">
                   <h3><a href="/admin/write?draft=${d.id}">${d.title || "(untitled)"}</a></h3>
-                  <p class="fine muted">${d.lang} · ${d.slug || "no slug"} · saved ${when(d.updated_at)} UTC</p>
+                  <p class="fine muted">
+                    ${d.lang} · ${d.slug || "no slug"} · ${d.base_sha ? "edit of a published entry · " : ""}saved
+                    ${when(d.updated_at)} UTC
+                  </p>
                   <form method="post" action="/admin/action" class="actions">
                     <input type="hidden" name="csrf" value="${csrf}" /><input
                       type="hidden"
@@ -314,13 +425,24 @@ ${input.body}</textarea
           </ol>`
         : html`<p class="muted">No drafts on the server.</p>`
     }`;
-  return adminPage(env, { title: "Write", current: "write", body, script: "write", status });
+  return adminPage(env, { title: isEdit ? "Edit" : "Write", current: "write", body, script: "write", status });
 }
 
-/** GET /admin/write: a blank form, a server draft (?draft=), or an existing entry (?slug=&lang=&edit=1). */
+const editingNotice = (slug: string, lang: Lang): Safe => html`<p class="notice" role="status">
+  Editing <a href="${pathFor(slug, lang)}">${pathFor(slug, lang)}</a>. Saving replaces this entry and it goes live by
+  itself in a few minutes.
+</p>`;
+
+/** GET /admin/write: a blank form, a server draft (?draft=), or a published entry (?edit=1&slug=&lang=). */
 export async function writeForm(env: Env, identity: Identity, url: URL): Promise<Response> {
   const lang = asLang(url.searchParams.get("lang"));
-  const state: FormState = { input: empty(lang), draftId: "", baseSha: "", updated: 0 };
+  const state: FormState = {
+    input: empty(lang),
+    draftId: "",
+    baseSha: "",
+    updated: 0,
+    query: (url.searchParams.get("q") ?? "").slice(0, 120),
+  };
   const draftId = url.searchParams.get("draft");
   const slug = (url.searchParams.get("slug") ?? "").trim().toLowerCase();
   if (draftId) {
@@ -336,32 +458,36 @@ export async function writeForm(env: Env, identity: Identity, url: URL): Promise
         photos: JSON.parse(d.photos) as PhotoRef[],
       };
       state.draftId = d.id;
+      state.baseSha = d.base_sha;
       state.updated = d.updated_at;
-      if (url.searchParams.get("saved"))
-        state.message = html`<p class="notice" role="status">Draft saved on the server.</p>`;
+      const saved = url.searchParams.get("saved")
+        ? html`<p class="notice" role="status">Draft saved on the server.</p>`
+        : html``;
+      state.message = d.base_sha ? html`${saved}${editingNotice(d.slug, d.lang)}` : saved;
     }
-  } else if (slug) {
-    state.input.slug = slug;
-    if (url.searchParams.get("edit") && githubConfigured(env)) {
-      const file = await readFile(env, entryFilePath(lang, slug)).catch(() => null);
-      const parsed = file ? parseEntry(file.text) : null;
-      if (file && parsed) {
-        state.input = {
-          title: parsed.title,
-          slug,
-          lang,
-          description: parsed.description,
-          tags: parsed.tags,
-          body: parsed.body,
-          photos: [],
-        };
-        state.baseSha = file.sha;
-        state.message = html`<p class="notice" role="status">
-          Editing ${pathFor(slug, lang)}. Publish opens a pull request that replaces it.
-        </p>`;
-      } else {
-        state.message = html`<p class="alert" role="alert">No ${LANG_NAME[lang]} entry with the slug ${slug}.</p>`;
-      }
+  } else if (url.searchParams.get("edit") && SLUG.test(slug)) {
+    const file = githubConfigured(env) ? await readFile(env, entryFilePath(lang, slug)).catch(() => null) : null;
+    const parsed = file ? parseEntry(file.text) : null;
+    if (file && parsed?.title) {
+      const { body, photos } = splitPhotos(parsed.body, slug);
+      state.input = {
+        title: parsed.title,
+        slug,
+        lang,
+        description: parsed.description,
+        tags: parsed.tags,
+        body,
+        photos,
+      };
+      state.baseSha = file.sha;
+      state.message = editingNotice(slug, lang);
+    } else {
+      state.input.slug = "";
+      state.message = file
+        ? html`<p class="alert" role="alert">
+            ${pathFor(slug, lang)} uses a form of frontmatter this page cannot read. Edit it from the laptop.
+          </p>`
+        : html`<p class="alert" role="alert">No ${LANG_NAME[lang]} entry with the slug ${slug}.</p>`;
     }
   }
   return writePage(env, identity, state);
@@ -377,12 +503,12 @@ export async function referenceJson(env: Env, url: URL): Promise<Response> {
   return new Response(JSON.stringify(result), { headers: { "Content-Type": "application/json" } });
 }
 
-async function saveDraft(env: Env, input: EntryInput, draftId: string): Promise<string> {
+async function saveDraft(env: Env, input: EntryInput, draftId: string, baseSha: string): Promise<string> {
   const id = /^[A-Za-z0-9_-]{22}$/.test(draftId) ? draftId : randomId();
   await env.DB.prepare(
-    `INSERT INTO drafts (id, slug, lang, title, description, body, tags, photos, updated_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
-     ON CONFLICT (id) DO UPDATE SET slug = ?2, lang = ?3, title = ?4, description = ?5, body = ?6, tags = ?7, photos = ?8, updated_at = ?9`,
+    `INSERT INTO drafts (id, slug, lang, title, description, body, tags, photos, updated_at, base_sha)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+     ON CONFLICT (id) DO UPDATE SET slug = ?2, lang = ?3, title = ?4, description = ?5, body = ?6, tags = ?7, photos = ?8, updated_at = ?9, base_sha = ?10`,
   )
     .bind(
       id,
@@ -394,6 +520,7 @@ async function saveDraft(env: Env, input: EntryInput, draftId: string): Promise<
       JSON.stringify(input.tags),
       JSON.stringify(input.photos),
       Date.now(),
+      baseSha,
     )
     .run();
   return id;
@@ -401,16 +528,29 @@ async function saveDraft(env: Env, input: EntryInput, draftId: string): Promise<
 
 const stamp = (d: Date): string => d.toISOString().replace(/[-:T]/g, "").slice(0, 14);
 
-/** POST /admin/write: Save draft, or Publish. The CSRF token has been checked by the router. */
+const BLOB_SHA = /^[0-9a-f]{40}$/;
+
+/** The entry was changed on GitHub (or by another Publish) after it was opened here. */
+function conflict(slug: string, lang: Lang): Safe {
+  return html`<div class="alert" role="alert">
+    <strong>Not saved: ${pathFor(slug, lang)} changed on GitHub since you opened it.</strong> Nothing was overwritten.
+    Save a draft to keep your text, then <a href="${editLink(slug, lang)}">open the current version</a> and make your
+    changes there.
+  </div>`;
+}
+
+/** POST /admin/write: Save draft, or Publish (a new entry or an edit). The CSRF token has been checked by the router. */
 export async function writeAction(env: Env, identity: Identity, form: URLSearchParams): Promise<Response> {
   const input = readEntry(form);
   const draftId = form.get("draft_id") ?? "";
-  const baseSha = form.get("base_sha") ?? "";
+  const sent = form.get("base_sha") ?? "";
+  const baseSha = BLOB_SHA.test(sent) ? sent : "";
   const state: FormState = { input, draftId, baseSha, updated: Date.now() };
+  const isEdit = editing(state);
 
   if (form.get("intent") === "save") {
     if (!input.slug && input.title) input.slug = slugFromTitle(input.title);
-    const id = await saveDraft(env, input, draftId);
+    const id = await saveDraft(env, input, draftId, baseSha);
     return new Response(null, { status: 303, headers: { Location: `/admin/write?draft=${id}&saved=1` } });
   }
 
@@ -425,11 +565,22 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
       readFile(env, path),
       readFile(env, entryFilePath(other(input.lang), input.slug)),
     ]);
-    if (same && same.sha !== baseSha) {
+    // An edit replaces exactly the version it opened; the slug and language came with it, so a changed slug or
+    // language finds no file with that sha and is refused too.
+    if (isEdit && same?.sha !== baseSha) {
+      log("publish conflict");
+      const message = same
+        ? conflict(input.slug, input.lang)
+        : html`<div class="alert" role="alert">
+            <strong>Not saved.</strong> There is no ${LANG_NAME[input.lang]} entry at ${pathFor(input.slug, input.lang)}
+            any more. Save a draft to keep your text.
+          </div>`;
+      return writePage(env, identity, { ...state, message }, 409);
+    }
+    if (!isEdit && same) {
       const message = html`<div class="alert" role="alert">
         <strong>Not published.</strong> ${pathFor(input.slug, input.lang)} already exists in ${LANG_NAME[input.lang]}.
-        <a href="/admin/write?slug=${input.slug}&amp;lang=${input.lang}&amp;edit=1">Open it to edit</a>, or choose
-        another slug.
+        <a href="${editLink(input.slug, input.lang)}">Edit it</a>, or choose another slug.
       </div>`;
       return writePage(env, identity, { ...state, message }, 409);
     }
@@ -450,32 +601,57 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
     const now = new Date();
     const date =
       current?.date && /^\d{4}-\d{2}-\d{2}$/.test(current.date) ? current.date : now.toISOString().slice(0, 10);
-    const kind = same ? "Update" : twin ? `${LANG_NAME[input.lang]} version of` : "New entry";
-    const url = await openPullRequest(env, {
+    const kind = isEdit ? "Edit" : twin ? `${LANG_NAME[input.lang]} version of` : "New entry";
+    const pr = await openPullRequest(env, {
       path,
-      text: entryMarkdown(input, originalLang, date),
+      text: entryMarkdown(input, originalLang, date, current?.comments ?? true),
       sha: same?.sha,
       branch: `publish/${input.lang}-${input.slug}-${stamp(now)}`,
       title: `${kind} ${input.lang}/${input.slug}: ${input.title}`,
       body: [
-        "Opened from /admin/write.",
+        "Opened from /admin/write. It merges by itself once the Test check passes (decision 0021).",
         "",
-        `- File: \`${path}\` (${same ? "replaced" : "new"}), \`originalLang: ${originalLang}\``,
+        `- File: \`${path}\` (${isEdit ? "edited" : "new"}), \`originalLang: ${originalLang}\``,
         `- Photos: ${input.photos.length ? input.photos.map((p) => `\`${p.key}\``).join(", ") : "none"}`,
-        "",
-        "Merge once the checks are green and the preview looks right.",
       ].join("\n"),
     });
+    let autoMerge: GitHubError | null = null;
+    try {
+      await enableAutoMerge(env, pr);
+    } catch (error) {
+      log("auto-merge failed", error);
+      autoMerge = error instanceof GitHubError ? error : new GitHubError(500, "auto-merge");
+    }
     if (draftId) await env.DB.prepare("DELETE FROM drafts WHERE id = ?1").bind(draftId).run();
     log("entry published");
-    const body = html`<h2 class="admin-title">Pull request opened</h2>
-      <p class="notice" role="status" id="published" data-clear="${draftId || "new"}">
-        The checks are running. Open the pull request, read the preview, then merge.
-      </p>
-      <p><a class="btn" href="${url}">Open the pull request</a></p>
-      <p><a href="/admin/write">Write another entry</a></p>`;
-    return adminPage(env, { title: "Published", current: "write", body, script: "write" });
+    const live = pathFor(input.slug, input.lang);
+    const cleared = draftId || (isEdit ? `edit-${input.lang}-${input.slug}` : "new");
+    const body = autoMerge
+      ? html`<h2 class="admin-title">Pull request opened</h2>
+          <div class="alert" role="alert" id="published" data-clear="${cleared}">
+            <strong>It will not go live by itself:</strong> auto-merge could not be turned on
+            ${`(GitHub: ${autoMerge.step}, ${autoMerge.status})`}. Merge the pull request yourself once the checks are
+            green.
+          </div>
+          <p><a class="btn" href="${pr.url}">Open the pull request</a></p>
+          <p><a href="/admin/write">Write another entry</a></p>`
+      : html`<h2 class="admin-title">${isEdit ? "Saved" : "Published"}</h2>
+          <p class="notice" role="status" id="published" data-clear="${cleared}">
+            ${isEdit ? "Your changes" : "The entry"} will be live in a few minutes at
+            <a href="${live}">${live}</a>.
+          </p>
+          <p class="fine">
+            It goes live once the checks pass. If it is still waiting after 15 minutes, this page shows it as needing
+            attention, with the link: <a href="${pr.url}">the pull request</a>.
+          </p>
+          <p><a href="/admin/write">Write another entry</a></p>`;
+    return adminPage(env, { title: isEdit ? "Saved" : "Published", current: "write", body, script: "write" });
   } catch (error) {
+    if (isEdit && error instanceof GitHubError && error.status === 409 && error.step === "write file") {
+      // Changed between the check above and the write: GitHub refused to overwrite it.
+      log("publish conflict");
+      return writePage(env, identity, { ...state, message: conflict(input.slug, input.lang) }, 409);
+    }
     log("publish failed", error);
     const step = error instanceof GitHubError ? ` (GitHub: ${error.step}, ${error.status})` : "";
     const message = html`<div class="alert" role="alert">

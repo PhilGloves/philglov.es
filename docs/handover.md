@@ -236,3 +236,18 @@ Found on the way, both pre-existing and left open: **O5**, an expired Access log
 `form-action 'self'` (nothing happens on screen; a reload signs in again); **Q19**, Chromium aborts some view transitions
 on plain link clicks with an uncaught error. Not checked: a real Access session expiring on staging (the harness
 imitates Access's redirect), Firefox/WebKit, a real screen reader.
+
+## Publishing goes live by itself — 2026-11-13
+
+Owner decisions, [0021](decisions/0021-publishing-goes-live.md), tickets B12, B13, O5, Q19. Publish (and Save changes
+when editing) opens the pull request and turns on auto-merge. The Test job's first step fails any publisher pull
+request that changes anything but `src/content/journal/{en,it}/<slug>.md` files, so only those can merge by
+themselves. `/admin/write` lists the publisher's open pull requests (needs attention after 15 minutes), and the
+published entries for editing, with slug and language fixed and a sha check against overwriting. "Allow auto-merge"
+was turned on in the repository settings. The App's permissions are unchanged. Migration `0002` adds
+`drafts.base_sha`. View transitions are removed from `site.css`, and O5 is settled (an expired login reloads
+`/admin`). Not verified: a real auto-merge and a real guard run on GitHub (the first phone publish after this merges
+is the test). Also the ruleset's undocumented `require_extra_approval_for_unattributed_changes`, if a publisher pull
+request waits for a review. `pnpm build` locally needs the photo of the test entry `foto` (in R2 only; `pnpm
+photos:fetch` with the R2 variables, or any JPEG at `src/.originals/foto/1000029179-9gp7.jpg`) and exiftool for the
+last steps.
