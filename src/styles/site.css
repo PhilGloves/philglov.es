@@ -393,7 +393,6 @@
     gap: var(--sp-12) var(--sp-16);
     padding-block: var(--sp-24);
     border-block-end: 1px solid var(--text);
-    view-transition-name: site-head;
   }
 
   .name {
@@ -1126,17 +1125,7 @@
     color: var(--muted);
   }
 
-  /* hovered, focused or pressed photo: the name pairs it with the big photo on
-   * the next page, so the browser can morph one into the other */
-  .shots a:is(:hover, :focus-visible, :active) .frame,
-  .series a:is(:hover, :focus-visible, :active) .frame {
-    view-transition-name: photo-open;
-  }
-
   /* ===== single photo page ===== */
-  .single .frame {
-    view-transition-name: photo-open;
-  }
 
   .exif {
     display: grid;
@@ -2256,15 +2245,7 @@
     display: none;
   }
 
-  /* ----- people who ask for it: less motion, forced colours ----- */
-  @media (prefers-reduced-motion: reduce) {
-    ::view-transition-group(*),
-    ::view-transition-old(*),
-    ::view-transition-new(*) {
-      animation: none;
-    }
-  }
-
+  /* ----- people who ask for it: forced colours ----- */
   @media (forced-colors: active) {
     .btn,
     .theme-toggle,
@@ -2352,27 +2333,4 @@
   }
 }
 
-/* ---------------------------------------------------- view transitions */
-/* Cross-document, CSS only. The page fades; the header stays put; a photo
- * hovered or focused in a grid morphs into the big photo on its own page.
- * Browsers without support just navigate. */
-@view-transition {
-  navigation: auto;
-}
-
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: var(--dur-base);
-  animation-timing-function: var(--ease);
-}
-
-::view-transition-group(photo-open) {
-  animation-duration: var(--dur-base);
-  animation-timing-function: var(--ease);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  @view-transition {
-    navigation: none;
-  }
-}
+/* No view transitions: page changes are plain navigations (owner decision 2026-11-13, Q19, decision 0021). */
