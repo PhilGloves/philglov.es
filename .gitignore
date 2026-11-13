@@ -29,3 +29,6 @@ playwright-report/
 Thumbs.db
 .vscode/*
 !.vscode/extensions.json
+
+# generated from the originals by scripts/photo-meta.ts
+src/styles/photo-colours.generated.css

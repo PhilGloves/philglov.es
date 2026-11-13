@@ -210,3 +210,16 @@ target, so the jump is instant. **The public JavaScript budget is nearly full: 1
 forms 670), enforced per page by `tests/unit/build-output.test.ts`. Any change to the theme or form script must find
 its bytes elsewhere. O4 settled: the browser's "Failed to load resource" line for a 4xx page does not count against rule 11.
 Not checked: Lighthouse locally (Q17), Firefox/WebKit, a real screen reader announcing the focused message.
+
+## Photo pipeline — 2026-11-13
+
+Decision [0019](decisions/0019-photo-pipeline.md). Built and checked locally with three synthetic originals: the build
+makes AVIF/WebP/JPEG at five widths, art-directed `<source media>` works (phone gets the 4:5 crop, loads two small AVIFs
+on the series page), lazy/eager/`fetchpriority`, width/height and alt are asserted by `tests/unit/photos.test.ts`, the
+R2 signer matches AWS's published test vector. **Not run on this machine: exiftool is not installed**, so the rights
+write-back (`scripts/photo-rights.ts`), its GPS check and the two exiftool tests were never executed; they skip locally
+and CI installs `libimage-exiftool-perl`. If CI shows the XMP/IPTC argument names or the `plus:DataMining#` raw write
+failing, fix `rightsArgs()` in `scripts/lib/photo-rights.ts` first. Also unverified: the real R2 download (needs the
+`R2_*` secrets and a photo in `philglov-originals-staging/photos/<series>/`), and the 400 KB first-screen budget on a
+real 20-photo series. Entry photos: `image.layout: "constrained"` plus `src/lib/entry-image-service.ts` (≤ 1600 px, text-column `sizes`, WebP); verified in a local build with a temporary entry. P7 (dark backdrop) is skipped until the owner has seen real photos on staging. Owner to do:
+upload the series originals to `photos/<series>/<file>` (setup step 5 bucket) and the real alt texts and captions.

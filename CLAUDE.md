@@ -98,6 +98,9 @@ WAY OF WORKING
   `NOTIFY_TO`), O3 (reports 12 months).
 - 2026-11-13: forms sent in the background with JavaScript on, instant jump to the message without it
   ([0018](docs/decisions/0018-background-forms.md)). Public JavaScript: 1,525 of 1,536 bytes.
+- 2026-11-13: photo pipeline built (P1–P6, [0019](docs/decisions/0019-photo-pipeline.md)): originals fetched from R2,
+  Astro `<Picture>` AVIF/WebP/JPEG, dominant-colour classes, rights metadata written by exiftool after the build.
+  Entry photos: responsive WebP ≤ 1600 px via `image.layout` and `src/lib/entry-image-service.ts`. Placeholders show until the originals exist. Dark backdrop (P7): the owner decides after seeing real photos on staging.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -116,6 +119,7 @@ src/assets/brand/             placeholder favicon, share-image template, brand.c
 src/components/styleguide/    sections of /styleguide: the markup to copy for each component
 src/i18n/{en,it}.json         every UI string; no text hard-coded in templates
 src/data/                     data files (e.g. ai-bots.json)
+src/.originals/               photo originals from R2 + meta.json (git-ignored; scripts/fetch-originals.ts, photo-meta.ts)
 public/_assets/               fonts (2 WOFF2 + crimson-pro-OFL.txt) and other static files, no Worker
 worker/src/                   the Worker (0017): index.ts routes; forms, page, comments, access, github, notify,
                               scheduled, admin/; headers.ts is shared with the build; log.ts is the only logger
@@ -135,7 +139,9 @@ docs/handover.md              state, open items and lessons, one section per fin
 ```
 pnpm install --frozen-lockfile   install (pnpm 12; builds allowed only for esbuild, workerd)
 pnpm dev                         Astro dev server (no Worker)
-pnpm build                       astro build + share-image PNGs (needs Chromium) + CSP hash + dist/_headers
+pnpm photos:fetch                download the photo originals from R2 (R2_* env vars; no-op without them)
+pnpm build                       photo-meta + astro build + share-image PNGs (needs Chromium) + photo rights
+                                 (needs exiftool when photos exist) + CSP hash + dist/_headers
                                  (SITE_ENV=production only at launch)
 pnpm preview                     serve dist/ through the real Worker on http://127.0.0.1:8787 (writes a local
                                  .dev.vars, migrates the local D1; /admin is always 403 locally)
@@ -175,6 +181,10 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
 - Pages: the form field names and Worker slots are a contract (0016, 0018); keep them. The only inline JS is the theme
   script; the only public script file is `src/scripts/forms.ts` (`vite.build.assetsInlineLimit: 0` keeps it external).
   Both together stay ≤ 1,536 raw bytes on every page (`tests/unit/build-output.test.ts`). Footnote arrows and labels are fixed in `scripts/lib/footnotes.ts`.
+- Photos: draw them only with `<Photo>` (never a bare `<img>`); alt text in the page language, hand-written. Pass
+  `sizes` from `src/lib/photo-sizes.ts` and `priority` on the first image of a page only. Per-photo colours are
+  generated classes (`.c-<hex>`), never inline styles. Every output image gets rights metadata and must carry no GPS:
+  `scripts/photo-rights.ts` fails the build otherwise. Originals never enter git (0019).
 - Never log names, emails, comment text or IP addresses. The Worker logs only through `worker/src/log.ts` (fixed
   event names). Never put personal data in a URL: Workers Logs record URLs.
 - Worker output: text into pages only via `Parts`/HTMLRewriter `html: false`; admin markup only via the escaping

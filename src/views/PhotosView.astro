@@ -10,6 +10,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import { t, tf, type Locale, type UiKey } from "../i18n";
 import { getSeries, type Photo as PhotoData, type Series } from "../lib/collections.ts";
 import { isoDate, pathFor } from "../lib/entries.ts";
+import { SIZES } from "../lib/photo-sizes.ts";
 import { absolute, imageObjectJsonLd } from "../lib/seo.ts";
 
 interface Props {
@@ -98,7 +99,14 @@ const exifRows = exif
         <div class="con">
           <h1 class="title">{photo.caption[locale]}</h1>
           <figure>
-            <Photo tone={photo.tone} alt={photo.alt[locale]} ratio="land" />
+            <Photo
+              tone={photo.tone}
+              alt={photo.alt[locale]}
+              ratio="auto"
+              src={photo.src}
+              sizes={SIZES.single}
+              priority
+            />
             <figcaption class="cap">
               <span>{t(locale, "photoCredit")}</span>
               <a href={seriesPath(series)}>
@@ -160,7 +168,14 @@ const exifRows = exif
                 <li class={i % 4 === 0 || i % 4 === 3 ? "w2" : "w1"}>
                   <figure>
                     <a href={photoPath(p)}>
-                      <Photo tone={p.tone} alt={p.alt[locale]} />
+                      <Photo
+                        tone={p.tone}
+                        alt={p.alt[locale]}
+                        src={p.src}
+                        art={p.art}
+                        sizes={i % 4 === 0 || i % 4 === 3 ? SIZES.tileWide : SIZES.tile}
+                        priority={i === 0}
+                      />
                     </a>
                     <figcaption>{p.caption[locale]}</figcaption>
                   </figure>
@@ -193,7 +208,13 @@ const exifRows = exif
               {all.map((s) => (
                 <li>
                   <a href={seriesPath(s)}>
-                    <Photo tone={s.photos[0]?.tone ?? 1} alt={s.photos[0]?.alt[locale] ?? s.title[locale]} />
+                    <Photo
+                      tone={s.photos[0]?.tone ?? 1}
+                      alt={s.photos[0]?.alt[locale] ?? s.title[locale]}
+                      src={s.photos[0]?.src}
+                      sizes={SIZES.tile}
+                      priority={s === all[0]}
+                    />
                     <h3>{s.title[locale]}</h3>
                     <p>{seriesMeta(s)}</p>
                   </a>

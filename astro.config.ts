@@ -34,4 +34,13 @@ export default defineConfig({
   // 0 keeps src/scripts/forms.ts an external same-origin file under /_assets/ (script-src 'self').
   vite: { build: { assetsInlineLimit: 0 } },
   devToolbar: { enabled: false },
+  // Photos inside journal entries (Markdown images): responsive without MDX. The layout adds srcset, sizes, width
+  // and height and lazy loading; the service caps files at 1600 px and sets `sizes` to the text column; the one
+  // rule that makes them fit is in site.css (no inline styles, no injected <style>). 0019.
+  image: {
+    service: { entrypoint: "./src/lib/entry-image-service.ts", config: {} },
+    layout: "constrained",
+    responsiveStyles: false,
+    breakpoints: [480, 800, 1200, 1600],
+  },
 });

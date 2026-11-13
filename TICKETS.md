@@ -174,13 +174,15 @@ Only runtime dependency allowed: `jose`. No framework. Stay within 10 ms CPU per
 
 ## 6 · Photo pipeline (P) — Sonnet, medium
 
-- [ ] P1 `scripts/fetch-originals.ts` (CI already calls it when it exists, with `R2_*` env vars): download originals not
+- [x] P1 `scripts/fetch-originals.ts` (CI already calls it when it exists, with `R2_*` env vars): download originals not
       in the cache to `src/.originals/`; portfolio series and entry photos (`philglov-originals/<slug>/`).
-- [ ] P2 `<Picture>` AVIF/WebP/JPEG, widths 480–2400, correct `sizes`, width/height always, lazy except the first image.
-- [ ] P3 Post-build exiftool: creator, copyright, credit, web statement, `plus:DataMining` prohibited except search
+- [x] P2 `<Picture>` AVIF/WebP/JPEG, widths 480–2400, correct `sizes`, width/height always, lazy except the first image.
+- [x] P3 Post-build exiftool: creator, copyright, credit, web statement, `plus:DataMining` prohibited except search
       indexing; EXIF shown as mono text.
-- [ ] P4 Dominant-colour placeholders via build-generated classes. P5 per-breakpoint crops. P6 single-photo page.
-      P7 dark backdrop option if the designer approves.
+- [x] P4 Dominant-colour placeholders via build-generated classes. [x] P5 per-breakpoint crops. [x] P6 single-photo
+      page. [-] P7 dark backdrop skipped: the owner decides after seeing real photos on staging. Entry photos are
+      responsive WebP, ≤ 1600 px (0019). Not measured on real photos yet: the 400 KB first-screen test (`tests/e2e/photos.spec.ts`)
+      and the exiftool tests run once CI has originals and exiftool (0019).
 - _Done when: a 20-photo series first screen ≤ 400 KB at 390 px, every image has alt text in the page language, no
   output contains GPS (exiftool test)._
 

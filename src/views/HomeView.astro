@@ -7,6 +7,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import { t, tf, topicName, type Locale } from "../i18n";
 import { getPage, getSeries, getSlots } from "../lib/collections.ts";
 import { journalPath, pathFor, rowsFor, isoDate, type EntryLike, type Row } from "../lib/entries.ts";
+import { SIZES } from "../lib/photo-sizes.ts";
 import { personJsonLd } from "../lib/seo.ts";
 
 interface Props {
@@ -61,7 +62,15 @@ const path = locale === "en" ? "/" : "/it";
     {hero && (
       <figure class="photo">
         <a href={photoPath(hero)}>
-          <Photo tone={hero.tone} alt={hero.alt[locale]} ratio="hero" />
+          <Photo
+            tone={hero.tone}
+            alt={hero.alt[locale]}
+            ratio="hero"
+            src={hero.src}
+            art={hero.art}
+            sizes={SIZES.hero}
+            priority
+          />
         </a>
         <figcaption class="cap">
           <span>{hero.caption[locale]}</span>
@@ -163,7 +172,13 @@ const path = locale === "en" ? "/" : "/it";
               <li class={widths[i % 4]}>
                 <figure>
                   <a href={photoPath(p)}>
-                    <Photo tone={p.tone} alt={p.alt[locale]} />
+                    <Photo
+                      tone={p.tone}
+                      alt={p.alt[locale]}
+                      src={p.src}
+                      art={p.art}
+                      sizes={widths[i % 4] === "w2" ? SIZES.tileWide : SIZES.tile}
+                    />
                   </a>
                   <figcaption>{p.caption[locale]}</figcaption>
                 </figure>

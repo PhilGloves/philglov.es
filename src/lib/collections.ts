@@ -4,6 +4,7 @@
  */
 import { getCollection, type CollectionEntry } from "astro:content";
 import { buildSlots, slugOf, type Locale, type Slot } from "./entries.ts";
+import { records } from "./photo-meta.ts";
 
 export type JournalEntry = CollectionEntry<"journal">;
 export type PageEntry = CollectionEntry<"pages">;
@@ -24,7 +25,11 @@ export interface Photo {
   alt: { en: string; it: string };
   caption: { en: string; it: string };
   takenAt: Date;
+  /** Camera data: read from the original's EXIF at build, then the owner's overrides from photos.json. */
   exif: PhotoSeries["data"]["photos"][number]["exif"];
+  art: PhotoSeries["data"]["photos"][number]["art"];
+  /** Key of the original under src/.originals ("photos/<series>/<file>"); undefined until it is fetched. */
+  src: string | undefined;
   tone: number;
 }
 
@@ -46,16 +51,33 @@ export async function getSeries(): Promise<Series[]> {
   const all = await getCollection("photos");
   let count = 0;
   const series = all.map((entry): Series => {
-    const photos = entry.data.photos.map((p): Photo => ({
-      series: slugOfSeries(entry.id),
-      id: p.file.replace(/\.[^.]+$/, ""),
-      file: p.file,
-      alt: p.alt,
-      caption: p.caption,
-      takenAt: p.takenAt,
-      exif: p.exif,
-      tone: toneFor(count++),
-    }));
+    const photos = entry.data.photos.map((p): Photo => {
+      const key = `photos/${slugOfSeries(entry.id)}/${p.file}`;
+      const read = records[key]?.exif;
+      const exif = {
+        ...(read && {
+          camera: read.camera,
+          lens: read.lens,
+          focalLength: read.focalLength,
+          aperture: read.aperture,
+          shutter: read.shutter,
+          iso: read.iso,
+        }),
+        ...p.exif,
+      };
+      return {
+        series: slugOfSeries(entry.id),
+        id: p.file.replace(/\.[^.]+$/, ""),
+        file: p.file,
+        alt: p.alt,
+        caption: p.caption,
+        takenAt: p.takenAt,
+        exif: Object.fromEntries(Object.entries(exif).filter(([, v]) => v !== undefined)),
+        art: p.art,
+        src: key in records ? key : undefined,
+        tone: toneFor(count++),
+      };
+    });
     const year = Math.max(...photos.map((p) => p.takenAt.getUTCFullYear()));
     return { slug: slugOfSeries(entry.id), title: entry.data.title, description: entry.data.description, photos, year };
   });
