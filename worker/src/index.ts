@@ -7,11 +7,11 @@
  * Cron: daily retention and weekly backup (scheduled.ts). See decision 0017.
  */
 import { verifyAccess, type Identity } from "./access.ts";
-import { WRITE_SCRIPT } from "./admin/client.ts";
+import { MODERATION_SCRIPT, WRITE_SCRIPT } from "./admin/client.ts";
 import { moderationAction, moderationPage } from "./admin/moderation.ts";
 import { upload } from "./admin/upload.ts";
 import { referenceJson, writeAction, writeForm } from "./admin/write.ts";
-import { handleComment, handleReport } from "./forms.ts";
+import { handleComment, handleReport, wantsJson } from "./forms.ts";
 import { adminHeaders, withHeaders } from "./headers.ts";
 import { log } from "./log.ts";
 import { pageHeaders, plain, servePage } from "./page.ts";
@@ -77,8 +77,10 @@ async function adminRoute(
     if (path === "/admin") return moderationPage(env, identity, url);
     if (path === "/admin/write") return writeForm(env, identity, url);
     if (path === "/admin/write/reference") return referenceJson(env, url);
-    if (path === "/admin/write.js")
-      return new Response(WRITE_SCRIPT, { headers: { "Content-Type": "text/javascript; charset=utf-8" } });
+    if (path === "/admin/write.js" || path === "/admin/moderation.js")
+      return new Response(path === "/admin/write.js" ? WRITE_SCRIPT : MODERATION_SCRIPT, {
+        headers: { "Content-Type": "text/javascript; charset=utf-8" },
+      });
     return notFound();
   }
 
@@ -97,7 +99,9 @@ async function adminRoute(
   if (!form) return new Response("Bad request\n", { status: 400 });
   if (!(await checkCsrfToken(required(env.FORM_HMAC_KEY), identity.sub, form.get("csrf") ?? "")))
     return new Response("The page was open too long. Go back, reload it and try again.\n", { status: 403 });
-  return path === "/admin/action" ? moderationAction(env, identity, url, form) : writeAction(env, identity, form);
+  return path === "/admin/action"
+    ? moderationAction(env, identity, url, form, wantsJson(request))
+    : writeAction(env, identity, form);
 }
 
 export default {

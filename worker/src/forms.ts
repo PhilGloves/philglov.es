@@ -55,7 +55,9 @@ async function spamCheck(env: Env, form: URLSearchParams): Promise<FormError | n
 }
 
 /** The page's own script sends the form in the background and asks for JSON; a plain form post does not. */
-const wantsJson = (request: Request): boolean => (request.headers.get("Accept") ?? "").includes("application/json");
+/** The background senders (src/scripts/forms.ts, /admin/moderation.js) ask for JSON. */
+export const wantsJson = (request: Request): boolean =>
+  (request.headers.get("Accept") ?? "").includes("application/json");
 
 /**
  * Always 200: the outcome is in the body (`ok`). A 4xx answer to fetch() makes Chrome log "Failed to load

@@ -2097,6 +2097,11 @@
     border-inline-start-width: 8px;
   }
 
+  /* a card's status slot (/admin/moderation.js writes the outcome of an action there) */
+  .row-status:empty {
+    display: none;
+  }
+
   @container page (width > 40rem) {
     .actions {
       display: flex;
