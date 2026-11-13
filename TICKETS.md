@@ -10,10 +10,14 @@ a translation script, CI job, `translate`/`review` command, AI or translation AP
 
 ## Open owner questions — do not guess these
 
-| #   | Question                                                                                                                                                                                                                                                                                                                                     | Blocks      | Default until answered                                  |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------- |
-| O1  | **Placeholders:** contact email (guide suggests `phil@philglov.es`), city, launch date, partita IVA (only if any), the list of profiles for `sameAs`, a real photo for About, the 2–3 sentence bio.                                                                                                                                          | F6a, F1, C5 | visible `[placeholder]` text; QA fails it before launch |
-| O5  | **Expired Access login on /admin:** Access redirects a post to its sign-in page on another origin, and the admin CSP (`form-action 'self'`) makes the browser block it, so nothing happens on screen (with or without JavaScript). Add the team domain to `form-action`, or have the script reload the page instead of posting in that case? | B11         | the plain post, blocked as today; reload to sign in     |
+| #   | Question                                                                                                                                                                                            | Blocks      | Default until answered                                  |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------- |
+| O1  | **Placeholders:** contact email (guide suggests `phil@philglov.es`), city, launch date, partita IVA (only if any), the list of profiles for `sameAs`, a real photo for About, the 2–3 sentence bio. | F6a, F1, C5 | visible `[placeholder]` text; QA fails it before launch |
+
+Settled by the owner on 2026-11-13 (publishing): O5, the admin CSP stays as it is; when a background request on
+`/admin` finds the Access login expired, the page reloads so Access can sign in again. Publish goes live by itself
+(auto-merge, guarded in CI), published entries are edited from the phone, and the view transitions are removed (Q19)
+(decision 0021).
 
 Settled by the owner on 2026-11-13: O4, rule 11 means no errors from the site's own code. The browser's own "Failed
 to load resource" line for a page served with a 4xx status (404, and the 422/429 answer to a failed plain form post) is
@@ -83,7 +87,7 @@ Prototypes win over the prompt where they differ, except where the brief sets a 
       `IT only`, `solo EN` — journal table with stacked phone layout, latest entry, Now band, article body, photo grid,
       single photo, numbered comments with author replies, comment form, footer with `<details>` report form, focus and
       error states). _Done when: they match Home.dc.html and Article.dc.html side by side._
-- [x] D6 Cross-document view transitions, CSS only.
+- [x] D6 Cross-document view transitions, CSS only. _Removed 2026-11-13 by the owner (Q19, decision 0021)._
 - [x] D7 `/styleguide` (not in nav, noindex) with every component in both themes.
 - [x] D8 One stylesheet with `@layer reset, tokens, base, layout, components, utilities`; container queries; logical
       properties; no `!important`, no IDs, no framework. _Done when: ≤ 20 KB compressed (rule 8)._
@@ -172,7 +176,14 @@ Only runtime dependency allowed: `jose`. No framework. Stay within 10 ms CPU per
 - [x] B11 Moderation in the background (owner request 2026-11-13, decision 0020): with JavaScript on, approve, reject,
       reply, mark done and delete go through `/admin/moderation.js` and only that item's cards change (status, buttons,
       counts); without it, the plain posts as before. Same Access, CSRF and origin checks; fallback to the plain post.
-      Open: O5.
+      O5 settled: an expired login reloads the page (decision 0021).
+- [x] B12 Publish goes live by itself (owner decision 2026-11-13, decision 0021): auto-merge on every publisher pull
+      request; the Test job's inline step fails any publisher pull request that changes more than
+      `src/content/journal/{en,it}/<slug>.md`; after Publish the page links to where the entry will be live; open
+      publisher pull requests older than 15 minutes show as "needs attention". No new App permission.
+- [x] B13 Editing a published entry from the phone (decision 0021): list newest first with a title search, the same
+      form with slug and language fixed, photos with alt text and captions loaded back, one-file pull request with
+      auto-merge, refused with a clear message when the entry changed on GitHub since it was opened.
 - _Done when: forms work with JS off, spam is rejected with a clear message, an approved comment appears within a
   minute, `/admin` returns 403 without a valid Access token; unit tests for every validation rule, the rate limiter and
   an XSS payload rendering as text._
@@ -221,12 +232,13 @@ every page × en/it × light/dark × 1440/1024/768/390/320 × JS on/off in Chrom
       for `document.fonts.ready` before each page is left and reports every font face whose load errored;
       `requestfailed` lines now carry Chromium's reason. A new test serves the italic file as 404 and checks it is still
       reported (HTTP 404 and `font failed`). The page matrix then passed 5 times in a row in both projects.
-- [ ] Q19 View transitions: in Chromium (Playwright, motion allowed), plain same-origin link clicks on public pages
-      raise an uncaught InvalidStateError, "Transition was aborted because of invalid state. ViewTransition opt-in
-      disabled", in about 5 of 8 clicks (found 2026-11-13 while testing B11; `/` ↔ `/about` against `pnpm preview`).
-      None with reduced motion, which turns `@view-transition` off in `site.css`. Existing tests never click links with
-      motion allowed, so they miss it. Find the cause (headless only, or real), then fix it or settle it as browser
-      noise with the owner; `tests/e2e/admin.spec.ts` runs with reduced motion until then.
+- [x] Q19 View transitions: in Chromium (Playwright, motion allowed), plain same-origin link clicks on public pages
+      raised an uncaught InvalidStateError, "Transition was aborted because of invalid state. ViewTransition opt-in
+      disabled", in about 5 of 8 clicks (found 2026-11-13 while testing B11). _Closed 2026-11-13 without
+      investigation, by owner decision:_ the view-transition rules are removed from `site.css` (decision 0021).
+      `tests/e2e/navigation.spec.ts` clicks through the site with motion allowed and expects an empty console (it fails
+      with the old rule back); `tests/unit/css.test.ts` keeps the rules out; the admin tests no longer emulate reduced
+      motion.
 - _Done when: the full matrix passes twice in a row with no flaky tests; `QA-REPORT.md` written._
 
 ## 8 · Security audit (S) — Opus, xhigh — runs last

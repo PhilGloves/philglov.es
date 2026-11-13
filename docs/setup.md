@@ -204,6 +204,17 @@ pnpm exec wrangler secret put GITHUB_APP_INSTALLATION_ID --env staging
 Repeat the three for preview with `versions secret put` instead of `secret put` (same App, same key; see step 9). Until they are set, `/admin/write`
 saves drafts but says "Publishing is not set up". Photos go to `philglov-originals-staging/<slug>/`.
 
+**Never give the App the Workflows permission**, nor anything beyond the two above. Publisher pull requests merge by
+themselves (step 10b), and what keeps them to entry files is a step in `.github/workflows/ci.yml` that the App cannot
+change only because it lacks that permission (decision 0021).
+
+### 10b. Auto-merge for phone publishing
+
+_Done 2026-11-13 by the agent, on the owner's instruction: "Allow auto-merge" is on._ GitHub → the repository →
+Settings → General → Pull Requests → tick **Allow auto-merge**. The App turns it on for each pull request it opens; the
+ruleset "Protect main" decides when the merge happens (the `Test` check). Without the setting, Publish still opens the
+pull request and says it has to be merged by hand.
+
 ---
 
 ## Part 2 — At launch: domain and production

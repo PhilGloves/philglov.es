@@ -32,7 +32,7 @@ utilities`. Rules at the top of the file; `tests/unit/css.test.ts` enforces the 
 - **Photos.** `.frame` holds a placeholder or a `<picture>`; a ratio class on the frame (not the image) prevents
   layout shift whatever crop the source has. Placeholder colour is one of twelve fixed `.tone-1 … .tone-12` classes
   (the photo pipeline picks the nearest), so no per-photo style attribute is ever needed.
-- **View transitions** are CSS only (`@view-transition`), off under reduced motion. The header keeps its own name so
+- **View transitions** _(removed 2026-11-13 by the owner, [0021](0021-publishing-goes-live.md))_ were CSS only (`@view-transition`), off under reduced motion. The header keeps its own name so
   only `main` fades. A photo hovered/focused/pressed in a grid gets `view-transition-name: photo-open`, which the big
   photo on the single-photo page always has, so one morphs into the other without per-photo names.
 - **Print** (same file, `utilities` layer): no header, footer, forms, previous/next; black on white; Source Serif;
