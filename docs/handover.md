@@ -200,3 +200,13 @@ email sending (off until launch), a real GitHub App, uploads from an iPhone, Fir
   it there; a unit test fails if someone does.
 - The `html` tagged template in `worker/src` escapes every value; Prettier's embedded formatting is off for that folder
   so it never reflows markup inside `<textarea>` or `<pre>`.
+
+## Background forms — 2026-11-13
+
+Owner request, decision [0018](decisions/0018-background-forms.md). With JavaScript on, both forms are sent in the
+background by `src/scripts/forms.ts` (the only public script file) and the Worker answers JSON (`FormReply`, always
+200). With it off, the form actions carry the status fragment and smooth scrolling stops while a status slot is the
+target, so the jump is instant. **The public JavaScript budget is nearly full: 1,525 of 1,536 raw bytes** (theme 855 +
+forms 670), enforced per page by `tests/unit/build-output.test.ts`. Any change to the theme or form script must find
+its bytes elsewhere. Open: TICKETS.md O4 (Chrome logs the brief's 422 status of the no-JS error page in the console).
+Not checked: Lighthouse locally (Q17), Firefox/WebKit, a real screen reader announcing the focused message.

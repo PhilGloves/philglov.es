@@ -17,6 +17,8 @@ NON-NEGOTIABLES
    byte comes from philglov.es.
 3. JavaScript budget on public pages: ≤ 1.5 KB total, only for the light/dark toggle. Every public feature, including
    both forms, must work with JavaScript disabled. Only the private /admin pages may use more.
+   _Owner decision 2026-11-13: the forms may also be sent in the background by one small same-origin script; the budget
+   (counted as raw bytes, theme + form script) is unchanged ([0018](docs/decisions/0018-background-forms.md))._
 4. Strict CSP, sent as an HTTP header by the Worker (default-src 'self'; no 'unsafe-inline' for scripts or styles; hash
    the one inline theme script; no inline style attributes anywhere).
 5. Bilingual: English at /<slug>, Italian at /it/<slug>, the SAME short slug in both languages and no section folders in
@@ -89,6 +91,8 @@ WAY OF WORKING
 - 2026-11-12: backend built (B1–B10, [0017](docs/decisions/0017-backend-worker.md)): forms, comments, `/admin`,
   `/admin/write`, crons. Staging and preview have their form secrets and Access AUD tags (setup step 9, done);
   publishing waits for the GitHub App (step 10). Settled: O2 (address only in `NOTIFY_TO`), O3 (reports 12 months).
+- 2026-11-13: forms sent in the background with JavaScript on, instant jump to the message without it
+  ([0018](docs/decisions/0018-background-forms.md)). Public JavaScript: 1,525 of 1,536 bytes.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -163,8 +167,9 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
   `scripts/build-fonts.py` (pinned commit); keep `crimson-pro-OFL.txt` next to the fonts; rename a family if its
   licence reserves the name (`tests/unit/fonts.test.ts`, 0015). The font has no arrows: use `<Arrows text=…>` /
   `<Arrow>` (inline SVG) and never type an arrow character in a template.
-- Pages: the form field names and Worker slots are a contract (0016); keep them. The only inline JS is the theme
-  script. Footnote arrows and labels are fixed in `scripts/lib/footnotes.ts`.
+- Pages: the form field names and Worker slots are a contract (0016, 0018); keep them. The only inline JS is the theme
+  script; the only public script file is `src/scripts/forms.ts` (`vite.build.assetsInlineLimit: 0` keeps it external).
+  Both together stay ≤ 1,536 raw bytes on every page (`tests/unit/build-output.test.ts`). Footnote arrows and labels are fixed in `scripts/lib/footnotes.ts`.
 - Never log names, emails, comment text or IP addresses. The Worker logs only through `worker/src/log.ts` (fixed
   event names). Never put personal data in a URL: Workers Logs record URLs.
 - Worker output: text into pages only via `Parts`/HTMLRewriter `html: false`; admin markup only via the escaping
