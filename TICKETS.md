@@ -14,6 +14,10 @@ a translation script, CI job, `translate`/`review` command, AI or translation AP
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------- |
 | O1  | **Placeholders:** contact email (guide suggests `phil@philglov.es`), city, launch date, partita IVA (only if any), the list of profiles for `sameAs`, a real photo for About, the 2–3 sentence bio. | F6a, F1, C5 | visible `[placeholder]` text; QA fails it before launch |
 
+Settled by the owner on 2026-11-13: O4, rule 11 means no errors from the site's own code. The browser's own "Failed
+to load resource" line for a page served with a 4xx status (404, and the 422/429 answer to a failed plain form post) is
+expected and does not count; the 422 stays (CLAUDE.md rule 11, decision 0018).
+
 Settled by the owner on 2026-11-12 (backend): O2, the notification address is only ever the `NOTIFY_TO` Worker secret,
 never in `wrangler.jsonc`; O3, every error report is deleted 12 months after it arrived, open or done, as the privacy
 notice says (decision 0017).

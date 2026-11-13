@@ -220,3 +220,91 @@ test("trailing slashes still redirect to the slash-less URL through the Worker",
   expect(res.headers.get("Location")).toMatch(/\/it$/);
   expect(res.headers.get("Content-Security-Policy")).toMatch(/default-src 'self'/);
 });
+
+describe("sent in the background by the page's script (Accept: application/json)", () => {
+  const json = { Accept: "application/json" };
+
+  test("success: 200 JSON with the thank-you for the status slot, and every field cleared; no redirect", async () => {
+    const { slug } = await twinEntry();
+    const res = await post("/api/comment", await commentFields(slug, "it"), json);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("application/json");
+    expect(res.headers.get("Cache-Control")).toBe("no-store");
+    expect(res.headers.get("Location")).toBeNull();
+    expect(res.headers.get("Content-Security-Policy")).toMatch(/default-src 'self'/);
+    expect(await res.json()).toEqual({
+      ok: true,
+      s: "comment-status",
+      t: "",
+      m: "Grazie! Leggo ogni commento prima che compaia qui.",
+      e: [
+        ["c-name", ""],
+        ["c-email", ""],
+        ["c-comment", ""],
+      ],
+    });
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM comments WHERE status = 'pending'").first("n")).toBe(1);
+  });
+
+  test("field errors: JSON (200, ok false: a 4xx would log a console error) with each field's message, nothing stored", async () => {
+    const { slug } = await twinEntry();
+    const res = await post("/api/comment", await commentFields(slug, "en", { email: "a@b.c", comment: "" }), json);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      ok: false,
+      s: "comment-status",
+      t: "Your comment was not sent.",
+      m: " Email: Enter an address like name@example.com. Comment: Write at least a few words.",
+      e: [
+        ["c-name", ""],
+        ["c-email", "Enter an address like name@example.com"],
+        ["c-comment", "Write at least a few words"],
+      ],
+    });
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM comments").first("n")).toBe(0);
+  });
+
+  test("spam and rate limit answer JSON too, with the same clear messages", async () => {
+    const { slug } = await twinEntry();
+    const fast = await post("/api/comment", await commentFields(slug, "en", { token: await agedToken(500) }), json);
+    expect(fast.status).toBe(200);
+    expect((await fast.json<{ m: string }>()).m).toContain("faster than anyone can type");
+    const ip = { ...json, "CF-Connecting-IP": "203.0.113.99" };
+    for (let i = 0; i < 5; i++) await post("/api/comment", await commentFields(slug, "en"), ip);
+    const limited = await post("/api/comment", await commentFields(slug, "en"), ip);
+    expect(limited.status).toBe(200);
+    expect((await limited.json<{ m: string }>()).m).toContain("Too many messages");
+  });
+
+  test("the report form answers for its own status slot and fields", async () => {
+    const report = { message: "", email: "", url: "/it", lang: "it", website: "", token: await agedToken() };
+    const bad = await (await post("/api/report", report, json)).json<{ s: string; e: [string, string][] }>();
+    expect(bad.s).toBe("report-status");
+    expect(bad.e.map(([id]) => id)).toEqual(["f-msg", "f-mail"]);
+    const good = await post("/api/report", { ...report, message: "Refuso nel titolo." }, json);
+    expect(await good.json()).toMatchObject({
+      ok: true,
+      s: "report-status",
+      m: "Grazie! La segnalazione mi è arrivata.",
+    });
+  });
+
+  test("every id the answer names exists in the built page, with its error slot", async () => {
+    const { slug, en } = await twinEntry();
+    const html = await (await SELF.fetch(`${ORIGIN}${en}`)).text();
+    const reply = await (
+      await post("/api/comment", await commentFields(slug, "en"), json)
+    ).json<{ s: string; e: [string, string][] }>();
+    for (const id of [reply.s, "report-status", ...reply.e.map(([i]) => i), "f-msg", "f-mail"])
+      expect(html).toContain(`id="${id}"`);
+    for (const [id] of reply.e) expect(html).toContain(`id="${id}-err"`);
+    // Focus can move to the status slots (the script focuses them; a no-JS fragment jump lands there too).
+    expect(html).toMatch(/id="comment-status" data-slot="comment-status" tabindex="-1"/);
+  });
+
+  test("a plain form post (no JSON in Accept) still gets the redirect and the page", async () => {
+    const { slug } = await twinEntry();
+    const res = await post("/api/comment", await commentFields(slug, "en"), { Accept: "text/html,*/*" });
+    expect(res.status).toBe(303);
+  });
+});

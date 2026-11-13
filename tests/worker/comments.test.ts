@@ -55,8 +55,13 @@ test("injection: a script tag and an onerror attribute render as visible text", 
   expect(items).toContain("&lt;b onmouseover=alert(1)&gt;hi&lt;/b&gt;");
   // No element was created: the only "<" left are the markup the Worker writes itself.
   expect(items).not.toMatch(/<script|<img|<b /i);
-  // The page still has exactly the one inline script it was built with.
-  expect(html.match(/<script(?![^>]*type="application\/ld\+json")[^>]*>/g)?.length).toBe(1);
+  // The page still has exactly the scripts it was built with: the one inline theme script and the form script file.
+  const scripts = html.match(/<script(?![^>]*type="application\/ld\+json")[^>]*>/g) ?? [];
+  expect(scripts.filter((tag) => !tag.includes(" src=")).length).toBe(1);
+  expect(scripts.filter((tag) => tag.includes(" src=")).every((tag) => / src="\/_assets\/[^"]+\.js"/.test(tag))).toBe(
+    true,
+  );
+  expect(scripts.length).toBe(2);
 });
 
 test("paragraphs and line breaks in a comment survive as markup, not as text", async () => {

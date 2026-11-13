@@ -45,12 +45,12 @@ const partitaIva = site.partitaIva;
     </div>
     <div class="txt">
       <p>{t(locale, "reportText")}</p>
-      <div data-slot="report-status" id={demo ? undefined : "report-status"}></div>
+      <div data-slot="report-status" id={demo ? undefined : "report-status"} tabindex="-1"></div>
       <details data-slot="report-details">
         <summary>
           <Arrows text={t(locale, "reportSummary")} />
         </summary>
-        <form class="rform" method="post" action="/api/report">
+        <form class="rform" method="post" action="/api/report#report-status">
           <div class="field field--small">
             <label for={`${idPrefix}-msg`}>{t(locale, "reportMessage")}</label>
             <textarea

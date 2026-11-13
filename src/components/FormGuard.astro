@@ -5,6 +5,10 @@
  *  - `token`: empty here. The Worker writes a fresh signed token into it as it
  *    serves the page (HTMLRewriter, ticket B3b), so the static HTML stays cacheable.
  * Both work with JavaScript off: this is plain HTML.
+ *
+ * With JavaScript on, src/scripts/forms.ts sends the form in the background and
+ * puts the answer in the status slot (no reload). Astro bundles it once per page
+ * into /_assets/ (same origin, no inline script, counted in the 1.5 KB budget).
  */
 import { t, type Locale } from "../i18n";
 
@@ -22,3 +26,4 @@ const { locale, id } = Astro.props;
   <input id={`${id}-website`} name="website" type="text" tabindex="-1" autocomplete="off" value="" />
 </div>
 <input type="hidden" name="token" value="" data-slot="token" />
+<script src="../scripts/forms.ts"></script>
