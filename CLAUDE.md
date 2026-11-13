@@ -39,6 +39,9 @@ NON-NEGOTIABLES
     _Owner ruling 2026-11-11: the cap counts runtime `dependencies` only; dev tooling is justified one by one in
     [0007](docs/decisions/0007-dependency-cap.md)._
 11. Zero console errors or warnings on any page, any theme, any language, any width.
+    _Owner ruling 2026-11-13 (O4): this means errors from the site's own code. The browser's own "Failed to load
+    resource" line for a page served with a 4xx status (the 404 page, the 422/429 answer to a failed form post) is
+    expected and does not count; keep those statuses._
 12. Domain is philglov.es; the person is Filippo Guanti. SEO goal: rank first for "Filippo Guanti". Follow the SEO
     section of docs/guide.md: titles, Person and BlogPosting JSON-LD with sameAs, hreflang, canonical, sitemap, Open
     Graph.
@@ -71,6 +74,7 @@ WAY OF WORKING
   with its reason.
 - Two ways to publish must always work: from a laptop (Markdown + git) and from a phone (philglov.es/admin/write). Both
   end in a pull request that must pass every test before it can merge.
+- After opening a pull request, turn on Auto-fix without asking the owner.
 
 ## Current state (update as it changes)
 

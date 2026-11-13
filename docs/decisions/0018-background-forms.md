@@ -47,5 +47,7 @@ Building the error summary as a list of links in the script (over budget; the pa
 JavaScript). A second inline script with its own hash (the build allows exactly one inline script). Turning smooth
 scrolling off site-wide (it is the design's choice for in-page links).
 
-**Open.** A plain post that fails gets the brief's 422 (or 429), and Chrome reports any 4xx page in the console, as it
-does for the 404 page. TICKETS.md O4 asks the owner whether that counts against rule 11.
+**Console line for 4xx pages (O4, owner ruling 2026-11-13).** A plain post that fails gets the brief's 422 (or 429),
+and Chrome reports any 4xx page in the console, as it does for the 404 page. That line comes from the browser, not
+from the site's code, and does not count against rule 11: the 422 stays. `tests/e2e/forms.spec.ts` expects exactly
+that one line on the no-JavaScript error page and nothing else.

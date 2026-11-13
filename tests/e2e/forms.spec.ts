@@ -158,7 +158,8 @@ test.describe("JavaScript off: a plain post", () => {
 
   test("field errors: the page comes back at the status slot, not at the top", async ({ page }) => {
     // The brief answers a failed plain post with status 422, and Chrome reports any 4xx page in the console
-    // (as for the 404 page). Owner question O4 in TICKETS.md; the background path answers 200 and logs nothing.
+    // (as for the 404 page). That browser line is expected and does not count against rule 11 (owner ruling O4,
+    // 2026-11-13); errors from the site's own code would still fail. The background path answers 200 and logs nothing.
     expectedNoise = [
       "error: Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)",
     ];
