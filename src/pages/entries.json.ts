@@ -21,6 +21,8 @@ export const GET: APIRoute = async () => {
       originalLang: v.originalLang,
       path: pathFor(v.lang, `/${slot.slug}`),
       title: v.entry.data.title,
+      // /admin/write lists the entries newest first for editing (decision 0021).
+      date: v.entry.data.date.toISOString().slice(0, 10),
       comments: v.entry.data.comments,
     })),
   );

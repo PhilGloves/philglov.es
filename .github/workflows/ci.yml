@@ -36,6 +36,29 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Publisher pull requests auto-merge (decision 0021), so this job, the required check, proves they change
+      # entry files and nothing else. Written inline on purpose: the GitHub App has no Workflows permission and
+      # cannot change this file. On a pull request the checkout is the merge commit; its first parent is main, so
+      # the diff below is exactly what merging would change. Other pull requests skip it and wait for the owner.
+      - name: Publisher pull requests change entry files only
+        if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'philglov-publisher[bot]'
+        run: |
+          git fetch --no-tags --quiet --depth=2 origin "$GITHUB_SHA"
+          changes="$(git diff --name-status --no-renames HEAD^1 HEAD)"
+          if [ -z "$changes" ]; then
+            echo "::error::A publisher pull request must change an entry file."
+            exit 1
+          fi
+          bad=0
+          while IFS=$'\t' read -r status path; do
+            if [[ "$status" =~ ^[AM]$ && "$path" =~ ^src/content/journal/(en|it)/[a-z0-9]+(-[a-z0-9]+)*\.md$ ]]; then
+              echo "ok: $status $path"
+            else
+              echo "::error::Publisher pull requests may only add or change src/content/journal/{en,it}/<slug>.md, not: $status $path"
+              bad=1
+            fi
+          done <<< "$changes"
+          exit "$bad"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
