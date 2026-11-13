@@ -67,11 +67,36 @@ test("no page has a style attribute, an external URL in src/href, or an arrow gl
   }
 });
 
-test("public JavaScript is the inline theme script alone, under the 1.5 KB budget", { skip }, () => {
-  const assets = walk(new URL("_assets/", dist)).filter((f) => f.pathname.endsWith(".js"));
-  assert.deepEqual(assets, []);
-  for (const file of htmlFiles()) assert.doesNotMatch(readFileSync(file, "utf8"), /<script[^>]+src=/);
-});
+// Rule 3: at most 1.5 KB of JavaScript on any public page, counted strictly as raw bytes: the inline theme script
+// plus every script file the page loads (the background form sending, src/scripts/forms.ts; owner decision 2026-11-13).
+const BUDGET = 1536;
+
+test(
+  "public JavaScript: theme script plus the form script, under 1.5 KB on every page, same origin only",
+  { skip },
+  () => {
+    const files = new Set<string>();
+    for (const file of htmlFiles()) {
+      const html = readFileSync(file, "utf8");
+      const sources = [...html.matchAll(/<script\b[^>]*\ssrc="([^"]*)"[^>]*>/g)].map((m) => m[1] ?? "");
+      let bytes = inlineScripts(html).reduce((sum, body) => sum + Buffer.byteLength(body), 0);
+      for (const src of sources) {
+        assert.match(src, /^\/_assets\/[^/]+\.js$/, `${file.pathname}: script from ${src}`);
+        files.add(src);
+        bytes += readFileSync(new URL(`.${src}`, dist)).length;
+      }
+      assert.ok(bytes <= BUDGET, `${file.pathname}: ${bytes} bytes of JavaScript (budget ${BUDGET})`);
+      // No inline event handlers anywhere (the CSP would block them; this keeps them out of the source too).
+      assert.doesNotMatch(html, /<[^>]+\son[a-z]+=/i, `${file.pathname}: inline event handler`);
+    }
+    // Every script file under /_assets/ is one a page loads, and there is only the form script.
+    const assets = walk(new URL("_assets/", dist))
+      .filter((f) => f.pathname.endsWith(".js"))
+      .map((f) => `/${f.pathname.slice(f.pathname.indexOf("_assets/"))}`);
+    assert.deepEqual(assets.sort(), [...files].sort());
+    assert.equal(files.size, 1, [...files].join(", "));
+  },
+);
 
 test("share images are 1200×630 PNGs, one default and one per entry version", { skip }, () => {
   const dir = new URL("_assets/share/", dist);

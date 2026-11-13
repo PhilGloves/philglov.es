@@ -68,7 +68,7 @@ test("the entry page has the comment form with every field, the consent line and
   page,
 }) => {
   await page.goto("/lisbona");
-  const form = page.locator('form[action="/api/comment"]');
+  const form = page.locator('form[action^="/api/comment"]');
   await expect(form).toHaveAttribute("method", /post/i);
   for (const name of ["name", "email", "comment"])
     await expect(form.locator(`[name="${name}"][required]`)).toHaveCount(1);
@@ -87,7 +87,7 @@ test("the entry page has the comment form with every field, the consent line and
 test("an entry with comments off has neither the comments section nor the form", async ({ page }) => {
   await page.goto("/about");
   await expect(page.locator("section#comments")).toHaveCount(0);
-  await expect(page.locator('form[action="/api/comment"]')).toHaveCount(0);
+  await expect(page.locator('form[action^="/api/comment"]')).toHaveCount(0);
 });
 
 test("theme toggle: flips, remembers, and is hidden without JavaScript", async ({ page, javaScriptEnabled }) => {

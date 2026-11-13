@@ -85,7 +85,7 @@ test("a missing page answers 404 with the bilingual help page", async ({ page })
 test("the footer error-report form is on every page and opens from the keyboard", async ({ page }) => {
   await page.goto("/about");
   const summary = page.locator("footer summary");
-  const form = page.locator('footer form[action="/api/report"]');
+  const form = page.locator('footer form[action^="/api/report"]');
   await expect(form).toBeHidden();
   await summary.focus();
   await page.keyboard.press("Enter");
