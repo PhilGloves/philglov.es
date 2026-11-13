@@ -208,3 +208,57 @@ test(
     }
   },
 );
+
+// ---- photos inside journal entries ----------------------------------------------------
+
+test("an entry photo is capped at 1600 px with the text column as its sizes, whatever the original", async () => {
+  const { capEntryImage, ENTRY_SIZES, MAX_WIDTH } = await import("../../src/lib/entry-image-service.ts");
+  const out = capEntryImage({
+    "data-astro-image": "constrained",
+    width: 4000,
+    height: 2667,
+    widths: [4000, 8000],
+    sizes: "(min-width: 4000px) 4000px, 100vw",
+  });
+  assert.equal(MAX_WIDTH, 1600);
+  assert.deepEqual([out.width, out.height], [1600, 1067]);
+  assert.deepEqual(out.widths, [480, 800, 1200, 1600]);
+  assert.equal(out.sizes, ENTRY_SIZES);
+  assert.match(ENTRY_SIZES, /36rem/);
+  // Portfolio photographs (<Photo>, layout "none") carry no data-astro-image and pass through untouched.
+  const portfolio = { width: 2400, widths: [480, 2400], sizes: "100vw" };
+  assert.deepEqual(capEntryImage(portfolio), portfolio);
+});
+
+test(
+  "an entry photo in the build is never wider than 1600 px: attributes, srcset and the files themselves",
+  { skip: built ? false : "run `pnpm build` first" },
+  async () => {
+    const assets = new URL("_assets/", dist);
+    let seen = 0;
+    for (const file of htmlFiles(dist)) {
+      const html = readFileSync(file, "utf8");
+      for (const tag of html.matchAll(/<img\b[^>]*data-astro-image[^>]*>/g)) {
+        seen++;
+        const img = tag[0];
+        const where = fileURLToPath(file);
+        const width = Number(/\swidth="(\d+)"/.exec(img)?.[1]);
+        assert.ok(width > 0 && width <= 1600, `${where}: width ${width}`);
+        assert.match(img, /\sheight="\d+"/, where);
+        assert.match(img, /loading="lazy"/, where);
+        assert.match(img, /sizes="\(min-width: 38rem\) 36rem, calc\(100vw - 2rem\)"/, where);
+        assert.doesNotMatch(img, /\sstyle=/, where);
+        const srcset = /srcset="([^"]+)"/.exec(img)?.[1] ?? "";
+        const candidates = srcset.split(",").map((c) => c.trim().split(/\s+/));
+        assert.ok(candidates.length >= 2, `${where}: several widths`);
+        for (const [url = "", descriptor = ""] of candidates) {
+          assert.ok(Number.parseInt(descriptor, 10) <= 1600, `${where}: ${descriptor}`);
+          const actual =
+            (await sharp(fileURLToPath(new URL(url.replace("/_assets/", ""), assets))).metadata()).width ?? 0;
+          assert.ok(actual <= 1600, `${url} is ${actual} px wide`);
+        }
+      }
+    }
+    if (seen === 0) return; // no entry carries a photograph in this build
+  },
+);

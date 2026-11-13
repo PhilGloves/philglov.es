@@ -221,5 +221,5 @@ write-back (`scripts/photo-rights.ts`), its GPS check and the two exiftool tests
 and CI installs `libimage-exiftool-perl`. If CI shows the XMP/IPTC argument names or the `plus:DataMining#` raw write
 failing, fix `rightsArgs()` in `scripts/lib/photo-rights.ts` first. Also unverified: the real R2 download (needs the
 `R2_*` secrets and a photo in `philglov-originals-staging/photos/<series>/`), and the 400 KB first-screen budget on a
-real 20-photo series. Entry photos use Astro's single-format Markdown image, not `<picture>` (0019). Owner to do:
+real 20-photo series. Entry photos: `image.layout: "constrained"` plus `src/lib/entry-image-service.ts` (≤ 1600 px, text-column `sizes`, WebP); verified in a local build with a temporary entry. P7 (dark backdrop) is skipped until the owner has seen real photos on staging. Owner to do:
 upload the series originals to `photos/<series>/<file>` (setup step 5 bucket) and the real alt texts and captions.

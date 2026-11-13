@@ -100,7 +100,7 @@ WAY OF WORKING
   ([0018](docs/decisions/0018-background-forms.md)). Public JavaScript: 1,525 of 1,536 bytes.
 - 2026-11-13: photo pipeline built (P1–P6, [0019](docs/decisions/0019-photo-pipeline.md)): originals fetched from R2,
   Astro `<Picture>` AVIF/WebP/JPEG, dominant-colour classes, rights metadata written by exiftool after the build.
-  Placeholders show until the originals exist. Dark backdrop (P7) waits for the designer.
+  Entry photos: responsive WebP ≤ 1600 px via `image.layout` and `src/lib/entry-image-service.ts`. Placeholders show until the originals exist. Dark backdrop (P7): the owner decides after seeing real photos on staging.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map

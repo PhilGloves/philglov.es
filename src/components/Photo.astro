@@ -74,6 +74,7 @@ async function sourcesFor(crop: Crop | undefined, media: string | undefined) {
       const img = await getImage({
         src: c.image,
         format,
+        layout: "none",
         widths: WIDTHS,
         sizes,
         quality: QUALITY[format],
@@ -104,6 +105,7 @@ const fallbackImg =
     ? await getImage({
         src: fallback.image,
         format: "jpeg",
+        layout: "none",
         widths: WIDTHS,
         sizes,
         quality: QUALITY.jpeg,
@@ -129,6 +131,7 @@ const loading = priority ? "eager" : "lazy";
       formats={["avif", "webp"]}
       fallbackFormat="jpeg"
       widths={WIDTHS}
+      layout="none"
       sizes={sizes}
       quality={QUALITY.jpeg}
       loading={loading}

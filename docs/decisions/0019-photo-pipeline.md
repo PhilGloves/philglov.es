@@ -34,15 +34,23 @@ R2 bucket; the repository holds `photos.json` per series.
 5. **Photo page.** `ratio="auto"`: the picture keeps its own proportions at the largest sensible size, with caption,
    alt text, camera data (`.exif`, small muted text) and previous/next links. No keyboard shortcuts (they need script).
 
+6. **Entry photos.** Markdown images use Astro's global `image.layout: "constrained"` (data attributes, no inline
+   style; `responsiveStyles: false`, so no injected `<style>` either), through `src/lib/entry-image-service.ts`, a
+   wrapper around the sharp service. For those images only it caps every file at 1600 px (widths 480/800/1200/1600),
+   sets `sizes` to the text column (`(min-width: 38rem) 36rem, calc(100vw - 2rem)`; `.prose` is 36rem), keeps width
+   and height (capped to 1600) and lazy loading. WebP only. One `.prose img` rule in `site.css` fits them to the
+   column. `<Photo>` passes `layout="none"`, so portfolio photos are unaffected. The layout option alone would not
+   do: it sizes from the original (4000 px width, `sizes` of the viewport). Tested: attributes, srcset and the files'
+   real widths are ≤ 1600 (`tests/unit/photos.test.ts`).
+
 **Not done, deliberately.**
 
-- _Dark backdrop for photo pages (P7):_ needs the designer's approval first.
-- _Entry photos get Astro's own Markdown image output_ (one resized WebP `<img>`, width/height, lazy), not the
-  AVIF/WebP/JPEG `<picture>`: Astro offers no hook to swap Markdown images for `<picture>` without MDX or a custom
-  renderer. Rights metadata is still written to them. Revisit with a rehype step if entry photos become common.
+- _Dark backdrop for photo pages (P7):_ owner decision 2026-11-13: skipped for now; he will decide after seeing real
+  photos on staging.
+- _Entry photos are WebP only_ (no AVIF), by the owner's choice.
 - _Frontmatter art direction for pages_ (the home hero uses the first series photo, so its crops live in `photos.json`).
 
-**Rejected.** Responsive images via Astro's `layout` option (it emits an inline `<style>`, which the CSP blocks);
+**Rejected.** Astro's `layout` option on its own for entry photos (no 1600 px cap, wrong `sizes`; first judged unusable because it was believed to emit an inline `<style>`, which `responsiveStyles: false` avoids);
 sharp's `withXmp` (no AVIF); an S3 SDK (dependency cap); blur-up placeholders (script); writing the colour as a style
 attribute (CSP).
 

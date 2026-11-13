@@ -1296,6 +1296,13 @@
     margin-block-start: 1.1em;
   }
 
+  /* a photograph in an entry: Astro's responsive Markdown image (data-astro-image), never wider than the column */
+  .prose img {
+    display: block;
+    max-inline-size: 100%;
+    block-size: auto;
+  }
+
   .prose h2,
   .prose h3,
   .prose h4 {
