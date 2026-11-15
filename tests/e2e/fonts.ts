@@ -14,8 +14,11 @@ import type { Page } from "@playwright/test";
 export async function fontsSettled(page: Page): Promise<string[]> {
   return page.evaluate(async () => {
     await document.fonts.ready;
+    // The two "Crimson Pro Fallback" faces are local() fonts (Palatino, Georgia) that tune the fallback text while
+    // the real font loads. A machine that has none of them, such as a Linux CI runner, reports them as "error"
+    // whenever a page paints before Crimson Pro is ready. That is by design, not a broken font.
     return [...document.fonts]
-      .filter((face) => face.status === "error")
+      .filter((face) => face.status === "error" && !face.family.replace(/"/g, "").startsWith("Crimson Pro Fallback"))
       .map((face) => `font failed: ${face.family} ${face.style} ${face.weight}`);
   });
 }
