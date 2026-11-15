@@ -27,21 +27,14 @@ const path = journalPath(locale, page);
 
 <BaseLayout locale={locale} path={path} current="journal" title={title} description={t(locale, "journalIntro")}>
   <div class="page">
-    <div class="g hero">
-      <div class="lab">
-        <p class="crumb">
-          <a href={locale === "en" ? "/" : "/it"}>{t(locale, "crumbHome")}</a>
-          {" / "}
-          {t(locale, "journalTitle")}
-        </p>
-      </div>
+    <div class="g hero hero--inner">
       <h1 class="state">{heading}</h1>
       <p class="lede">{t(locale, "journalIntro")}</p>
     </div>
 
     <div class="g sec">
       <div class="lab">
-        <h2>{page > 1 ? tf(locale, "pageOf", { page, pages: paged.pages }) : heading}</h2>
+        {page > 1 && <h2>{tf(locale, "pageOf", { page, pages: paged.pages })}</h2>}
         <p class="small muted">
           <Arrows text={t(locale, "markLegend")} />
         </p>

@@ -114,6 +114,11 @@ WAY OF WORKING
   ends with a details block (number, date, reading time, the label); About and Now lose the label; **topics are gone**
   (no field, pages, filter, column, category; old `tags:` lines are tolerated and ignored); replies read "Phil" on
   English pages. The two prototypes in `docs/design/` were replaced by the owner.
+- 2026-11-15: second simplification ([0024](docs/decisions/0024-no-breadcrumbs-tighter-heads-ringless-controls.md)):
+  **no breadcrumb anywhere**; no heading that repeats the page title (photos index, journal page 1); a tighter head on
+  the journal index, photos index and series pages (`.hero--inner`: 32/44/56 px above the h1, 52/68/80 px from the intro
+  to the section below); the header controls lose their ring (transparent border, no gap, icon flush with the header
+  line). The prototypes in `docs/design/` carry the same change.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -195,10 +200,10 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
 - Pages: the form field names and Worker slots are a contract (0016, 0018); keep them. The only inline JS is the theme
   script; the only public script file is `src/scripts/forms.ts` (`vite.build.assetsInlineLimit: 0` keeps it external).
   Both together stay ≤ 1,536 raw bytes on every page (`tests/unit/build-output.test.ts`). Footnote arrows and labels are fixed in `scripts/lib/footnotes.ts`.
-- Header controls: `.rbtn` (round, 44 px on phones, 40 px from tablet up). The theme toggle holds both inline SVG icons
+- Header controls: `.rbtn` (no visible ring: a transparent 1px border that forced-colours mode still draws; 44 px on phones, 40 px from tablet up; no gap between the two; the group is pulled out so the icon ends at the header line). The theme toggle holds both inline SVG icons
   and keeps a fixed `aria-label`; never change its text or the theme script to show the state. The language link
   shows the code and carries the language name as `aria-label`. There are no topics: do not add a `tags` field, a
-  topic list or per-topic pages without a new decision.
+  topic list or per-topic pages without a new decision. There is no breadcrumb: do not add one, or an empty `.lab`.
 - Photos: draw them only with `<Photo>` (never a bare `<img>`); alt text in the page language, hand-written. Pass
   `sizes` from `src/lib/photo-sizes.ts` and `priority` on the first image of a page only. Per-photo colours are
   generated classes (`.c-<hex>`), never inline styles. Every output image gets rights metadata and must carry no GPS:
