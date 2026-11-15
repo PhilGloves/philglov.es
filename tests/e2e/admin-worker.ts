@@ -82,13 +82,32 @@ async function fakeGitHub(request: Request): Promise<Response> {
   return Response.json({ message: "Not Found" }, { status: 404 });
 }
 
-// The Worker's outbound requests: jose fetching the team's keys, and the GitHub App. Answer both here.
+// The Worker's outbound requests: jose fetching the team's keys, and the GitHub App. Answer both here. Nothing else
+// leaves this process: no test may open a real pull request or write to the real repository, so every other host
+// (api.github.com is answered by fakeGitHub, never forwarded) is refused and listed in `blockedOutbound`.
 const realFetch = globalThis.fetch;
+export const blockedOutbound: string[] = [];
 globalThis.fetch = (input, init) => {
   const request = new Request(input, init);
+  const url = new URL(request.url);
   if (request.url === `https://${TEAM}/cdn-cgi/access/certs`) return Promise.resolve(Response.json(jwks));
-  if (new URL(request.url).host === "api.github.com") return fakeGitHub(request);
-  return realFetch(request);
+  if (url.host === "api.github.com") return fakeGitHub(request);
+  if (url.hostname === "127.0.0.1" || url.hostname === "localhost") return realFetch(request);
+  blockedOutbound.push(`${request.method} ${url.origin}${url.pathname}`);
+  return Promise.reject(new TypeError(`test server: outbound request to ${url.host} refused`));
+};
+
+// workerd has FixedLengthStream (a TransformStream with a promised length, which R2 needs for a streamed upload);
+// Node does not. A plain TransformStream stands in for it here.
+const nodeGlobals = globalThis as unknown as { FixedLengthStream?: unknown };
+nodeGlobals.FixedLengthStream ??= class {
+  readable: ReadableStream;
+  writable: WritableStream;
+  constructor() {
+    const { readable, writable } = new TransformStream();
+    this.readable = readable;
+    this.writable = writable;
+  }
 };
 
 // The Worker's own types (workers-types) clash with the DOM types Playwright needs, so it is loaded untyped here;
@@ -131,7 +150,9 @@ function fromDist(path: string): Response {
   // Pages as Cloudflare's asset handling serves them: /lisbona is dist/lisbona.html, / is dist/index.html.
   const file = path === "/" ? "/index.html" : /\.[a-z0-9]+$/.test(path) ? path : `${path}.html`;
   try {
-    const type = file.endsWith(".html") ? "text/html; charset=utf-8" : (TYPES[file.split(".").pop() ?? ""] ?? "application/octet-stream");
+    const type = file.endsWith(".html")
+      ? "text/html; charset=utf-8"
+      : (TYPES[file.split(".").pop() ?? ""] ?? "application/octet-stream");
     return new Response(readFileSync(new URL(`.${file}`, dist)), { headers: { "Content-Type": type } });
   } catch {
     return new Response("Not found", { status: 404 });
@@ -168,7 +189,14 @@ export async function serveAdmin(): Promise<Admin> {
     IP_SALT: crypto.randomUUID(),
     DB: d1(db),
     ASSETS: { fetch: async (request: Request) => fromDist(new URL(request.url).pathname) },
-    ORIGINALS: { head: async () => ({}) },
+    ORIGINALS: {
+      head: async () => ({}),
+      // The upload endpoint streams the photo into R2; read it all, as R2 would, and keep nothing.
+      put: async (_key: string, body: ReadableStream | null) => {
+        if (body) await new Response(body).arrayBuffer();
+        return {};
+      },
+    },
     GITHUB_APP_ID: "12345",
     GITHUB_APP_INSTALLATION_ID: "678",
     GITHUB_APP_PRIVATE_KEY: appKey,
@@ -240,6 +268,11 @@ export async function serveAdmin(): Promise<Admin> {
           .prepare("INSERT INTO reports (page_url, message, created_at, status) VALUES ('/it', ?, ?, 'open')")
           .run(message, Date.now()).lastInsertRowid,
       ),
-    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+    close: async () => {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      // A test that made the Worker reach for anything but the stand-ins fails here, whatever else it checked.
+      const leaked = blockedOutbound.splice(0);
+      if (leaked.length) throw new Error(`the Worker tried to reach outside the test: ${leaked.join(", ")}`);
+    },
   };
 }

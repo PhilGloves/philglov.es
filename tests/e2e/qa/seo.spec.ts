@@ -29,7 +29,12 @@ const attr = (html: string, re: RegExp) => re.exec(html)?.[1];
 const meta = (html: string, key: string, name = "name") =>
   attr(html, new RegExp(`<meta ${name}="${key}" content="([^"]*)"`));
 const decode = (s: string | undefined) =>
-  (s ?? "").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+  (s ?? "")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
 
 interface Ld {
   "@context"?: unknown;
@@ -37,9 +42,13 @@ interface Ld {
   [key: string]: unknown;
 }
 const jsonLd = (html: string): Ld[] =>
-  [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1] ?? "") as Ld);
+  [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(
+    (m) => JSON.parse(m[1] ?? "") as Ld,
+  );
 
-test("every page: unique title with the name, description, canonical, Open Graph and Twitter tags", async ({ request }) => {
+test("every page: unique title with the name, description, canonical, Open Graph and Twitter tags", async ({
+  request,
+}) => {
   const titles = new Map<string, string>();
   const sameInBoth: string[] = [];
   const problems: string[] = [];
@@ -50,13 +59,15 @@ test("every page: unique title with the name, description, canonical, Open Graph
     const earlier = titles.get(title);
     if (earlier !== undefined) {
       // The same word in two languages ("Now", "Privacy") is a finding to report, not a failure of the build.
-      if (earlier.startsWith("/it") === p.path.startsWith("/it")) problems.push(`${p.path}: title "${title}" repeats ${earlier}`);
+      if (earlier.startsWith("/it") === p.path.startsWith("/it"))
+        problems.push(`${p.path}: title "${title}" repeats ${earlier}`);
       else sameInBoth.push(`${p.path} = ${earlier}: "${title}"`);
     }
     titles.set(title, p.path);
     if (!(meta(html, "description") ?? "").trim()) problems.push(`${p.path}: no meta description`);
     const canonical = attr(html, /<link rel="canonical" href="([^"]*)"/);
-    if (canonical !== `${ORIGIN}${p.path === "/" ? "/" : p.path}`) problems.push(`${p.path}: canonical is ${canonical}`);
+    if (canonical !== `${ORIGIN}${p.path === "/" ? "/" : p.path}`)
+      problems.push(`${p.path}: canonical is ${canonical}`);
     for (const key of ["og:title", "og:description", "og:type", "og:url", "og:image", "og:site_name", "og:locale"])
       if (!(meta(html, key, "property") ?? "").trim()) problems.push(`${p.path}: no ${key}`);
     if (meta(html, "og:url", "property") !== canonical) problems.push(`${p.path}: og:url differs from the canonical`);
@@ -88,7 +99,8 @@ test("JSON-LD: valid JSON, schema.org context, the right type on the right page"
       continue;
     }
     const types = blocks.map((b) => b["@type"]);
-    for (const b of blocks) if (b["@context"] !== "https://schema.org") problems.push(`${p.path}: @context is ${String(b["@context"])}`);
+    for (const b of blocks)
+      if (b["@context"] !== "https://schema.org") problems.push(`${p.path}: @context is ${String(b["@context"])}`);
     const isHome = p.path === "/" || p.path === "/it";
     const isAbout = p.path === "/about" || p.path === "/it/about";
     const isPhoto = /\/photos\/[^/]+\/[^/]+$/.test(p.path);
@@ -102,8 +114,11 @@ test("JSON-LD: valid JSON, schema.org context, the right type on the right page"
       if (person["name"] !== "Filippo Guanti") problems.push(`${p.path}: Person.name is ${String(person["name"])}`);
       if (person["url"] !== ORIGIN) problems.push(`${p.path}: Person.url is ${String(person["url"])}`);
       // The profiles themselves are owner question O1; launch.spec.ts requires the list to be filled.
-      if (person["sameAs"] !== undefined && !Array.isArray(person["sameAs"])) problems.push(`${p.path}: Person.sameAs is not a list`);
-      else for (const u of (person["sameAs"] ?? []) as string[]) if (!/^https:\/\//.test(u)) problems.push(`${p.path}: sameAs ${u}`);
+      if (person["sameAs"] !== undefined && !Array.isArray(person["sameAs"]))
+        problems.push(`${p.path}: Person.sameAs is not a list`);
+      else
+        for (const u of (person["sameAs"] ?? []) as string[])
+          if (!/^https:\/\//.test(u)) problems.push(`${p.path}: sameAs ${u}`);
     } else if (journalSlugs.has(p.path)) {
       const post = blocks.find((b) => b["@type"] === "BlogPosting");
       if (!post) {
@@ -146,14 +161,18 @@ test("sitemap.xml lists every indexable page once, with the page's own hreflang 
   for (const loc of expected) if (!byLoc.has(loc)) problems.push(`${loc}: built but not in the sitemap`);
   for (const loc of byLoc.keys()) if (!expected.has(loc)) problems.push(`${loc}: in the sitemap but not a built page`);
   expect(/<loc>https:\/\/philglov\.es\/(styleguide|404)/.test(xml), "no styleguide or 404 in the sitemap").toBe(false);
-  for (const loc of byLoc.keys()) if (loc !== `${ORIGIN}/` && loc.endsWith("/")) problems.push(`${loc}: trailing slash`);
+  for (const loc of byLoc.keys())
+    if (loc !== `${ORIGIN}/` && loc.endsWith("/")) problems.push(`${loc}: trailing slash`);
 
   for (const p of indexable) {
     const html = readBuilt(p.file);
-    const pairs = [...html.matchAll(/<link rel="alternate" hreflang="([^"]+)" href="([^"]+)"/g)].map((m) => `${m[1]} ${m[2]}`);
+    const pairs = [...html.matchAll(/<link rel="alternate" hreflang="([^"]+)" href="([^"]+)"/g)].map(
+      (m) => `${m[1]} ${m[2]}`,
+    );
     const block = byLoc.get(`${ORIGIN}${p.path === "/" ? "/" : p.path}`) ?? "";
     const inMap = [...block.matchAll(/hreflang="([^"]+)" href="([^"]+)"/g)].map((m) => `${m[1]} ${m[2]}`);
-    if (pairs.join("|") !== inMap.join("|")) problems.push(`${p.path}: page hreflang ${JSON.stringify(pairs)} ≠ sitemap ${JSON.stringify(inMap)}`);
+    if (pairs.join("|") !== inMap.join("|"))
+      problems.push(`${p.path}: page hreflang ${JSON.stringify(pairs)} ≠ sitemap ${JSON.stringify(inMap)}`);
   }
   expect(problems).toEqual([]);
 
@@ -180,7 +199,8 @@ for (const p of pages) {
     const html = await res.text();
     const robotsMeta = /<meta name="robots" content="([^"]*)"/.exec(html)?.[1] ?? "";
     const noindex = /noindex/i.test(header) || /noindex/i.test(robotsMeta);
-    if (PROD && p.indexable) expect(noindex, `${p.path} is indexable by accident (${header} / ${robotsMeta})`).toBe(false);
+    if (PROD && p.indexable)
+      expect(noindex, `${p.path} is indexable by accident (${header} / ${robotsMeta})`).toBe(false);
     else if (!PROD) expect(noindex, `${p.path}: staging must say noindex`).toBe(true);
     else if (p.file === "styleguide.html") expect(noindex, "/styleguide is never indexed").toBe(true);
   });

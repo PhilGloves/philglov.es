@@ -5,12 +5,36 @@
 import { expect, test, type Page } from "@playwright/test";
 import { overflowX, settle, watch } from "./lib.ts";
 
+/**
+ * WebKit upgrades every subresource of an http page to https, even on 127.0.0.1 (Chromium and Firefox do not for
+ * loopback), because of the CSP directive `upgrade-insecure-requests`; the local Worker speaks http only, so nothing
+ * but the HTML would load. Production is https and the directive does nothing there. These tests drop that one
+ * directive from the CSP header, in every browser, and nothing else.
+ */
+test.beforeEach(async ({ page }) => {
+  await page.route("**/*", async (route) => {
+    const res = await route.fetch();
+    const headers = { ...res.headers() };
+    const csp = headers["content-security-policy"];
+    if (csp) headers["content-security-policy"] = csp.replace(/;?\s*upgrade-insecure-requests/, "");
+    await route.fulfill({ response: res, headers });
+  });
+});
+
+/**
+ * BUG-9: any Cross-Origin-Opener-Policy header makes WebKit log "This document is not cross-origin isolated because
+ * the Cross-Origin-Embedder-Policy (or -Opener-Policy) header ..." as a console warning, on every page. Rule 11 says
+ * no warnings; the QA brief (suite 9) and the headers module require COOP. Owner ruling needed (docs/qa/bug-reports.md).
+ * The smoke tests leave that one line out; the BUG-9 test below keeps it visible.
+ */
+const BUG9 = /not cross-origin isolated because the Cross-Origin-(Embedder|Opener)-Policy/;
+
 const PAGES = ["/", "/it", "/lisbona", "/photos/lisbon", "/photos/lisbon/tram-28"];
 
 for (const width of [1440, 390]) {
   test(`smoke at ${width}px: pages load clean, nothing overflows, nothing third-party`, async ({ page, baseURL }) => {
     test.setTimeout(90_000);
-    const seen = watch(page, baseURL ?? "");
+    const seen = watch(page, baseURL ?? "", undefined, BUG9);
     await page.setViewportSize({ width, height: 900 });
     const problems: string[] = [];
     for (const path of PAGES) {
@@ -84,4 +108,15 @@ test("report form: refused when empty, accepted when good", async ({ page }) => 
   await form.locator("textarea").fill("Un refuso nel titolo.");
   await form.locator('button[type="submit"]').click();
   await expect(page.locator('#report-status .notice[role="status"]')).toBeVisible();
+});
+
+test("BUG-9: no console warning on the home page in this browser", async ({ page, browserName }) => {
+  test.fail(browserName === "webkit", "WebKit warns about cross-origin isolation whenever COOP is set");
+  const lines: string[] = [];
+  page.on("console", (m) => {
+    if (m.type() === "error" || m.type() === "warning") lines.push(`${m.type()}: ${m.text()}`);
+  });
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  expect(lines).toEqual([]);
 });

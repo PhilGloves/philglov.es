@@ -16,19 +16,27 @@ import { defineConfig, devices } from "@playwright/test";
 const port = 8787;
 const production = process.env["QA_PROD"] === "1";
 const notDefault = /(cross-browser|visual|launch|live)\.spec\.ts$/;
+/**
+ * `E2E_SCOPE=core` leaves out tests/e2e/qa (the QA matrix): the suite a publish from the phone waits for. Everything
+ * else in tests/e2e is the core. CI sets it when a change only touches journal entries (.github/workflows/ci.yml).
+ */
+const core = process.env["E2E_SCOPE"] === "core";
+const coreOnly: RegExp[] = core ? [/\/qa\//] : [];
 
 export default defineConfig({
   testDir: "tests/e2e",
   forbidOnly: !!process.env["CI"],
   retries: 0,
+  // The runner has 4 CPUs; most of the QA matrix's time is waiting (pauses a person takes, network quiet), so use all 4.
+  ...(process.env["CI"] ? { workers: 4 } : {}),
   reporter: process.env["CI"] ? [["github"], ["list"]] : "list",
   snapshotPathTemplate: "{testDir}/__screenshots__/{projectName}-{platform}/{testFilePath}/{arg}{ext}",
   use: { baseURL: `http://127.0.0.1:${port}` },
   projects: [
-    { name: "chromium", testIgnore: notDefault, use: { ...devices["Desktop Chrome"] } },
+    { name: "chromium", testIgnore: [notDefault, ...coreOnly], use: { ...devices["Desktop Chrome"] } },
     {
       name: "chromium-no-js",
-      testIgnore: notDefault,
+      testIgnore: [notDefault, ...coreOnly],
       use: { ...devices["Desktop Chrome"], javaScriptEnabled: false },
     },
     { name: "firefox", testMatch: /cross-browser\.spec\.ts$/, use: { ...devices["Desktop Firefox"] } },

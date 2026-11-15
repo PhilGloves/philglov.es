@@ -9,13 +9,20 @@
 import { brotliCompressSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
 
-test.skip(({ browserName, javaScriptEnabled }) => browserName !== "chromium" || !javaScriptEnabled, "Chromium with JavaScript");
+test.skip(
+  ({ browserName, javaScriptEnabled }) => browserName !== "chromium" || !javaScriptEnabled,
+  "Chromium with JavaScript",
+);
 test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
 const TEXT_PAGES = ["/", "/it", "/journal", "/about", "/now", "/lisbona", "/it/lisbona", "/photos"];
 const PHOTO_PAGES = ["/photos/lisbon", "/photos/lisbon/tram-28", "/it/photos/lisbon/tram-28"];
 
-async function visit(page: import("@playwright/test").Page, context: import("@playwright/test").BrowserContext, path: string) {
+async function visit(
+  page: import("@playwright/test").Page,
+  context: import("@playwright/test").BrowserContext,
+  path: string,
+) {
   const cdp = await context.newCDPSession(page);
   await cdp.send("Network.enable");
   await cdp.send("Network.emulateNetworkConditions", {
@@ -44,12 +51,21 @@ async function visit(page: import("@playwright/test").Page, context: import("@pl
       (async () => {
         const body = await res.body().catch(() => Buffer.alloc(0));
         const type = (res.headers()["content-type"] ?? "").split(";")[0] ?? "";
-        const encoded = res.headers()["content-encoding"];
         const text = /text\/|json|xml|javascript|svg/.test(type);
+        // Playwright hands over the decoded body. If the server compressed it, the wire size is what the request
+        // reports; if it did not (the local Worker), a text answer is sized as Brotli, as Cloudflare would send it.
+        const wire =
+          (
+            await res
+              .request()
+              .sizes()
+              .catch(() => null)
+          )?.responseBodySize ?? 0;
+        const encoded = res.headers()["content-encoding"];
         files.push({
           url: new URL(res.url()).pathname,
           type,
-          bytes: text && !encoded ? brotliCompressSync(body).length : body.length,
+          bytes: encoded && wire > 0 ? wire : text ? brotliCompressSync(body).length : body.length,
         });
       })(),
     );
@@ -67,7 +83,11 @@ async function visit(page: import("@playwright/test").Page, context: import("@pl
 }
 
 for (const path of TEXT_PAGES) {
-  test(`${path}: first visit within the text-page budgets, LCP and CLS on Slow 4G`, async ({ page, context, baseURL }, testInfo) => {
+  test(`${path}: first visit within the text-page budgets, LCP and CLS on Slow 4G`, async ({
+    page,
+    context,
+    baseURL,
+  }, testInfo) => {
     const { files, lcp, cls } = await visit(page, context, path);
     const sum = (pred: (f: (typeof files)[number]) => boolean) => files.filter(pred).reduce((n, f) => n + f.bytes, 0);
     const total = sum(() => true);
@@ -76,13 +96,24 @@ for (const path of TEXT_PAGES) {
     const fontBytes = fonts.reduce((n, f) => n + f.bytes, 0);
     const scripts = files.filter((f) => /javascript/.test(f.type));
     const html = files.find((f) => f.type === "text/html");
-    const inline = [...(await page.content()).matchAll(/<script>([\s\S]*?)<\/script>/g)].reduce((n, m) => n + Buffer.byteLength(m[1] ?? ""), 0);
-    const scriptRaw = inline + (await Promise.all(scripts.map(async (f) => (await (await page.request.get(f.url)).body()).length))).reduce((a, b) => a + b, 0);
+    const inline = [...(await page.content()).matchAll(/<script>([\s\S]*?)<\/script>/g)].reduce(
+      (n, m) => n + Buffer.byteLength(m[1] ?? ""),
+      0,
+    );
+    const scriptRaw =
+      inline +
+      (await Promise.all(scripts.map(async (f) => (await (await page.request.get(f.url)).body()).length))).reduce(
+        (a, b) => a + b,
+        0,
+      );
     testInfo.annotations.push({
       type: "measured",
       description: `total ${(total / 1024).toFixed(1)} KB, css ${(css / 1024).toFixed(1)} KB, fonts ${fonts.length} / ${(fontBytes / 1024).toFixed(1)} KB, js ${scriptRaw} B, html ${((html?.bytes ?? 0) / 1024).toFixed(1)} KB, LCP ${Math.round(lcp)} ms, CLS ${cls.toFixed(3)}`,
     });
-    expect(files.filter((f) => !f.url.startsWith("/")), "own origin only").toEqual([]);
+    expect(
+      files.filter((f) => !f.url.startsWith("/")),
+      "own origin only",
+    ).toEqual([]);
     expect(total, `${path} transfers ${(total / 1024).toFixed(1)} KB`).toBeLessThanOrEqual(180 * 1024);
     expect(css, "CSS").toBeLessThanOrEqual(20 * 1024);
     expect(fonts.length, "font files").toBeLessThanOrEqual(2);
@@ -95,7 +126,10 @@ for (const path of TEXT_PAGES) {
 }
 
 for (const path of PHOTO_PAGES) {
-  test(`${path}: LCP and CLS on Slow 4G (photo page: images are outside the text-page budget)`, async ({ page, context }, testInfo) => {
+  test(`${path}: LCP and CLS on Slow 4G (photo page: images are outside the text-page budget)`, async ({
+    page,
+    context,
+  }, testInfo) => {
     const { files, lcp, cls } = await visit(page, context, path);
     const total = files.reduce((n, f) => n + f.bytes, 0);
     testInfo.annotations.push({

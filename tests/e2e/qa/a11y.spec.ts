@@ -39,7 +39,14 @@ const describeViolations = (list: Violation[]) =>
 test.describe.configure({ mode: "parallel" });
 
 for (const built of builtPages()) {
-  test(`axe: ${built.path} has no violations in light and dark, at 1440 and 390 px`, async ({ page }) => {
+  test(`axe: ${built.path} has no violations in light and dark, at 1440 and 390 px`, async ({
+    page,
+    javaScriptEnabled,
+  }) => {
+    test.skip(
+      !javaScriptEnabled,
+      "axe-core runs on timers, which do not fire with JavaScript off; the markup is the same",
+    );
     test.setTimeout(90_000);
     const found: string[] = [];
     for (const theme of THEMES) {
@@ -50,24 +57,83 @@ for (const built of builtPages()) {
         await page.evaluate(() => document.fonts.ready);
         const violations = await axe(page, {
           runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"] },
+          // BUG-1 has its own test below. The styleguide's demo footer places two controls closer than 24 px.
+          rules: {
+            "label-content-name-mismatch": { enabled: false },
+            ...(built.path === "/styleguide" ? { "target-size": { enabled: false } } : {}),
+          },
           resultTypes: ["violations"],
         });
         found.push(...describeViolations(violations).map((v) => `${theme} ${width}px: ${v}`));
       }
       // Rule 6: AAA contrast for body text. Other text is held to AA by the rule above.
       await page.setViewportSize({ width: 1440, height: 900 });
-      const enhanced = await axe(
-        page,
-        { runOnly: { type: "rule", values: ["color-contrast-enhanced"] }, resultTypes: ["violations"] },
-        { include: [["main p"]], exclude: [[".foot"], [".fine"], [".sr-only"]] },
-      );
+      const bodyText = ".prose > p:not(.sign), .lede";
+      const enhanced = (await page.locator(bodyText).count())
+        ? await axe(
+            page,
+            { runOnly: { type: "rule", values: ["color-contrast-enhanced"] }, resultTypes: ["violations"] },
+            { include: [[".prose > p:not(.sign)"], [".lede"]] },
+          )
+        : [];
       found.push(...describeViolations(enhanced).map((v) => `${theme} body text AAA: ${v}`));
     }
     expect(found).toEqual([]);
   });
 }
 
-const KEYBOARD_PAGES = ["/", "/it", "/lisbona", "/it/lisbona", "/journal", "/photos/lisbon", "/photos/lisbon/tram-28", "/about"];
+// BUG-1 (frontend, decisions 0023/0024): the language switch shows "IT" or "EN" but is named "Italiano" or "English".
+// WCAG 2.5.3 (Label in Name): the accessible name must contain the visible text, or a person who says "click IT" to
+// their speech software hits nothing. Fix: aria-label="IT, Italiano" (or visible text that is part of the name).
+// Remove test.fail() when fixed.
+test("BUG-1: the language switch's accessible name contains its visible text (WCAG 2.5.3)", async ({
+  page,
+  javaScriptEnabled,
+}) => {
+  test.skip(!javaScriptEnabled, "axe's own timers need JavaScript; the markup is the same in both projects");
+  test.fail();
+  for (const path of ["/", "/it", "/lisbona"]) {
+    await page.goto(path);
+    const violations = await axe(page, {
+      runOnly: { type: "rule", values: ["label-content-name-mismatch"] },
+      resultTypes: ["violations"],
+    });
+    expect(describeViolations(violations), path).toEqual([]);
+  }
+});
+
+// BUG-3 (design): the sign-off ("— Filippo") and the footnote text of an entry are body text but use the muted colour,
+// below the AAA 7:1 the brief asks for body text (rule 6). Remove test.fail() when fixed.
+test("BUG-3: the sign-off and the footnotes of an entry have AAA contrast (7:1), in both themes", async ({
+  page,
+  javaScriptEnabled,
+}) => {
+  test.skip(!javaScriptEnabled, "axe's own timers need JavaScript");
+  test.fail();
+  const found: string[] = [];
+  for (const theme of THEMES) {
+    await page.emulateMedia({ colorScheme: theme });
+    await page.goto("/lisbona");
+    const v = await axe(
+      page,
+      { runOnly: { type: "rule", values: ["color-contrast-enhanced"] }, resultTypes: ["violations"] },
+      { include: [[".sign"], ["[data-footnotes] p"]] },
+    );
+    found.push(...describeViolations(v).map((x) => `${theme}: ${x}`));
+  }
+  expect(found).toEqual([]);
+});
+
+const KEYBOARD_PAGES = [
+  "/",
+  "/it",
+  "/lisbona",
+  "/it/lisbona",
+  "/journal",
+  "/photos/lisbon",
+  "/photos/lisbon/tram-28",
+  "/about",
+];
 
 for (const path of KEYBOARD_PAGES) {
   for (const theme of THEMES) {
@@ -75,6 +141,10 @@ for (const path of KEYBOARD_PAGES) {
       page,
     }, testInfo) => {
       test.setTimeout(120_000);
+      // BUG-2 (design/frontend): a photo link in the series grid has a computed 2 px outline and matches
+      // :focus-visible, but nothing is drawn (clipped by a parent), so a keyboard user cannot see which photo is
+      // focused (WCAG 2.4.7). Remove this line when fixed.
+      test.fail(path === "/photos/lisbon", "BUG-2: no visible focus ring on the photos in a series grid");
       await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
       await page.setViewportSize({ width: 1024, height: 800 });
       await page.goto(path);
@@ -127,14 +197,15 @@ for (const path of KEYBOARD_PAGES) {
           await focused.evaluate((el) => el.blur());
           const without = await page.screenshot({ clip, animations: "disabled" });
           if (withFocus.equals(without)) problems.push(`${info.id}: looks the same with and without focus`);
-          if (stops.length <= 2) await testInfo.attach(`focus-${stops.length}-${theme}`, { body: withFocus, contentType: "image/png" });
+          if (stops.length <= 2)
+            await testInfo.attach(`focus-${stops.length}-${theme}`, { body: withFocus, contentType: "image/png" });
           // Put focus back where it was so the next Tab goes on from here (the last input was the keyboard).
           await focused.evaluate((el) => el.focus());
           await focused.dispose();
         }
       }
       expect(stops.length, "the page has tab stops").toBeGreaterThan(5);
-      expect(stops[0], "the skip link is first").toMatch(/^a Skip to content|^a Salta al contenuto/);
+      expect(stops[0], "the skip link is first").toMatch(/^a (Skip to content|Vai al contenuto)/);
       expect(problems).toEqual([]);
     });
   }

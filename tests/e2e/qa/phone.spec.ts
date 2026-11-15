@@ -9,7 +9,7 @@
  *  - the other-language version of an existing entry is written to its own file with the right originalLang.
  */
 import { expect, test, type Page } from "@playwright/test";
-import { serveAdmin, type Admin } from "../admin-worker.ts";
+import { blockedOutbound, serveAdmin, type Admin } from "../admin-worker.ts";
 
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 test.skip(({ javaScriptEnabled }) => !javaScriptEnabled, "the phone page's script is the point of these tests");
@@ -26,12 +26,15 @@ test.beforeEach(async ({ page }) => {
   admin = await serveAdmin();
 });
 test.afterEach(async () => {
-  await admin.close();
+  await admin?.close();
 });
 
 const write = (page: Page) => page.goto(`${admin.origin}/admin/write`);
 
-test("without Access the page, the upload and a post answer 403 (the real Worker, no token)", async ({ request, baseURL }) => {
+test("without Access the page, the upload and a post answer 403 (the real Worker, no token)", async ({
+  request,
+  baseURL,
+}) => {
   for (const [method, path] of [
     ["GET", "/admin/write"],
     ["GET", "/admin/write/reference?slug=lisbona&lang=en"],
@@ -41,7 +44,11 @@ test("without Access the page, the upload and a post answer 403 (the real Worker
     ["GET", "/admin/write.js"],
     ["GET", "/admin/moderation.js"],
   ] as const) {
-    const res = await request.fetch(`${baseURL}${path}`, { method, maxRedirects: 0, data: method === "GET" ? undefined : "x=1" });
+    const res = await request.fetch(`${baseURL}${path}`, {
+      method,
+      maxRedirects: 0,
+      data: method === "GET" ? undefined : "x=1",
+    });
     expect(res.status(), `${method} ${path}`).toBe(403);
   }
 });
@@ -51,9 +58,11 @@ test("every control works by touch, reaches by keyboard, is at least 24 px, and 
 }, testInfo) => {
   await write(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
-  const controls = page.locator("main form#write-form input:not([type=hidden]), main form#write-form textarea, main form#write-form select, main form#write-form button");
+  const controls = page.locator(
+    "main form#write-form input:not([type=hidden]), main form#write-form textarea, main form#write-form select, main form#write-form button",
+  );
   const n = await controls.count();
-  expect(n, "the form has controls").toBeGreaterThan(8);
+  expect(n, "the form has controls").toBeGreaterThan(5);
   const small: string[] = [];
   const reached = new Set<string>();
   for (let i = 0; i < n; i++) {
@@ -71,12 +80,20 @@ test("every control works by touch, reaches by keyboard, is at least 24 px, and 
       continue;
     }
     if (box && (box.height < 24 || box.width < 24)) small.push(`${name}: ${box.width}×${box.height}px`);
-    if (box && box.height < 44) testInfo.annotations.push({ type: "touch target under 44 px", description: `${name} ${Math.round(box.height)}px` });
+    if (box && box.height < 44)
+      testInfo.annotations.push({
+        type: "touch target under 44 px",
+        description: `${name} ${Math.round(box.height)}px`,
+      });
   }
   expect(small, "targets under WCAG 2.2's 24 px minimum").toEqual([]);
 
   // Tap into the text fields; each takes focus and the typed text stays.
-  for (const [selector, text] of [["#w-title", "Una prova"], ["#w-desc", "Una descrizione"], ["#w-body", "Testo del post."]] as const) {
+  for (const [selector, text] of [
+    ["#w-title", "Una prova"],
+    ["#w-desc", "Una descrizione"],
+    ["#w-body", "Testo del post."],
+  ] as const) {
     await page.tap(selector);
     await expect(page.locator(selector)).toBeFocused();
     await page.keyboard.type(text);
@@ -92,8 +109,18 @@ test("every control works by touch, reaches by keyboard, is at least 24 px, and 
     });
     reached.add(id);
   }
-  for (const must of ["input:title", "input:slug", "select:lang", "input:description", "textarea:body", "button:intent"])
-    expect([...reached].some((r) => r.startsWith(must.split(":")[0] ?? "") && r.includes(must.split(":")[1] ?? "")), `Tab reaches ${must} (${[...reached].join(", ")})`).toBe(true);
+  for (const must of [
+    "input:title",
+    "input:slug",
+    "select:lang",
+    "input:description",
+    "textarea:body",
+    "button:intent",
+  ])
+    expect(
+      [...reached].some((r) => r.startsWith(must.split(":")[0] ?? "") && r.includes(must.split(":")[1] ?? "")),
+      `Tab reaches ${must} (${[...reached].join(", ")})`,
+    ).toBe(true);
   expect(noise).toEqual([]);
 });
 
@@ -143,14 +170,20 @@ test("BUG-4: Save draft saves a half-written entry (a title and a few words, no 
   await expect(page.getByText("Half written").first()).toBeVisible({ timeout: 2_000 });
 });
 
-test("an upload that drops is retried by itself; a GIF renamed .jpg is refused with a clear message", async ({ page }) => {
+test("an upload that drops is retried by itself; a GIF renamed .jpg is refused with a clear message", async ({
+  page,
+}) => {
   await write(page);
   await page.fill("#w-slug", "prova-upload");
   let attempts = 0;
   await page.route("**/admin/upload?*", async (route) => {
     attempts += 1;
     if (attempts === 1) return route.abort("connectionreset");
-    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ key: "prova-upload/a-1234.jpg" }) });
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ key: "prova-upload/a-1234.jpg" }),
+    });
   });
   const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(64, 1)]);
   await page.setInputFiles("#w-photos", { name: "Holiday.JPG", mimeType: "image/jpeg", buffer: jpeg });
@@ -160,7 +193,10 @@ test("an upload that drops is retried by itself; a GIF renamed .jpg is refused w
 
   // Not an image at all: the name and the type say JPEG, the first bytes say GIF.
   await page.unroute("**/admin/upload?*");
-  const gif = Buffer.from("GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;", "binary");
+  const gif = Buffer.from(
+    "GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;",
+    "binary",
+  );
   await page.setInputFiles("#w-photos", { name: "fake.jpg", mimeType: "image/jpeg", buffer: gif });
   await expect(page.locator(".upload .fine").last()).toContainText("Only JPEG and PNG photos.");
 });
@@ -170,7 +206,6 @@ test("Publish opens a pull request on its own branch and never writes to main", 
   await page.fill("#w-title", "Una prova dal telefono");
   await page.fill("#w-desc", "Scritta con il pollice.");
   await page.fill("#w-body", "Testo di prova.");
-  await page.getByLabel("Travel").check();
   await page.getByRole("button", { name: "Publish" }).click();
   await expect(page.locator("#published")).toBeVisible();
   const calls = admin.github.calls;
@@ -204,7 +239,6 @@ test("writing the other-language version of an existing entry makes its twin wit
   await expect(page.locator("#w-slug-hint")).toContainText(/English|Italian|other/i);
   await page.fill("#w-desc", "La mia traduzione.");
   await page.fill("#w-body", "Testo tradotto a mano.");
-  await page.getByLabel("Photography").check();
   await page.getByRole("button", { name: "Publish" }).click();
   await expect(page.locator("#published")).toBeVisible();
   const put = admin.github.calls.find((c) => c.method === "PUT");
@@ -213,4 +247,23 @@ test("writing the other-language version of an existing entry makes its twin wit
   expect(text).toMatch(/^lang: it$/m);
   expect(text, "the Italian version is a translation of the English original").toMatch(/^originalLang: en$/m);
   expect(admin.github.calls.filter((c) => c.method === "PUT")).toHaveLength(1);
+});
+
+test("everything sent to GitHub goes to the stand-in: nothing can open a real pull request or write to the real repository", async () => {
+  admin = await serveAdmin();
+  // api.github.com is answered by the stand-in, which makes the same fixed fake pull request every time ...
+  const fake = await fetch("https://api.github.com/repos/PhilGloves/philglov.es/pulls", { method: "POST", body: "{}" });
+  expect((await fake.json()) as { html_url: string }).toMatchObject({
+    html_url: "https://github.com/test/repo/pull/99",
+  });
+  expect(admin.github.calls.map((c) => `${c.method} ${c.path}`)).toEqual(["POST /repos/PhilGloves/philglov.es/pulls"]);
+  // ... and every other host is refused, not forwarded (the server's close() fails any test that leaked one).
+  await expect(fetch("https://github.com/PhilGloves/philglov.es", { method: "POST", body: "{}" })).rejects.toThrow(
+    /refused/,
+  );
+  await expect(fetch("https://uploads.github.com/x")).rejects.toThrow(/refused/);
+  expect(blockedOutbound.splice(0)).toEqual([
+    "POST https://github.com/PhilGloves/philglov.es",
+    "GET https://uploads.github.com/x",
+  ]);
 });

@@ -5,13 +5,15 @@
  *    photos, series, photo) have their twin at the same path under /it;
  *  - the language switch goes to the twin, or, with none, to the other home with the "not available" sentence;
  *  - lang, hreflang (a pair only when both versions exist; x-default is the English URL), canonical and og:locale;
- *  - the "originally written in" label: original with a twin, my own translation, original not yet translated.
+ *  - the "originally written in" label (entries and the legal pages; About and Now carry none, decision 0023):
+ *    original with a twin, my own translation, original not yet translated.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { builtPages, swapLang, type BuiltPage } from "./lib.ts";
 
 type Lang = "en" | "it";
+const escapeRe = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const other = (l: Lang): Lang => (l === "en" ? "it" : "en");
 const ORIGIN = "https://philglov.es";
 const content = new URL("../../../src/content/", import.meta.url);
@@ -22,6 +24,8 @@ interface Version {
   lang: Lang;
   originalLang: Lang;
   slug: string;
+  /** Entries and the legal pages show the "originally written in" label; About and Now do not (decision 0023). */
+  label: boolean;
 }
 
 /** slug → versions found in src/content/{journal,pages}/{en,it}/<slug>.md, by language. */
@@ -46,7 +50,12 @@ function contentVersions(): Map<string, Partial<Record<Lang, Version>>> {
         expect(lang, `${kind}/${folder}/${file} lang`).toBe(folder); // folder and lang agree (content check)
         expect(originalLang, `${kind}/${folder}/${file} originalLang`).toMatch(/^(en|it)$/);
         const entry = map.get(slug) ?? {};
-        entry[folder] = { lang: folder, originalLang: originalLang as Lang, slug };
+        entry[folder] = {
+          lang: folder,
+          originalLang: originalLang as Lang,
+          slug,
+          label: kind === "journal" || slug === "rights" || slug === "privacy",
+        };
         map.set(slug, entry);
       }
     }
@@ -81,8 +90,14 @@ for (const built of pages) {
     await page.goto(built.path);
 
     await expect(page.locator("html")).toHaveAttribute("lang", built.lang);
-    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", `${ORIGIN}${built.path === "/" ? "/" : built.path}`);
-    await expect(page.locator('meta[property="og:locale"]')).toHaveAttribute("content", built.lang === "en" ? "en_GB" : "it_IT");
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      `${ORIGIN}${built.path === "/" ? "/" : built.path}`,
+    );
+    await expect(page.locator('meta[property="og:locale"]')).toHaveAttribute(
+      "content",
+      built.lang === "en" ? "en_GB" : "it_IT",
+    );
 
     if (twin) expect(knownPaths.has(twin), `${built.path}: its twin ${twin} is a built page`).toBe(true);
 
@@ -93,9 +108,12 @@ for (const built of pages) {
       await expect(sw).toHaveAttribute("href", twin);
       await expect(sw).toHaveAttribute("hreflang", o);
       await expect(sw).toHaveAttribute("lang", o);
+      await expect(sw).toHaveText(o.toUpperCase());
+      await expect(sw).toHaveAttribute("aria-label", o === "it" ? "Italiano" : "English");
     } else {
       await expect(sw).toHaveAttribute("href", o === "it" ? "/it" : "/");
-      await expect(sw).toContainText(t["switchNoTwin"] ?? "switchNoTwin missing");
+      // Round control with "IT" / "EN" as text; the accessible name carries the note (decision 0023).
+      await expect(sw).toHaveAttribute("aria-label", new RegExp(escapeRe(t["switchNoTwin"] ?? "switchNoTwin missing")));
     }
 
     // hreflang: a pair only when both versions exist; x-default is the English URL.
@@ -115,11 +133,13 @@ for (const built of pages) {
     }
 
     // The label, on every page that is content (entries and pages), from the guide's table.
-    if (version) {
+    if (version && !version.label) {
+      await expect(page.locator("p.label"), `${built.path} carries no label`).toHaveCount(0);
+    }
+    if (version?.label) {
       const label = page.locator("p.label");
       await expect(label, `${built.path} shows the "originally written in" label`).toHaveCount(1);
-      const state =
-        version.lang !== version.originalLang ? "translation" : twin ? "original" : "not-yet";
+      const state = version.lang !== version.originalLang ? "translation" : twin ? "original" : "not-yet";
       const text =
         state === "translation" ? t["labelTranslation"] : state === "original" ? t["labelOriginal"] : t["labelNotYet"];
       await expect(label).toContainText(text ?? "label text missing");
@@ -157,7 +177,10 @@ test("the switch is a real link: it works with one click and lands on the twin",
   await expect(page).toHaveURL(/\/it$/);
 });
 
-test("nothing redirects by browser language: Accept-Language does not change the page", async ({ browser, baseURL }) => {
+test("nothing redirects by browser language: Accept-Language does not change the page", async ({
+  browser,
+  baseURL,
+}) => {
   for (const [locale, path] of [
     ["it-IT", "/"],
     ["en-GB", "/it"],

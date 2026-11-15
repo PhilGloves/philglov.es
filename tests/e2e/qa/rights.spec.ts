@@ -49,12 +49,16 @@ function parseRobots(text: string): Group[] {
 function mayFetchRoot(groups: Group[], agent: string): boolean {
   const specific = groups.filter((g) => g.agents.includes(agent.toLowerCase()));
   const chosen = specific.length ? specific : groups.filter((g) => g.agents.includes("*"));
-  const rules = chosen.flatMap((g) => g.rules).filter((r) => r.path !== "" && "/".startsWith(r.path.replace(/\*.*$/, "")));
+  const rules = chosen
+    .flatMap((g) => g.rules)
+    .filter((r) => r.path !== "" && "/".startsWith(r.path.replace(/\*.*$/, "")));
   const best = rules.sort((a, b) => b.path.length - a.path.length)[0];
   return best === undefined || best.type === "allow";
 }
 
-test("robots.txt refuses every AI-training bot in ai-bots.json and still admits search engines", async ({ request }) => {
+test("robots.txt refuses every AI-training bot in ai-bots.json and still admits search engines", async ({
+  request,
+}) => {
   const res = await request.get("/robots.txt");
   expect(res.status()).toBe(200);
   expect(res.headers()["content-type"]).toContain("text/plain");
@@ -62,12 +66,14 @@ test("robots.txt refuses every AI-training bot in ai-bots.json and still admits 
   const problems: string[] = [];
   expect(bots.trainingBots.length).toBeGreaterThan(15);
   for (const bot of bots.trainingBots) if (mayFetchRoot(groups, bot)) problems.push(`${bot} is not disallowed`);
-  for (const bot of ["Googlebot", "Bingbot", ...bots.notBlockedOnPurpose]) if (!mayFetchRoot(groups, bot)) problems.push(`${bot} is blocked`);
+  for (const bot of ["Googlebot", "Bingbot", ...bots.notBlockedOnPurpose])
+    if (!mayFetchRoot(groups, bot)) problems.push(`${bot} is blocked`);
   // Everyone else may read the site, except the API.
   expect(mayFetchRoot(groups, "SomeNewBrowser")).toBe(true);
   const star = groups.find((g) => g.agents.includes("*"));
   for (const path of bots.disallowForEveryone)
-    if (!star?.rules.some((r) => r.type === "disallow" && r.path === path)) problems.push(`* does not disallow ${path}`);
+    if (!star?.rules.some((r) => r.type === "disallow" && r.path === path))
+      problems.push(`* does not disallow ${path}`);
   expect(problems).toEqual([]);
 });
 
@@ -83,13 +89,18 @@ test("tdmrep.json is valid and carries the reservation header", async ({ request
     expect(String(rule["location"]).startsWith("/")).toBe(true);
     expect([0, 1]).toContain(rule["tdm-reservation"]);
   }
-  expect((rules as { location: string; "tdm-reservation": number }[]).some((r) => r.location === "/" && r["tdm-reservation"] === 1)).toBe(true);
+  expect(
+    (rules as { location: string; "tdm-reservation": number }[]).some(
+      (r) => r.location === "/" && r["tdm-reservation"] === 1,
+    ),
+  ).toBe(true);
 });
 
 test("tdm-reservation is on every page (meta tag and header) and on images (header)", async ({ request }) => {
   const problems: string[] = [];
   for (const p of builtPages()) {
-    if (!/<meta name="tdm-reservation" content="1"/.test(readBuilt(p.file))) problems.push(`${p.path}: no tdm-reservation meta`);
+    if (!/<meta name="tdm-reservation" content="1"/.test(readBuilt(p.file)))
+      problems.push(`${p.path}: no tdm-reservation meta`);
   }
   for (const path of ["/", "/it", "/lisbona", "/no-such-page"]) {
     const h = (await request.get(path)).headers();
@@ -106,7 +117,13 @@ test("tdm-reservation is on every page (meta tag and header) and on images (head
 function sampleImages(): string[] {
   const files = readdirSync(new URL("../../../dist/_assets/", import.meta.url));
   const first = (re: RegExp) => files.find((f) => re.test(f));
-  return [first(/\.avif$/), first(/\.webp$/), first(/\.jpe?g$/), first(/^apple-touch-icon.*\.png$/), "share/default.png"]
+  return [
+    first(/\.avif$/),
+    first(/\.webp$/),
+    first(/\.jpe?g$/),
+    first(/^apple-touch-icon.*\.png$/),
+    "share/default.png",
+  ]
     .filter((f): f is string => Boolean(f))
     .map((f) => `/_assets/${f}`);
 }
@@ -119,7 +136,16 @@ test("X-Robots-Tag: noai, noimageai is on images, and not on pages or the API", 
     const tag = (await request.get(image)).headers()["x-robots-tag"] ?? "";
     if (!/noai/.test(tag) || !/noimageai/.test(tag)) problems.push(`${image}: X-Robots-Tag is "${tag}"`);
   }
-  for (const path of ["/", "/it/lisbona", "/about", "/no-such-page", "/api/comment", "/feed.xml", "/sitemap.xml", "/robots.txt"]) {
+  for (const path of [
+    "/",
+    "/it/lisbona",
+    "/about",
+    "/no-such-page",
+    "/api/comment",
+    "/feed.xml",
+    "/sitemap.xml",
+    "/robots.txt",
+  ]) {
     const tag = (await request.get(path)).headers()["x-robots-tag"] ?? "";
     if (/noai|noimageai/.test(tag)) problems.push(`${path}: carries "${tag}" (images only)`);
   }

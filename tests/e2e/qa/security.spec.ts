@@ -18,7 +18,8 @@ function assertSecurityHeaders(res: APIResponse, label: string, hash?: string): 
   const csp = h["content-security-policy"] ?? "";
   // The admin pages have their own, stricter CSP (default-src 'none', scripts from /admin/*.js behind Access).
   const admin = label.includes("admin");
-  if (!csp.includes(admin ? "default-src 'none'" : "default-src 'self'")) out.push(`${label}: CSP default-src is not the expected one (${csp})`);
+  if (!csp.includes(admin ? "default-src 'none'" : "default-src 'self'"))
+    out.push(`${label}: CSP default-src is not the expected one (${csp})`);
   if (/unsafe-inline|unsafe-eval/.test(csp)) out.push(`${label}: CSP allows unsafe-inline or unsafe-eval`);
   for (const must of ["frame-ancestors 'none'", "base-uri 'none'", "object-src 'none'", "form-action 'self'"])
     if (!csp.includes(must)) out.push(`${label}: CSP lacks ${must}`);
@@ -30,7 +31,8 @@ function assertSecurityHeaders(res: APIResponse, label: string, hash?: string): 
   if (h["x-content-type-options"] !== "nosniff") out.push(`${label}: no X-Content-Type-Options: nosniff`);
   if (!h["referrer-policy"]) out.push(`${label}: no Referrer-Policy`);
   if (!/camera=\(\)/.test(h["permissions-policy"] ?? "")) out.push(`${label}: no Permissions-Policy`);
-  if (h["cross-origin-opener-policy"] !== "same-origin") out.push(`${label}: COOP is ${h["cross-origin-opener-policy"]}`);
+  if (h["cross-origin-opener-policy"] !== "same-origin")
+    out.push(`${label}: COOP is ${h["cross-origin-opener-policy"]}`);
   if (h["set-cookie"]) out.push(`${label}: sets a cookie`);
   return out;
 }
@@ -59,7 +61,11 @@ test("every kind of response carries the security headers", async ({ request }) 
 
   // POST answers: a refused form post (422), and the background answer (200 JSON).
   const form = { name: "", email: "x", comment: "", website: "", token: "x", slug: "lisbona", lang: "en" };
-  const refused = await request.post("/api/comment", { form, maxRedirects: 0, headers: { "CF-Connecting-IP": "198.18.9.9" } });
+  const refused = await request.post("/api/comment", {
+    form,
+    maxRedirects: 0,
+    headers: { "CF-Connecting-IP": "198.18.9.9" },
+  });
   problems.push(...assertSecurityHeaders(refused, `API ${refused.status()} (plain post)`));
   const json = await request.post("/api/comment", {
     form,
@@ -78,18 +84,25 @@ test("every built page: one inline script, the theme script, and the CSP hash is
   const problems: string[] = [];
   for (const p of builtPages()) {
     const html = readBuilt(p.file);
-    const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)].map((m) => ({ attrs: m[1] ?? "", body: m[2] ?? "" }));
+    const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)].map((m) => ({
+      attrs: m[1] ?? "",
+      body: m[2] ?? "",
+    }));
     const executable = scripts.filter((s) => !/type="application\/ld\+json"/.test(s.attrs));
     const inline = executable.filter((s) => !/\ssrc=/.test(s.attrs));
-    for (const s of inline) if (sha256(s.body) !== hashes[0]) problems.push(`${p.path}: an inline script that is not the hashed one`);
+    for (const s of inline)
+      if (sha256(s.body) !== hashes[0]) problems.push(`${p.path}: an inline script that is not the hashed one`);
     if (inline.length > 1) problems.push(`${p.path}: ${inline.length} inline scripts`);
     for (const s of executable.filter((x) => /\ssrc=/.test(x.attrs)))
       if (!/\ssrc="\/_assets\/[^"]+\.js"/.test(s.attrs)) problems.push(`${p.path}: script from ${s.attrs.trim()}`);
     if (/<style[\s>]/i.test(html)) problems.push(`${p.path}: a <style> element`);
     if (/\sstyle=/i.test(html)) problems.push(`${p.path}: an inline style attribute`);
-    if (/\son[a-z]+=/i.test(html.replace(/<script[\s\S]*?<\/script>/g, ""))) problems.push(`${p.path}: an inline event handler`);
+    if (/\son[a-z]+=/i.test(html.replace(/<script[\s\S]*?<\/script>/g, "")))
+      problems.push(`${p.path}: an inline event handler`);
     if (/(href|src|action)="\s*javascript:/i.test(html)) problems.push(`${p.path}: a javascript: URL`);
-    for (const m of html.matchAll(/<(script|img|source|link|iframe|video|audio|object|embed)\b[^>]*?\s(?:src|href|srcset)="(https?:\/\/[^"]+)"/g)) {
+    for (const m of html.matchAll(
+      /<(script|img|source|link|iframe|video|audio|object|embed)\b[^>]*?\s(?:src|href|srcset)="(https?:\/\/[^"]+)"/g,
+    )) {
       const url = m[2] ?? "";
       const loads = m[1] !== "link" || /rel="(stylesheet|preload|icon|apple-touch-icon|modulepreload)"/.test(m[0]);
       // Metadata links to philglov.es itself (canonical, alternate) are fine; anything else that loads is not.
@@ -111,13 +124,16 @@ test.describe("the browser enforces the CSP", () => {
       if (new URL(req.url()).hostname !== "127.0.0.1") elsewhere.add(req.url());
     });
     page.on("requestfailed", (req) => {
-      if (!/^(csp|.*BLOCKED_BY_CSP.*)$/.test(req.failure()?.errorText ?? "")) left.push(`${req.url()} failed with ${req.failure()?.errorText}`);
+      if (!/^(csp|.*BLOCKED_BY_CSP.*)$/.test(req.failure()?.errorText ?? ""))
+        left.push(`${req.url()} failed with ${req.failure()?.errorText}`);
       elsewhere.delete(req.url());
     });
     await page.goto("/lisbona");
     const result = await page.evaluate(async () => {
       const violations: string[] = [];
-      document.addEventListener("securitypolicyviolation", (e) => violations.push(`${e.effectiveDirective}: ${e.blockedURI || "inline"}`));
+      document.addEventListener("securitypolicyviolation", (e) =>
+        violations.push(`${e.effectiveDirective}: ${e.blockedURI || "inline"}`),
+      );
       const w = window as unknown as { __ran?: boolean };
 
       const inline = document.createElement("script");

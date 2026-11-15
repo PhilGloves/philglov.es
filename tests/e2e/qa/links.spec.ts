@@ -52,14 +52,15 @@ test("every internal link, asset and anchor on every page resolves", async ({ re
   for (const p of pages) {
     const html = htmlByPath.get(p.path) ?? "";
     for (const m of html.matchAll(/<a\b[^>]*?\shref="([^"]*)"/g)) await visit(p.path, decode(m[1] ?? ""), "link");
-    for (const m of html.matchAll(/<link\b[^>]*?\shref="([^"]*)"/g)) await visit(p.path, decode(m[1] ?? ""), "link element");
+    for (const m of html.matchAll(/<link\b[^>]*?\shref="([^"]*)"/g))
+      await visit(p.path, decode(m[1] ?? ""), "link element");
     for (const m of html.matchAll(/<(?:img|script|source|iframe)\b[^>]*?\ssrc="([^"]*)"/g))
       await visit(p.path, decode(m[1] ?? ""), "src");
     for (const m of html.matchAll(/\ssrcset="([^"]*)"/g))
       for (const candidate of decode(m[1] ?? "").split(","))
         await visit(p.path, candidate.trim().split(/\s+/)[0] ?? "", "srcset");
     for (const m of html.matchAll(/<form\b[^>]*?\saction="([^"]*)"/g))
-      await visit(p.path, (decode(m[1] ?? "").split("#")[0]) ?? "", "form action");
+      await visit(p.path, decode(m[1] ?? "").split("#")[0] ?? "", "form action");
   }
 
   const sitemap = await (await request.get("/sitemap.xml")).text();

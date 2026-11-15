@@ -38,7 +38,16 @@ if (mode === "production") {
     step(
       "seo, rights, launch gate on the production build",
       "pnpm",
-      ["exec", "playwright", "test", "--project=chromium", "--project=launch", "tests/e2e/qa/seo.spec.ts", "tests/e2e/qa/rights.spec.ts", "tests/e2e/qa/launch.spec.ts"],
+      [
+        "exec",
+        "playwright",
+        "test",
+        "--project=chromium",
+        "--project=launch",
+        "tests/e2e/qa/seo.spec.ts",
+        "tests/e2e/qa/rights.spec.ts",
+        "tests/e2e/qa/launch.spec.ts",
+      ],
       { QA_PROD: "1" },
     );
   }
@@ -48,7 +57,8 @@ if (mode === "production") {
   step("html-validate", "pnpm", ["validate:html"]);
   step("unit tests", "pnpm", ["test:unit"]);
   step("Worker tests", "pnpm", ["test:worker"]);
-  for (let i = 1; i <= runs; i++) step(`e2e matrix, run ${i} of ${runs} (chromium + chromium-no-js)`, "pnpm", ["test:e2e"]);
+  for (let i = 1; i <= runs; i++)
+    step(`e2e matrix, run ${i} of ${runs} (chromium + chromium-no-js)`, "pnpm", ["test:e2e"]);
   step("firefox + webkit smoke", "pnpm", ["test:cross"]);
 }
 

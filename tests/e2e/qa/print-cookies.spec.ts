@@ -20,18 +20,17 @@ for (const path of entries) {
     await page.emulateMedia({ media: "print", colorScheme: "dark" }); // a dark theme must not print dark
     await page.goto(path);
     for (const selector of [".skip", ".head", ".foot", ".theme-toggle", "form", "details", ".tools", "nav"]) {
-      const shown = await page
-        .locator(selector)
-        .evaluateAll((els) => els.filter((e) => e.checkVisibility()).length);
+      const shown = await page.locator(selector).evaluateAll((els) => els.filter((e) => e.checkVisibility()).length);
       expect(shown, `${selector} is hidden in print`).toBe(0);
     }
     await expect(page.locator("h1")).toBeVisible();
     const text = await page.locator("main").innerText();
     expect(text.length, "the entry text prints").toBeGreaterThan(100);
     const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    expect(["rgb(255, 255, 255)", "rgba(0, 0, 0, 0)", "rgb(251, 251, 248)"], `print background (${bg}) is light`).toContain(
-      bg,
-    );
+    expect(
+      ["rgb(255, 255, 255)", "rgba(0, 0, 0, 0)", "rgb(251, 251, 248)"],
+      `print background (${bg}) is light`,
+    ).toContain(bg);
     if (browserName === "chromium") {
       const pdf = await page.pdf({ format: "A4" });
       expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
@@ -45,7 +44,14 @@ test("no page or API answer sets a cookie", async ({ request }) => {
     const res = await request.get(p.path, { maxRedirects: 0 });
     if (res.headers()["set-cookie"]) offenders.push(p.path);
   }
-  for (const path of ["/feed.xml", "/it/feed.xml", "/sitemap.xml", "/robots.txt", "/api/comment", "/_assets/share/default.png"]) {
+  for (const path of [
+    "/feed.xml",
+    "/it/feed.xml",
+    "/sitemap.xml",
+    "/robots.txt",
+    "/api/comment",
+    "/_assets/share/default.png",
+  ]) {
     const res = await request.get(path, { maxRedirects: 0 });
     if (res.headers()["set-cookie"]) offenders.push(path);
   }
@@ -58,7 +64,11 @@ test("no page or API answer sets a cookie", async ({ request }) => {
   expect(offenders).toEqual([]);
 });
 
-test("after visiting pages and sending a form the browser holds no cookie", async ({ page, context, javaScriptEnabled }) => {
+test("after visiting pages and sending a form the browser holds no cookie", async ({
+  page,
+  context,
+  javaScriptEnabled,
+}) => {
   test.skip(!javaScriptEnabled, "uses the background send");
   await page.setExtraHTTPHeaders({ "CF-Connecting-IP": "198.18.88.88" });
   await page.goto("/lisbona");

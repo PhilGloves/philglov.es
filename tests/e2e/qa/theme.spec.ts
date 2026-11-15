@@ -52,7 +52,7 @@ test.describe("with JavaScript", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     for (const [link, url] of [
       ['header a[href="/about"]', /\/about$/],
-      ['header a.lang-switch', /\/it\/about$/],
+      ["header a.lang-switch", /\/it\/about$/],
       ['header nav a[href="/it/journal"]', /\/it\/journal$/],
       ["header .name a", /\/it$/],
     ] as const) {

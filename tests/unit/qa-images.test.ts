@@ -50,7 +50,8 @@ test("every photograph carries the copyright, creator, web statement and the Dat
     if (!/^© \d{4} Filippo Guanti\. All rights reserved\.$/.test(String(get(/Rights$/) ?? "")))
       problems.push(`${name}: copyright is "${String(get(/Rights$/))}"`);
     if (!/Filippo Guanti/.test(String(get(/Creator$/) ?? ""))) problems.push(`${name}: no creator`);
-    if (get(/WebStatement$/) !== "https://philglov.es/rights") problems.push(`${name}: web statement is ${String(get(/WebStatement$/))}`);
+    if (get(/WebStatement$/) !== "https://philglov.es/rights")
+      problems.push(`${name}: web statement is ${String(get(/WebStatement$/))}`);
     if (!/DMI-PROHIBITED-EXCEPTSEARCHENGINEINDEXING$/.test(String(get(/DataMining$/) ?? "")))
       problems.push(`${name}: Data Mining is ${String(get(/DataMining$/))}`);
   }
@@ -58,10 +59,12 @@ test("every photograph carries the copyright, creator, web statement and the Dat
 });
 
 test("no original leaks into the build: every image is a hashed output with a width and a height", () => {
-  const rows = exiftool(photographs);
-  const problems = rows
-    .filter((row) => !(Number(row["File:ImageWidth"] ?? row["ImageWidth"]) > 0 && Number(row["File:ImageHeight"] ?? row["ImageHeight"]) > 0))
+  const size = (row: Record<string, string>, re: RegExp) =>
+    Number(Object.entries(row).find(([k]) => re.test(k))?.[1] ?? 0);
+  const problems = exiftool(photographs)
+    .filter((row) => !(size(row, /ImageWidth$/) > 0 && size(row, /ImageHeight$/) > 0))
     .map((row) => String(row["SourceFile"]));
   assert.deepEqual(problems, []);
-  for (const f of photographs) assert.match(f, /\.[A-Za-z0-9_-]{6,}(_[A-Za-z0-9]+)?\.(avif|webp|jpe?g)$/, `${f} is a hashed output`);
+  for (const f of photographs)
+    assert.match(f, /\.[A-Za-z0-9_-]{6,}(_[A-Za-z0-9]+)?\.(avif|webp|jpe?g)$/, `${f} is a hashed output`);
 });

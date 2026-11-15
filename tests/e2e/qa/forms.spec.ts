@@ -77,11 +77,15 @@ const report: Form = {
     await page.locator('footer form[action^="/api/report"]').evaluate(unguard);
   },
   fill: async (page, v) => {
-    for (const [k, value] of Object.entries(v)) await page.locator(`footer form[action^="/api/report"] [name="${k}"]`).fill(value);
+    for (const [k, value] of Object.entries(v))
+      await page.locator(`footer form[action^="/api/report"] [name="${k}"]`).fill(value);
   },
   submit: (page) => page.locator('footer form[action^="/api/report"] button[type=submit]').click(),
   status: "#report-status",
-  field: { message: 'footer form[action^="/api/report"] [name="message"]', email: 'footer form[action^="/api/report"] [name="email"]' },
+  field: {
+    message: 'footer form[action^="/api/report"] [name="message"]',
+    email: 'footer form[action^="/api/report"] [name="email"]',
+  },
   notSent: "w_notSentReport",
 };
 
@@ -103,40 +107,149 @@ interface Case {
   /** Wait the 3 s a person takes (all but the "too fast" case). */
   pause?: boolean;
   /** Before sending: change the page's hidden fields. */
-  tamper?: (page: Page, form: Form) => Promise<void>;
+  tamper?: (page: Page, form: Form) => Promise<unknown>;
   /** Fields whose text must still be there afterwards. */
   keep: string[];
 }
 
 const setHidden = (form: Form, name: string, value: string) => (page: Page) =>
   page
-    .locator(form === comment ? `#comment-form [name="${name}"]` : `footer form[action^="/api/report"] [name="${name}"]`)
+    .locator(
+      form === comment ? `#comment-form [name="${name}"]` : `footer form[action^="/api/report"] [name="${name}"]`,
+    )
     .evaluate((el, v) => ((el as HTMLInputElement).value = v), value);
 
 const commentCases: Case[] = [
-  { name: "empty name", values: () => ({ ...GOOD_COMMENT, name: "" }), message: "w_err_name_required", keep: ["comment", "email"] },
-  { name: "empty email", values: () => ({ ...GOOD_COMMENT, email: "" }), message: "w_err_email_required", keep: ["name", "comment"] },
-  { name: "bad email", values: () => ({ ...GOOD_COMMENT, email: "not-an-email" }), message: "w_err_email_format", keep: ["name", "email", "comment"] },
-  { name: "empty comment", values: () => ({ ...GOOD_COMMENT, comment: "" }), message: "w_err_comment_required", keep: ["name", "email"] },
-  { name: "name too long (81)", values: () => ({ ...GOOD_COMMENT, name: "N".repeat(81) }), message: "w_err_name_long", keep: ["name", "comment"] },
-  { name: "comment too long (5,001)", values: () => ({ ...GOOD_COMMENT, comment: "word ".repeat(1000) + "x" }), message: "w_err_comment_long", keep: ["name", "email"] },
-  { name: "3 links", values: () => ({ ...GOOD_COMMENT, comment: LINKS3 }), message: "w_err_comment_links", keep: ["name", "email", "comment"] },
-  { name: "honeypot filled", values: () => GOOD_COMMENT, message: "w_err_honeypot", tamper: (p, f) => setHidden(f, "website", "http://spam.example")(p), keep: ["name", "email", "comment"] },
-  { name: "sent under 3 s", values: () => GOOD_COMMENT, message: "w_err_fast", pause: false, keep: ["name", "email", "comment"] },
-  { name: "token 25 hours old", values: () => GOOD_COMMENT, message: "w_err_expired", tamper: (p, f) => setHidden(f, "token", tokenAt(Date.now() - 25 * 3600_000))(p), keep: ["name", "email", "comment"] },
-  { name: "forged token", values: () => GOOD_COMMENT, message: "w_err_expired", tamper: (p, f) => setHidden(f, "token", "v1.abc.forged")(p), keep: ["name", "email", "comment"] },
+  {
+    name: "empty name",
+    values: () => ({ ...GOOD_COMMENT, name: "" }),
+    message: "w_err_name_required",
+    keep: ["comment", "email"],
+  },
+  {
+    name: "empty email",
+    values: () => ({ ...GOOD_COMMENT, email: "" }),
+    message: "w_err_email_required",
+    keep: ["name", "comment"],
+  },
+  {
+    name: "bad email",
+    values: () => ({ ...GOOD_COMMENT, email: "not-an-email" }),
+    message: "w_err_email_format",
+    keep: ["name", "email", "comment"],
+  },
+  {
+    name: "empty comment",
+    values: () => ({ ...GOOD_COMMENT, comment: "" }),
+    message: "w_err_comment_required",
+    keep: ["name", "email"],
+  },
+  {
+    name: "name too long (81)",
+    values: () => ({ ...GOOD_COMMENT, name: "N".repeat(81) }),
+    message: "w_err_name_long",
+    keep: ["name", "comment"],
+  },
+  {
+    name: "comment too long (5,001)",
+    values: () => ({ ...GOOD_COMMENT, comment: "word ".repeat(1000) + "x" }),
+    message: "w_err_comment_long",
+    keep: ["name", "email"],
+  },
+  {
+    name: "3 links",
+    values: () => ({ ...GOOD_COMMENT, comment: LINKS3 }),
+    message: "w_err_comment_links",
+    keep: ["name", "email", "comment"],
+  },
+  {
+    name: "honeypot filled",
+    values: () => GOOD_COMMENT,
+    message: "w_err_honeypot",
+    tamper: (p, f) => setHidden(f, "website", "http://spam.example")(p),
+    keep: ["name", "email", "comment"],
+  },
+  {
+    name: "sent under 3 s",
+    values: () => GOOD_COMMENT,
+    message: "w_err_fast",
+    pause: false,
+    // A token made this instant, so "under 3 s" does not depend on how fast this machine runs the test.
+    tamper: (p, f) => setHidden(f, "token", tokenAt(Date.now()))(p),
+    keep: ["name", "email", "comment"],
+  },
+  {
+    name: "token 25 hours old",
+    values: () => GOOD_COMMENT,
+    message: "w_err_expired",
+    tamper: (p, f) => setHidden(f, "token", tokenAt(Date.now() - 25 * 3600_000))(p),
+    keep: ["name", "email", "comment"],
+  },
+  {
+    name: "forged token",
+    values: () => GOOD_COMMENT,
+    message: "w_err_expired",
+    tamper: (p, f) => setHidden(f, "token", "v1.abc.forged")(p),
+    keep: ["name", "email", "comment"],
+  },
 ];
 const reportCases: Case[] = [
-  { name: "empty message", values: () => ({ ...GOOD_REPORT, message: "" }), message: "w_err_message_required", keep: [] },
-  { name: "bad email", values: () => ({ ...GOOD_REPORT, email: "nope" }), message: "w_err_email_format", keep: ["message", "email"] },
-  { name: "message too long (3,001)", values: () => ({ ...GOOD_REPORT, message: "a".repeat(3001) }), message: "w_err_message_long", keep: [] },
-  { name: "3 links", values: () => ({ ...GOOD_REPORT, message: LINKS3 }), message: "w_err_message_links", keep: ["message"] },
-  { name: "honeypot filled", values: () => GOOD_REPORT, message: "w_err_honeypot", tamper: (p, f) => setHidden(f, "website", "x")(p), keep: ["message"] },
-  { name: "sent under 3 s", values: () => GOOD_REPORT, message: "w_err_fast", pause: false, keep: ["message"] },
-  { name: "token 25 hours old", values: () => GOOD_REPORT, message: "w_err_expired", tamper: (p, f) => setHidden(f, "token", tokenAt(Date.now() - 25 * 3600_000))(p), keep: ["message"] },
+  {
+    name: "empty message",
+    values: () => ({ ...GOOD_REPORT, message: "" }),
+    message: "w_err_message_required",
+    keep: [],
+  },
+  {
+    name: "bad email",
+    values: () => ({ ...GOOD_REPORT, email: "nope" }),
+    message: "w_err_email_format",
+    keep: ["message", "email"],
+  },
+  {
+    name: "message too long (3,001)",
+    values: () => ({ ...GOOD_REPORT, message: "a".repeat(3001) }),
+    message: "w_err_message_long",
+    keep: [],
+  },
+  {
+    name: "3 links",
+    values: () => ({ ...GOOD_REPORT, message: LINKS3 }),
+    message: "w_err_message_links",
+    keep: ["message"],
+  },
+  {
+    name: "honeypot filled",
+    values: () => GOOD_REPORT,
+    message: "w_err_honeypot",
+    tamper: (p, f) => setHidden(f, "website", "x")(p),
+    keep: ["message"],
+  },
+  {
+    name: "sent under 3 s",
+    values: () => GOOD_REPORT,
+    message: "w_err_fast",
+    pause: false,
+    tamper: (p, f) => setHidden(f, "token", tokenAt(Date.now()))(p),
+    keep: ["message"],
+  },
+  {
+    name: "token 25 hours old",
+    values: () => GOOD_REPORT,
+    message: "w_err_expired",
+    tamper: (p, f) => setHidden(f, "token", tokenAt(Date.now() - 25 * 3600_000))(p),
+    keep: ["message"],
+  },
 ];
 
-async function expectRefused(page: Page, form: Form, lang: Lang, c: Case, typed: Record<string, string>, javaScriptEnabled: boolean) {
+async function expectRefused(
+  page: Page,
+  form: Form,
+  lang: Lang,
+  c: Case,
+  typed: Record<string, string>,
+  javaScriptEnabled: boolean,
+) {
   const t = ui(lang);
   if (!javaScriptEnabled) await page.waitForURL(/\/api\/(comment|report)/);
   const status = page.locator(form.status);
@@ -158,7 +271,10 @@ for (const lang of ["en", "it"] as const) {
     ["report", report, reportCases],
   ] as const) {
     for (const c of cases) {
-      test(`${label} form (${lang}): ${c.name} is refused with its message, the text kept`, async ({ page, javaScriptEnabled }) => {
+      test(`${label} form (${lang}): ${c.name} is refused with its message, the text kept`, async ({
+        page,
+        javaScriptEnabled,
+      }) => {
         test.setTimeout(60_000);
         await form.open(page, lang);
         if (c.pause !== false) await human(page);
@@ -193,13 +309,29 @@ for (const [label, form, good, lang] of [
         : { ...good, url: "/about", lang, website: "", token };
     // Five accepted posts from this visitor's address (the page's own header), then the sixth through the page.
     for (let i = 1; i <= 5; i++) {
-      const res = await page.request.post(url, { form: fields, maxRedirects: 0, headers: { "CF-Connecting-IP": currentIp } });
+      const res = await page.request.post(url, {
+        form: fields,
+        maxRedirects: 0,
+        headers: { "CF-Connecting-IP": currentIp },
+      });
       expect(res.status(), `submission ${i}`).toBe(303);
     }
     const typed = form.fill === comment.fill ? GOOD_COMMENT : GOOD_REPORT;
     await form.fill(page, typed);
     await form.submit(page);
-    await expectRefused(page, form, lang, { name: "rate", values: () => typed, message: "w_err_rate", keep: Object.keys(typed).filter((k) => k !== "email" || form === comment) }, typed, javaScriptEnabled);
+    await expectRefused(
+      page,
+      form,
+      lang,
+      {
+        name: "rate",
+        values: () => typed,
+        message: "w_err_rate",
+        keep: Object.keys(typed).filter((k) => k !== "email" || form === comment),
+      },
+      typed,
+      javaScriptEnabled,
+    );
   });
 }
 
@@ -232,17 +364,31 @@ test("the report form, good: accepted in both languages", async ({ page, javaScr
   }
 });
 
-const PAYLOAD_NAME = `<img src=x onerror="window.__xss=1"> "'><script>window.__xss=2</script>`;
+// Spaces between the pieces, so no word is longer than about 25 characters: this comment is approved on a page that
+// other tests measure while it is up (the Worker caches the list for 60 s), and it must not widen it (BUG-5).
+// The name limit is 80 characters, nonce included (see the public test): keep the name short, the text carries the rest.
+const PAYLOAD_NAME = `<img src=x onerror=" window.__xss=1 ">`;
 const PAYLOAD_TEXT = [
-  `<script>window.__xss=3</script>`,
-  `<img src=x onerror="window.__xss=4">`,
-  `<svg onload="window.__xss=5"></svg>`,
-  `[click](javascript:window.__xss=6)`,
-  `<a href="javascript:window.__xss=7">link</a>`,
-  `</textarea><iframe src="https://evil.example"></iframe>`,
+  `<script> window.__xss=3 </script>`,
+  `<img src=x onerror=" window.__xss=4 ">`,
+  `<svg onload="window.__xss=5"> </svg>`,
+  `[click] (javascript: window.__xss=6)`,
+  `<a href="javascript: window.__xss=7"> link </a>`,
+  `</textarea> <iframe src=" https://evil.example "> </iframe>`,
 ].join("\n");
 
-test("XSS payloads on the moderation page are text, and approving them runs nothing", async ({ page, javaScriptEnabled }) => {
+const d1 = (sql: string) => {
+  const wrangler = fileURLToPath(new URL("../../../node_modules/wrangler/bin/wrangler.js", import.meta.url));
+  return spawnSync(process.execPath, [wrangler, "d1", "execute", "DB", "--local", "--command", sql], {
+    encoding: "utf8",
+    env: { ...process.env, CI: "1" },
+  });
+};
+
+test("XSS payloads on the moderation page are text, and approving them runs nothing", async ({
+  page,
+  javaScriptEnabled,
+}) => {
   test.setTimeout(60_000);
   const admin = await serveAdmin();
   try {
@@ -258,8 +404,8 @@ test("XSS payloads on the moderation page are text, and approving them runs noth
       .run(PAYLOAD_NAME, PAYLOAD_TEXT, Date.now());
     await page.goto(`${admin.origin}/admin`);
     expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
-    await expect(page.locator("main")).toContainText('<img src=x onerror="window.__xss=1">');
-    await expect(page.locator("main")).toContainText("<script>window.__xss=3</script>");
+    await expect(page.locator("main")).toContainText(PAYLOAD_NAME);
+    await expect(page.locator("main")).toContainText("<script> window.__xss=3 </script>");
     expect(await page.locator("main img, main svg, main iframe, main [onerror], main [onload]").count()).toBe(0);
     await page.getByRole("button", { name: "Approve" }).first().click();
     if (javaScriptEnabled) await expect(page.locator(".badge").first()).toHaveText("approved");
@@ -275,6 +421,9 @@ test("XSS payloads render as plain text on the published page, on both language 
   page,
 }) => {
   test.setTimeout(150_000);
+  // Both Chromium projects run this test at the same time against one local database: each uses (and deletes) only
+  // its own comment, found by this marker in the name.
+  const nonce = `n${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   const dialogs: string[] = [];
   page.on("dialog", (d) => {
     dialogs.push(d.message());
@@ -286,38 +435,41 @@ test("XSS payloads render as plain text on the published page, on both language 
   });
   await comment.open(page, "en");
   await human(page);
-  await comment.fill(page, { name: PAYLOAD_NAME, email: "xss@example.com", comment: PAYLOAD_TEXT });
+  await comment.fill(page, { name: `${PAYLOAD_NAME} ${nonce}`, email: "xss@example.com", comment: PAYLOAD_TEXT });
   await comment.submit(page);
-  await expect(page.locator('#comment-status .notice[role="status"], #comment-status .alert')).toBeVisible();
+  // Accepted, not refused: an error here (for instance a name over 80 characters) must not pass for success.
+  await expect(page.locator('#comment-status .notice[role="status"]')).toBeVisible();
 
   // Approve it as the moderator would (the admin buttons are tested in admin.spec.ts): straight in the local database.
-  const wrangler = fileURLToPath(new URL("../../../node_modules/wrangler/bin/wrangler.js", import.meta.url));
-  const done = spawnSync(
-    process.execPath,
-    [wrangler, "d1", "execute", "DB", "--local", "--command", "UPDATE comments SET status = 'approved' WHERE name LIKE '%window.__xss=1%'"],
-    { encoding: "utf8", env: { ...process.env, CI: "1" } },
-  );
+  const done = d1(`UPDATE comments SET status = 'approved' WHERE name LIKE '%${nonce}'`);
   expect(done.status, done.stderr).toBe(0);
-
-  for (const path of ["/lisbona", "/it/lisbona"]) {
-    // The Worker caches the comment list for 60 s per entry: reload until the approved one is in.
-    await expect
-      .poll(async () => (await page.goto(path), await page.locator('[data-slot="comments"]').innerText()), {
-        timeout: 80_000,
-        intervals: [2_000],
-        message: `${path}: the approved comment appears within a minute`,
-      })
-      .toContain('<img src=x onerror="window.__xss=1">');
-    const list = page.locator('[data-slot="comments"]');
-    await expect(list).toContainText("<script>window.__xss=3</script>");
-    expect(await list.locator("script, img, svg, iframe, object, embed").count(), `${path}: no element came from the payload`).toBe(0);
-    expect(await list.locator("[onerror], [onload], [onclick]").count()).toBe(0);
-    const hrefs = await list.locator("a").evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? ""));
-    for (const h of hrefs) expect(h, "no javascript: link").not.toMatch(/^\s*javascript:/i);
-    expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
+  try {
+    for (const path of ["/lisbona", "/it/lisbona"]) {
+      // The Worker caches the comment list for 60 s per entry: reload until the approved one is in.
+      await expect
+        .poll(async () => (await page.goto(path), await page.locator('[data-slot="comments"]').innerText()), {
+          timeout: 80_000,
+          intervals: [2_000],
+          message: `${path}: the approved comment appears within a minute`,
+        })
+        .toContain(nonce);
+      const list = page.locator('[data-slot="comments"]');
+      await expect(list).toContainText("<script> window.__xss=3 </script>");
+      expect(
+        await list.locator("script, img, svg, iframe, object, embed").count(),
+        `${path}: no element came from the payload`,
+      ).toBe(0);
+      expect(await list.locator("[onerror], [onload], [onclick]").count()).toBe(0);
+      const hrefs = await list.locator("a").evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? ""));
+      for (const h of hrefs) expect(h, "no javascript: link").not.toMatch(/^\s*javascript:/i);
+      expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
+    }
+    expect(dialogs).toEqual([]);
+    expect(elsewhere).toEqual([]);
+  } finally {
+    // Leave no payload behind in the local database, pass or fail (only this test's own comment).
+    d1(`DELETE FROM comments WHERE name LIKE '%${nonce}'`);
   }
-  expect(dialogs).toEqual([]);
-  expect(elsewhere).toEqual([]);
 });
 
 test("the browser's own limits are in the markup too: required fields, type=email, maxlength", async ({ page }) => {

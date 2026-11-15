@@ -9,7 +9,21 @@
 import { expect, test } from "@playwright/test";
 import { watch } from "./lib.ts";
 
-const PAGES = ["/", "/it", "/journal", "/lisbona", "/it/lisbona", "/photos", "/photos/lisbon", "/photos/lisbon/tram-28", "/about", "/now", "/rights", "/privacy", "/no-such-page"];
+const PAGES = [
+  "/",
+  "/it",
+  "/journal",
+  "/lisbona",
+  "/it/lisbona",
+  "/photos",
+  "/photos/lisbon",
+  "/photos/lisbon/tram-28",
+  "/about",
+  "/now",
+  "/rights",
+  "/privacy",
+  "/no-such-page",
+];
 const production = (process.env["LIVE_URL"] ?? "").replace(/\/$/, "") === "https://philglov.es";
 
 for (const path of PAGES) {
@@ -24,7 +38,13 @@ for (const path of PAGES) {
     await page.evaluate(() => document.fonts.ready.then(() => undefined));
     await page.waitForLoadState("networkidle");
     expect(seen.problems).toEqual([]);
-    expect(await context.cookies(), "no cookie, not even Cloudflare's").toEqual([]);
+    // No cookie. On staging, Cloudflare Access sets its own CF_Authorization after a service-token login; that one is
+    // Access's, and goes away at launch (production has no Access in front of it), so it is the only one let through.
+    const cookies = (await context.cookies()).filter((c) => production || c.name !== "CF_Authorization");
+    expect(
+      cookies.map((c) => c.name),
+      "no cookie of the site's, and none of Cloudflare's apart from Access's own",
+    ).toEqual([]);
     // Scripts: the one inline theme script, JSON-LD data, and files of this site. Nothing Cloudflare injected.
     const scripts = await page.evaluate(() =>
       [...document.scripts].map((s) => ({ src: s.getAttribute("src"), type: s.type, len: s.textContent?.length ?? 0 })),
@@ -33,14 +53,27 @@ for (const path of PAGES) {
       if (s.src) expect(s.src, "scripts come from /_assets/").toMatch(/^\/_assets\/[^/]+\.js$/);
       else expect(["", "application/ld+json", "text/javascript", "module"]).toContain(s.type);
     }
-    expect(scripts.filter((s) => !s.src && s.type !== "application/ld+json"), "one inline script").toHaveLength(1);
+    expect(
+      scripts.filter((s) => !s.src && s.type !== "application/ld+json"),
+      "one inline script",
+    ).toHaveLength(1);
     expect(await page.locator('script[src*="cloudflare"], script[src*="cdn-cgi"], iframe').count()).toBe(0);
   });
 }
 
-test("live headers: CSP, HSTS, nosniff, Referrer-Policy, Permissions-Policy, COOP, TDM; no Set-Cookie", async ({ request }) => {
+test("live headers: CSP, HSTS, nosniff, Referrer-Policy, Permissions-Policy, COOP, TDM; no Set-Cookie", async ({
+  request,
+}) => {
   const problems: string[] = [];
-  for (const path of ["/", "/it/lisbona", "/no-such-page", "/api/comment", "/feed.xml", "/robots.txt", "/_assets/share/default.png"]) {
+  for (const path of [
+    "/",
+    "/it/lisbona",
+    "/no-such-page",
+    "/api/comment",
+    "/feed.xml",
+    "/robots.txt",
+    "/_assets/share/default.png",
+  ]) {
     const res = await request.get(path, { maxRedirects: 0 });
     const h = res.headers();
     if (!h["content-security-policy"]?.includes("default-src 'self'")) problems.push(`${path}: CSP`);
@@ -62,5 +95,17 @@ test("live headers: CSP, HSTS, nosniff, Referrer-Policy, Permissions-Policy, COO
 test("live robots.txt and tdmrep.json are served", async ({ request }) => {
   expect((await request.get("/robots.txt")).status()).toBe(200);
   expect((await request.get("/.well-known/tdmrep.json")).status()).toBe(200);
-  expect((await request.get("/admin", { maxRedirects: 0 })).status(), "/admin is not open to the public").not.toBe(200);
+});
+
+test("live /admin is not open to the public: a request with no token is turned away", async ({
+  playwright,
+  baseURL,
+}) => {
+  // The suite's own requests carry the service token, which Access lets in. A visitor has none.
+  const visitor = await playwright.request.newContext({ baseURL: baseURL ?? "", extraHTTPHeaders: {} });
+  for (const path of ["/admin", "/admin/write"]) {
+    const res = await visitor.get(path, { maxRedirects: 0 });
+    expect([302, 401, 403], `${path} answers ${res.status()} to a visitor`).toContain(res.status());
+  }
+  await visitor.dispose();
 });

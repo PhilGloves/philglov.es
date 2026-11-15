@@ -9,6 +9,7 @@
         "http://127.0.0.1:8787/it",
         "http://127.0.0.1:8787/journal",
         "http://127.0.0.1:8787/lisbona",
+        "http://127.0.0.1:8787/photos/lisbon",
         "http://127.0.0.1:8787/photos/lisbon/tram-28"
       ],
       "numberOfRuns": 3,

@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { fontsSettled, imagesSettled, pageSettled, requestFailure } from "./fonts.ts";
+import { fontsSettled, imagesSettled, requestFailure } from "./fonts.ts";
 
 // The page × language × theme × width matrix moved to qa/matrix.spec.ts (one test per page, QA suite 1).
+
+const widths = [320, 390, 768, 1024, 1440];
 
 test("a font that really fails is still reported: 404 on the italic file", async ({ page }) => {
   const problems: string[] = [];

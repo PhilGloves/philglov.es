@@ -80,8 +80,9 @@ export interface Watch {
 /**
  * Suite 1: console (errors AND warnings), page errors, failed requests, responses ≥ 400 and any request to a host
  * other than the site's own. `allow404` names the path whose own 404 answer is expected (the 404 page).
+ * `ignoreConsole` names a console line to leave out; used only where a finding is open and tracked as a BUG-n test.
  */
-export function watch(page: Page, origin: string, allow404?: string): Watch {
+export function watch(page: Page, origin: string, allow404?: string, ignoreConsole?: RegExp): Watch {
   const problems: string[] = [];
   const inflight = new Set<Request>();
   const own = new URL(origin).origin;
@@ -91,6 +92,7 @@ export function watch(page: Page, origin: string, allow404?: string): Watch {
     if (msg.type() !== "error" && msg.type() !== "warning") return;
     const line = `${msg.type()}: ${msg.text()}`;
     if (allow404 !== undefined && BROWSER_404_LINE.test(line)) return;
+    if (ignoreConsole?.test(line)) return;
     problems.push(`console ${line}`);
   });
   page.on("pageerror", (err) => problems.push(`pageerror: ${err.message}`));
