@@ -1,6 +1,6 @@
 # 0023 — Simplification pass: round header controls, entries that start with the text, no topics
 
-Status: Accepted · 2026-11-15 · Owner decision · Amends [0012](0012-hand-written-translations.md) (where the label
+Status: Accepted · 2026-11-15 · Owner decision · Header controls amended by [0024](0024-no-breadcrumbs-tighter-heads-ringless-controls.md) (no ring) · Amends [0012](0012-hand-written-translations.md) (where the label
 shows), [0014](0014-design-system.md) (header controls), [0016](0016-frontend-pages.md) (entry page, topic pages),
 [0017](0017-backend-worker.md) and [0021](0021-publishing-goes-live.md) (`/admin/write` topics)
 

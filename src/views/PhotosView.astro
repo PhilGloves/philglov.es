@@ -88,10 +88,6 @@ const exifRows = exif
     {photo && series ? (
       <div class="g top single">
         <div class="lab">
-          <p class="crumb">
-            <a href={pathFor(locale, "/photos")}>{t(locale, "photosTitle")}</a> /{" "}
-            <a href={seriesPath(series)}>{series.title[locale]}</a>
-          </p>
           <p class="small muted">
             <time datetime={isoDate(photo.takenAt)}>{isoDate(photo.takenAt)}</time>
           </p>
@@ -148,12 +144,7 @@ const exifRows = exif
       </div>
     ) : series ? (
       <>
-        <div class="g hero">
-          <div class="lab">
-            <p class="crumb">
-              <a href={pathFor(locale, "/photos")}>{t(locale, "photosTitle")}</a> / {series.title[locale]}
-            </p>
-          </div>
+        <div class="g hero hero--inner">
           <h1 class="state">{series.title[locale]}</h1>
           <p class="lede">{series.description?.[locale] ?? seriesMeta(series)}</p>
         </div>
@@ -187,18 +178,12 @@ const exifRows = exif
       </>
     ) : (
       <>
-        <div class="g hero">
-          <div class="lab">
-            <p class="crumb">
-              <a href={pathFor(locale, "/")}>{t(locale, "crumbHome")}</a> / {t(locale, "photosTitle")}
-            </p>
-          </div>
+        <div class="g hero hero--inner">
           <h1 class="state">{t(locale, "photosTitle")}</h1>
           <p class="lede">{t(locale, "photosIntro")}</p>
         </div>
         <div class="g sec">
           <div class="lab">
-            <h2>{t(locale, "photosTitle")}</h2>
             <p class="small muted">
               {all.length === 1 ? t(locale, "photosCountOne") : tf(locale, "photosCount", { n: all.length })}
             </p>
@@ -215,7 +200,7 @@ const exifRows = exif
                       sizes={SIZES.tile}
                       priority={s === all[0]}
                     />
-                    <h3>{s.title[locale]}</h3>
+                    <h2>{s.title[locale]}</h2>
                     <p>{seriesMeta(s)}</p>
                   </a>
                 </li>

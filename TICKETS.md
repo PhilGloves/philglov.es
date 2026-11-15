@@ -275,3 +275,6 @@ every page × en/it × light/dark × 1440/1024/768/390/320 × JS on/off in Chrom
 - [x] X4 Topics removed everywhere (site, feeds, sitemap, `/admin/write`, `pnpm new`); old `tags:` lines tolerated.
 - [x] X5 Replies signed "Phil" on English pages, "Filippo" on Italian pages.
 - [x] X6 Tests, styleguide and docs updated; prototypes in `docs/design/` replaced by the owner.
+- [x] X7 ([0024](docs/decisions/0024-no-breadcrumbs-tighter-heads-ringless-controls.md)) No breadcrumb anywhere; no heading
+      that repeats the page title; tighter `.hero--inner` heads (journal index, photos index, series pages); header
+      controls without a ring (transparent border kept for forced-colours mode), prototypes updated.

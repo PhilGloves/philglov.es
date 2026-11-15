@@ -327,7 +327,6 @@
   .fine,
   .cap,
   .latest-meta,
-  .crumb,
   .about,
   .label,
   .idx .dt,
@@ -447,20 +446,27 @@
     text-underline-offset: 0.3em;
   }
 
+  /* The two controls touch (no gap). The group is pulled out by half of what the box adds to the 18 px icon, so the
+     moon or sun ends exactly where the header line ends. */
   .tools {
+    --box: 2.75rem;
+    --icon: 1.125rem;
+
     display: flex;
     align-items: center;
-    gap: var(--sp-10);
+    margin-inline-end: calc((var(--icon) - var(--box)) / 2);
   }
 
-  /* The two header controls: round, a code or an icon inside. 44 px on phones, 40 px from tablet up. */
+  /* The two header controls: only the letters or the icon show, in the text colour; no ring, no background. The box
+     is the tap area, 44 px on phones, 40 px from tablet up. The border stays, transparent, so that forced-colours
+     mode (Windows high contrast) still draws an outline (see the forced-colors rule at the end). */
   .rbtn {
     display: inline-grid;
     place-items: center;
-    inline-size: 2.75rem;
-    block-size: 2.75rem;
+    inline-size: var(--box);
+    block-size: var(--box);
     padding: 0;
-    border: 1px solid var(--text);
+    border: 1px solid transparent;
     border-radius: 50%;
     background: none;
     color: var(--text);
@@ -468,19 +474,16 @@
     font-weight: 600;
     letter-spacing: 0.04em;
     cursor: pointer;
-    transition:
-      color var(--dur-fast) var(--ease),
-      border-color var(--dur-fast) var(--ease);
+    transition: color var(--dur-fast) var(--ease);
   }
 
   .rbtn:hover {
-    border-color: var(--accent);
     color: var(--accent);
   }
 
   .rbtn svg {
-    inline-size: 1.125rem;
-    block-size: 1.125rem;
+    inline-size: var(--icon);
+    block-size: var(--icon);
   }
 
   /* One icon at a time: the moon in light mode, the sun in dark mode. The visitor's choice (data-theme) wins over
@@ -515,9 +518,8 @@
   }
 
   @container page (width > 40rem) {
-    .rbtn {
-      inline-size: 2.5rem;
-      block-size: 2.5rem;
+    .tools {
+      --box: 2.5rem;
     }
 
     .nav ul {
@@ -660,7 +662,35 @@
     }
   }
 
+  /* The journal index, the photos index and the series pages (decision 0024): a tighter head, and a tighter top on
+     the section right after it. Home and every other page keep the full spacing above. */
+  .hero.hero--inner {
+    padding-block: var(--sp-32) var(--sp-20);
+  }
+
+  .hero.hero--inner + .sec {
+    padding-block-start: var(--sp-32);
+  }
+
+  @container page (width > 40rem) {
+    .hero.hero--inner {
+      padding-block: var(--sp-44) var(--sp-28);
+    }
+
+    .hero.hero--inner + .sec {
+      padding-block-start: var(--sp-40);
+    }
+  }
+
   @container page (width > 65rem) {
+    .hero.hero--inner {
+      padding-block: var(--sp-56) var(--sp-32);
+    }
+
+    .hero.hero--inner + .sec {
+      padding-block-start: var(--sp-48);
+    }
+
     .hero {
       padding-block: var(--sp-88) var(--sp-56);
     }
@@ -1130,8 +1160,7 @@
     aspect-ratio: 3 / 2;
   }
 
-  .series h3,
-  .series :is(h3, h4) {
+  .series :is(h2, h3, h4) {
     margin-block-start: var(--sp-12);
     font-size: var(--fs-23);
     font-weight: 600;
@@ -1165,15 +1194,6 @@
   .top .lab {
     order: 2;
     margin-block: var(--sp-28) 0;
-  }
-
-  .crumb {
-    margin-block-end: var(--sp-22);
-    color: var(--muted);
-  }
-
-  .crumb a:hover {
-    color: var(--accent);
   }
 
   .title {
