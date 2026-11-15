@@ -87,13 +87,8 @@ const exifRows = exif
   <div class="page">
     {photo && series ? (
       <div class="g top single">
-        <div class="lab">
-          <p class="small muted">
-            <time datetime={isoDate(photo.takenAt)}>{isoDate(photo.takenAt)}</time>
-          </p>
-        </div>
+        <h1 class="title">{photo.caption[locale]}</h1>
         <div class="con">
-          <h1 class="title">{photo.caption[locale]}</h1>
           <figure>
             <Photo
               tone={photo.tone}
@@ -140,6 +135,11 @@ const exifRows = exif
               )}
             </div>
           </nav>
+        </div>
+        <div class="lab">
+          <p class="small muted">
+            <time datetime={isoDate(photo.takenAt)}>{isoDate(photo.takenAt)}</time>
+          </p>
         </div>
       </div>
     ) : series ? (

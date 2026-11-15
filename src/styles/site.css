@@ -210,14 +210,14 @@
 
   /* Links inside running text are underlined: colour alone is not enough.
    * Navigation, tables, cards and buttons are not running text. */
-  :is(.prose, .lede, .stand, .ex, .c-body, .c-reply, .consent, .txt, .notice, .alert, .intro, .updated, .sg-note)
+  :is(.prose, .lede, .ex, .c-body, .c-reply, .consent, .txt, .notice, .alert, .intro, .updated, .sg-note)
     a:not([class]) {
     text-decoration: underline;
     text-decoration-color: var(--muted);
     text-underline-offset: 0.2em;
   }
 
-  :is(.prose, .lede, .stand, .ex, .c-body, .c-reply, .consent, .txt, .notice, .alert, .intro, .updated, .sg-note)
+  :is(.prose, .lede, .ex, .c-body, .c-reply, .consent, .txt, .notice, .alert, .intro, .updated, .sg-note)
     a:not([class]):hover {
     text-decoration-color: var(--accent);
   }
@@ -246,6 +246,14 @@
 @layer layout {
   .page {
     --col-gap: var(--sp-16);
+
+    /* Space under the header line (decision 0025). --menu-gap: how far the menu words' baseline is above the
+     * header line, measured on the header (tests/e2e/head-metrics.ts fails if it changes); a page's first line of
+     * text puts the top of its capitals exactly that far below the line. --cap-title: what the title's own line
+     * box puts above its capitals. --head-end: from the end of the intro to the text below it. */
+    --menu-gap: calc(var(--sp-40) + 1px);
+    --cap-title: calc((var(--lh-display) / 2 - var(--cap-k)) * var(--fs-display));
+    --head-end: calc(var(--sp-20) + var(--sp-32));
 
     inline-size: 100%;
     max-inline-size: var(--page-max);
@@ -290,6 +298,8 @@
     .page {
       --gutter: var(--sp-48);
       --col-gap: var(--sp-32);
+      --menu-gap: calc(var(--sp-32) + 1px);
+      --head-end: calc(var(--sp-28) + var(--sp-40));
     }
 
     .sec {
@@ -317,6 +327,11 @@
 
     .sec {
       --section-y: var(--sp-72);
+    }
+
+    .page {
+      --menu-gap: calc(var(--sp-40) + var(--sp-2));
+      --head-end: calc(var(--sp-32) + var(--sp-48));
     }
   }
 }
@@ -614,31 +629,45 @@
     font-weight: 600;
   }
 
-  /* ===== hero (home) ===== */
-  .hero {
-    padding-block: var(--sp-44) var(--sp-32);
+  /* ===== page heads: .hero (Home, 404, journal and photos pages) and .top (entries, About, Now, rights,
+   * privacy, a single photo). Decision 0025: every page starts the same way. ===== */
+
+  /* The space under the header line: down to the top of the capitals of the first line of text it is --menu-gap,
+   * the distance from the menu words' baseline to the line. The title comes first, so its padding takes off what
+   * the title puts above its capitals. */
+  .hero,
+  .top {
+    /* a small line of text in the left column ("Based in", a date): its own line puts this above its capitals */
+    --lab-cap: calc((var(--lh-small) / 2 - var(--cap-k)) * var(--fs-16));
+
+    padding-block-start: calc(var(--menu-gap) - var(--cap-title));
   }
 
-  .hero .lab p + p {
-    margin-block-start: var(--sp-6);
+  .hero--404 {
+    --lab-cap: calc((var(--lh-err) / 2 - var(--cap-k-err)) * var(--fs-err));
+  }
+
+  .top--intro {
+    --lab-cap: 0px; /* the portrait's top edge */
+  }
+
+  /* Phones and tablets: where a small line comes first (Home's "Based in", the 404), it takes the place of the title. */
+  @container page (width <= 65rem) {
+    .hero:has(> .lab) {
+      padding-block-start: calc(var(--menu-gap) - var(--lab-cap));
+    }
+  }
+
+  .hero {
+    padding-block-end: var(--sp-32);
   }
 
   .state {
     font-size: var(--fs-display);
     font-weight: 300;
-    line-height: 1.04;
+    line-height: var(--lh-display);
     letter-spacing: -0.016em;
     text-wrap: balance;
-  }
-
-  .state .kick {
-    display: block;
-    margin-block-end: var(--sp-14);
-    color: var(--muted);
-    font-size: var(--fs-17);
-    font-weight: 400;
-    letter-spacing: 0.01em;
-    line-height: 1.4;
   }
 
   .state em {
@@ -649,12 +678,12 @@
   .lede {
     margin-block-start: var(--sp-28);
     font-size: var(--fs-20);
-    line-height: 1.45;
+    line-height: var(--lh-small);
   }
 
   @container page (width > 40rem) {
     .hero {
-      padding-block: var(--sp-64) var(--sp-44);
+      padding-block-end: var(--sp-44);
     }
 
     .lede {
@@ -662,10 +691,11 @@
     }
   }
 
-  /* The journal index, the photos index and the series pages (decision 0024): a tighter head, and a tighter top on
-     the section right after it. Home and every other page keep the full spacing above. */
+  /* The journal index, the photos index and the series pages (decisions 0024, 0025): a tighter end of the head, and a
+     tighter top on the section right after it, so the list starts 52 / 68 / 80 px under the intro. Home and every
+     other section keep the full spacing. */
   .hero.hero--inner {
-    padding-block: var(--sp-32) var(--sp-20);
+    padding-block-end: var(--sp-20);
   }
 
   .hero.hero--inner + .sec {
@@ -674,7 +704,7 @@
 
   @container page (width > 40rem) {
     .hero.hero--inner {
-      padding-block: var(--sp-44) var(--sp-28);
+      padding-block-end: var(--sp-28);
     }
 
     .hero.hero--inner + .sec {
@@ -684,7 +714,7 @@
 
   @container page (width > 65rem) {
     .hero.hero--inner {
-      padding-block: var(--sp-56) var(--sp-32);
+      padding-block-end: var(--sp-32);
     }
 
     .hero.hero--inner + .sec {
@@ -692,7 +722,12 @@
     }
 
     .hero {
-      padding-block: var(--sp-88) var(--sp-56);
+      padding-block-end: var(--sp-56);
+    }
+
+    /* what stands in the left column starts level with the top of the title's capitals */
+    .hero > .lab {
+      margin-block-start: calc(var(--cap-title) - var(--lab-cap));
     }
 
     .state {
@@ -1188,7 +1223,7 @@
 
   /* ===== article ===== */
   .top {
-    padding-block: var(--sp-40) var(--sp-24);
+    padding-block-end: var(--sp-24);
   }
 
   .top .lab {
@@ -1201,9 +1236,44 @@
     margin-block-end: var(--sp-20);
     font-size: var(--fs-display);
     font-weight: 300;
-    line-height: 1.04;
+    line-height: var(--lh-display);
     letter-spacing: -0.016em;
     text-wrap: balance;
+  }
+
+  /* Now, About, Rights and Privacy (decision 0025): one grid for the head and the text, so that on About the
+   * portrait can stand beside both. The title and the intro are direct children of the grid, as on Journal and
+   * Photos: inside a .con the title would be sized by that column's width. The intro is the .lede of Journal and
+   * Photos, 28 px under the title, and the text starts --head-end (52 / 68 / 80 px) under it. Rights and Privacy
+   * keep their label between the two. */
+  .top.top--intro {
+    padding-block-end: 0;
+  }
+
+  .top--intro .title {
+    margin-block-end: 0;
+  }
+
+  .top--intro .title + .label {
+    margin-block-start: var(--sp-20);
+  }
+
+  .top--intro .label + .lede {
+    margin-block-start: 0;
+  }
+
+  .top--intro .lede {
+    margin-block-end: var(--head-end);
+  }
+
+  /* About on phones and tablets: the portrait is 28 px under the intro, the text --head-end under the portrait */
+  .top--intro > .lab {
+    order: 0;
+    margin-block: var(--sp-28) var(--head-end);
+  }
+
+  .top--intro:has(> .lab) .lede {
+    margin-block-end: 0;
   }
 
   /* An entry's title is alone in its head: the text starts right under it. */
@@ -1268,12 +1338,6 @@
     text-decoration-color: var(--accent);
   }
 
-  .stand {
-    max-inline-size: 34ch;
-    font-size: var(--fs-23);
-    line-height: 1.35;
-  }
-
   /* on phones the "·" between the label and its link is dropped */
   @container page (width <= 40rem) {
     .label span[aria-hidden="true"]:not(.marker) {
@@ -1283,22 +1347,54 @@
 
   @container page (width > 40rem) {
     .top {
-      padding-block: var(--sp-56) var(--sp-32);
-    }
-
-    .stand {
-      font-size: var(--fs-26);
+      padding-block-end: var(--sp-32);
     }
   }
 
   @container page (width > 65rem) {
     .top {
-      padding-block: var(--sp-72) var(--sp-40);
+      padding-block-end: var(--sp-40);
     }
 
-    .top .lab {
+    /* what stands in the left column starts level with the top of the title's capitals */
+    .top .lab,
+    .top--intro > .lab {
       order: 0;
-      margin-block: 0;
+      margin-block: calc(var(--cap-title) - var(--lab-cap)) 0;
+    }
+
+    .top > .title,
+    .top--intro > .label {
+      grid-column: 4 / span 9;
+    }
+
+    .top--intro .lede {
+      grid-column: 4 / span 6;
+    }
+
+    .top--intro:has(> .lab) {
+      grid-template-rows: auto auto 1fr;
+    }
+
+    .top--intro:has(> .lab) .lede {
+      margin-block-end: var(--head-end);
+    }
+
+    .top--intro > .lab {
+      grid-row: 1 / span 3;
+    }
+
+    /* a single photo: the date beside the title, the photograph below */
+    .top.single > .title {
+      grid-row: 1;
+    }
+
+    .top.single > .con {
+      grid-row: 2;
+    }
+
+    .top.single > .lab {
+      grid-row: 1;
     }
   }
 
@@ -1890,9 +1986,9 @@
 
   /* ===== 404 ===== */
   .err-code {
-    font-size: clamp(5rem, 22cqi, 12rem);
+    font-size: var(--fs-err);
     font-weight: 300;
-    line-height: 1;
+    line-height: var(--lh-err);
     letter-spacing: -0.03em;
     color: var(--accent);
   }
@@ -2316,7 +2412,7 @@
     }
 
     .prose,
-    .stand,
+    .lede,
     .c-body,
     .c-reply {
       max-inline-size: none;

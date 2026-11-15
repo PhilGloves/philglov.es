@@ -148,6 +148,7 @@ test("weight 300 is used only at 28 px and larger", () => {
   for (const [, name, rem] of tokens.matchAll(/--(fs-[0-9-]+):\s*([\d.]+)rem/g))
     px.set(`var(--${name})`, Number(rem) * 16);
   px.set("var(--fs-display)", 40);
+  px.set("var(--fs-err)", 80); // the big "404": at least 5rem
   for (const [, body] of css.matchAll(/\{([^{}]*font-weight:\s*300\s*;[^{}]*)\}/g)) {
     const size = /font-size:\s*(var\(--[a-z0-9-]+\)|clamp[^;]*)/.exec(body ?? "");
     assert.ok(size, `a weight-300 rule without its own font-size: ${body?.trim().slice(0, 80)}`);

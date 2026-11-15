@@ -48,10 +48,12 @@ body{margin:0}
 .bx.light .i-sun,.bx.dark .i-moon{display:none}
 
 /* hero */
-.hero{padding:88px 0 56px}
-.hero .lab p{margin:0 0 6px}
+/* page head, decision 0025: the capitals of the first line start as far under the header line (42 px on desktop, 33 on tablets, 41 on phones) as the menu baseline is above it; .275em is what the title's line box puts above its capitals, 7.7px what the 16px "Based in" line puts above its own */
+.hero{padding:calc(42px - .275*clamp(2.5rem,4.6cqi,4rem)) 0 56px}
+.hero .lab{margin-top:calc(.275*clamp(2.5rem,4.6cqi,4rem) - 7.7px)}
+.hero .lab p{margin:0}
 .state{grid-column:4/span 9;margin:0;font-weight:300;font-size:clamp(2.5rem,4.6cqi,4rem);line-height:1.04;letter-spacing:-.016em;text-wrap:balance}
-.state .kick{display:block;font-size:17px;font-weight:400;line-height:1.4;letter-spacing:.01em;color:var(--muted);margin-bottom:14px}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .state em{font-style:italic;color:var(--moss)}
 .lede{grid-column:4/span 6;margin:28px 0 0;font-size:22px;line-height:1.45}
 .lede a{text-decoration:underline;text-decoration-color:var(--hair);text-underline-offset:.2em}
@@ -125,7 +127,8 @@ body{margin:0}
 @container (max-width: 1040px){
 .lab,.con,.state,.lede,.foot .txt,.foot .links{grid-column:1/-1}
 .hero .lab,.sec .lab,.band .lab,.foot .lab{margin-bottom:18px}
-.hero{padding:64px 0 44px}
+.hero{padding:calc(33px - 7.7px) 0 44px}
+.hero .lab{margin-top:0}
 .latest h3,.latest .ex{grid-column:1/-1}
 .latest h3{margin-bottom:16px}
 .nav{grid-column:1/-1;order:3;margin-top:14px}
@@ -140,7 +143,7 @@ body{margin:0}
 .tools{margin-right:-13px}
 .bx{font-size:18px}
 .nav ul{gap:22px}
-.hero{padding:44px 0 32px}
+.hero{padding:calc(41px - 7.7px) 0 32px}
 .photo{margin:0 -20px 8px}
 .ph-hero{aspect-ratio:4/5}
 .photo .cap{padding:0 20px;flex-direction:column;gap:2px}
@@ -185,10 +188,9 @@ body{margin:0}
 <div class="page">
 <section class="g hero" aria-labelledby="h1">
 <div class="lab small">
-<p><strong>Photographer and developer</strong></p>
 <p class="muted">Based in [City]. Writing in English and Italian.</p>
 </div>
-<h1 id="h1" class="state"><span class="kick">Filippo Guanti — journal, photographs, notes</span>Writing about photography, software, and <em>the places in between.</em></h1>
+<h1 id="h1" class="state"><span class="sr-only">Filippo Guanti — journal, photographs, notes</span>Writing about photography, software, and <em>the places in between.</em></h1>
 <p class="lede">Everything I do lives here. See what I’m focused on <a href="#now">now</a>, read <a href="#main">about me</a>, or start with the latest entry below.</p>
 </section>
 
