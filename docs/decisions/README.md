@@ -27,3 +27,4 @@ never renumber. To change a decision, add a new record that supersedes the old o
 | 0019 | [Photo pipeline: R2 originals, `<Picture>`, rights after the build](0019-photo-pipeline.md)                 | Accepted                                                                  |
 | 0020 | [Moderation in the background on /admin](0020-background-moderation.md)                                     | Accepted; O5 settled in 0021                                              |
 | 0021 | [Publishing goes live by itself; editing from the phone; no view transitions](0021-publishing-goes-live.md) | Accepted                                                                  |
+| 0022 | [How the QA matrix is built and run](0022-qa-matrix.md)                                                     | Accepted                                                                  |

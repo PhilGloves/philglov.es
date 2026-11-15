@@ -128,9 +128,11 @@ const TYPES: Record<string, string> = {
   js: "text/javascript; charset=utf-8",
 };
 function fromDist(path: string): Response {
+  // Pages as Cloudflare's asset handling serves them: /lisbona is dist/lisbona.html, / is dist/index.html.
+  const file = path === "/" ? "/index.html" : /\.[a-z0-9]+$/.test(path) ? path : `${path}.html`;
   try {
-    const type = TYPES[path.split(".").pop() ?? ""] ?? "application/octet-stream";
-    return new Response(readFileSync(new URL(`.${path}`, dist)), { headers: { "Content-Type": type } });
+    const type = file.endsWith(".html") ? "text/html; charset=utf-8" : (TYPES[file.split(".").pop() ?? ""] ?? "application/octet-stream");
+    return new Response(readFileSync(new URL(`.${file}`, dist)), { headers: { "Content-Type": type } });
   } catch {
     return new Response("Not found", { status: 404 });
   }

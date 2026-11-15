@@ -21,6 +21,7 @@ as small as possible. RSS feeds and the sitemap are hand-written endpoints, not 
 | html-validate                                  | dev     | Validates every built page and forbids inline `style` attributes.                            |
 | wrangler                                       | dev     | Local Worker runtime, `wrangler types`, deploys.                                             |
 | @playwright/test                               | dev     | End-to-end tests across widths, themes and JS on/off (QA).                                   |
+| axe-core                                       | dev     | Accessibility rules run inside Playwright on every page (QA suite 2, 0022). No other deps.   |
 | @lhci/cli                                      | dev     | Lighthouse CI budgets (Lead prompt 5).                                                       |
 | jose                                           | runtime | Worker: verifies the Access JWT, signs the GitHub App JWT (0017). The only Worker package.   |
 | vitest                                         | dev     | Worker tests (backend prompt: "Vitest + Miniflare/Workers test pool").                       |

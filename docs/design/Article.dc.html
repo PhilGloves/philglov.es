@@ -43,28 +43,21 @@ body{margin:0}
 .nav ul{list-style:none;margin:0;padding:0;display:flex;gap:32px;flex-wrap:wrap}
 .nav a{font-size:19px;font-weight:400}
 .nav a[aria-current="page"]{border-bottom:2px solid var(--moss);padding-bottom:2px}
-.tools{grid-column:10/span 3;display:flex;justify-content:flex-end;align-items:center;gap:18px}
-.tools .linkbtn{font-size:18px;font-weight:400}
-.tbtn{font:inherit;font-size:16px;font-weight:600;background:none;color:var(--ink);border:1px solid var(--ink);border-radius:999px;padding:0 16px;min-height:36px;cursor:pointer}
-.tbtn[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.tools{grid-column:10/span 3;display:flex;justify-content:flex-end;align-items:center;gap:10px}
+.rbtn{font:inherit;font-size:15px;font-weight:600;letter-spacing:.04em;width:40px;height:40px;display:inline-grid;place-items:center;padding:0;background:none;color:var(--ink);border:1px solid var(--ink);border-radius:50%;cursor:pointer}
+.rbtn:hover{color:var(--moss);border-color:var(--moss)}
+.rbtn svg{width:18px;height:18px}
+.bx.light .i-sun,.bx.dark .i-moon{display:none}
 
 /* article head */
-.top{padding:72px 0 40px}
-.crumb{margin:0 0 22px}
-.crumb a{color:var(--muted)}
-.crumb a:hover{color:var(--moss)}
-.meta{margin:0}
-.meta div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:12px;padding:9px 0;border-top:1px solid var(--hair)}
-.meta div:last-child{border-bottom:1px solid var(--hair)}
-.meta dt{color:var(--muted)}
-.meta dd{margin:0}
-.meta .moss{color:var(--moss)}
-.title{margin:0 0 20px;font-weight:300;font-size:clamp(2.5rem,4.6cqi,4rem);line-height:1.04;letter-spacing:-.016em;text-wrap:balance;max-width:20ch}
-.label{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 30px;color:var(--muted)}
+.top{padding:72px 0 30px}
+.title{margin:0;font-weight:300;font-size:clamp(2.5rem,4.6cqi,4rem);line-height:1.04;letter-spacing:-.016em;text-wrap:balance;max-width:20ch}
+.about{margin:44px 0 0;padding:18px 0 0;border-top:1px solid var(--hair);color:var(--muted);max-width:36rem}
+.facts{margin:0 0 10px;display:flex;flex-wrap:wrap;gap:4px 20px}
+.label{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0}
 .marker{color:var(--moss);border:1px solid currentColor;border-radius:4px;padding:1px 7px;font-weight:600;font-size:14px;letter-spacing:.06em}
 .label .linkbtn{font-size:16px;color:var(--ink);text-decoration:underline;text-decoration-color:var(--hair);text-underline-offset:.22em}
 .label .linkbtn:hover{color:var(--moss);text-decoration-color:var(--moss)}
-.stand{margin:0;font-size:26px;line-height:1.35;max-width:34ch}
 
 /* body */
 .prose{font-size:22px;line-height:1.5;max-width:36rem}
@@ -130,10 +123,7 @@ body{margin:0}
 
 @container (max-width: 1040px){
 .lab,.con,.foot .txt,.foot .links{grid-column:1/-1}
-.top{padding:56px 0 32px}
-.top .lab{order:2;margin-top:28px}
-.meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px}
-.meta div:last-child{border-bottom:0}
+.top{padding:56px 0 26px}
 .sec .lab,.foot .lab{margin-bottom:16px}
 .nav{grid-column:1/-1;order:3;margin-top:14px}
 .name{grid-column:1/span 6}
@@ -142,12 +132,11 @@ body{margin:0}
 @container (max-width: 640px){
 .page{padding:0 20px}
 .g{column-gap:16px}
+.rbtn{width:44px;height:44px}
 .bx{font-size:18px}
 .nav ul{gap:22px}
-.top{padding:40px 0 24px}
-.meta{grid-template-columns:1fr}
+.top{padding:40px 0 20px}
 .label span[aria-hidden]:not(.marker){display:none}
-.stand{font-size:23px}
 .prose{font-size:20px}
 .fig{margin-left:-20px;margin-right:-20px}
 .fig .ph{aspect-ratio:4/5}
@@ -176,29 +165,16 @@ body{margin:0}
 </ul>
 </nav>
 <div class="tools">
-<button type="button" class="linkbtn" lang="{{otherLang}}" onClick="{{switchLang}}">{{t.otherLangName}}</button>
-<button type="button" class="tbtn" aria-pressed="{{darkPressed}}" onClick="{{toggleDark}}">{{t.dark}}</button>
+<button type="button" class="rbtn" lang="{{otherLang}}" aria-label="{{t.otherLangName}}" onClick="{{switchLang}}">{{otherLangCode}}</button>
+<button type="button" class="rbtn" aria-pressed="{{darkPressed}}" aria-label="{{t.dark}}" onClick="{{toggleDark}}"><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"></path></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"></path></svg></button>
 </div>
 </header>
 
 <main id="main">
 <article aria-labelledby="h-entry">
 <div class="g top">
-<aside class="lab" aria-label="{{t.aboutEntry}}">
-<p class="crumb fine"><a href="Home.dc.html">{{t.journal}}</a> / <a href="Home.dc.html">{{t.topic}}</a></p>
-<dl class="meta fine">
-<div><dt>No.</dt><dd>042</dd></div>
-<div><dt>{{t.mPublished}}</dt><dd>2026-10-21</dd></div>
-<div><dt>{{t.mWritten}}</dt><dd>{{t.mWrittenVal}}</dd></div>
-<div><dt>{{t.mVersion}}</dt><dd class="moss">{{t.mVersionVal}}</dd></div>
-<div><dt>{{t.mRead}}</dt><dd>{{t.mReadVal}}</dd></div>
-<div><dt>{{t.mComments}}</dt><dd><a href="#comments">2 →</a></dd></div>
-</dl>
-</aside>
 <header class="con">
 <h1 id="h-entry" class="title">{{t.title}}</h1>
-<p class="label fine"><span class="marker" aria-hidden="true">{{marker}}</span><span>{{t.labelText}}</span><span aria-hidden="true">·</span><button type="button" class="linkbtn" lang="{{otherLang}}" onClick="{{switchLang}}">{{t.labelLink}}</button></p>
-<p class="stand">{{t.stand}}</p>
 </header>
 </div>
 
@@ -218,6 +194,10 @@ body{margin:0}
 <p>{{t.p4}}</p>
 <p class="sign">— Filippo, {{t.place}}</p>
 </div>
+<footer class="about fine" aria-label="{{t.aboutEntry}}">
+<p class="facts"><span>No. 042</span><time datetime="2026-10-21">{{t.mDate}}</time><span>{{t.mReadVal}}</span></p>
+<p class="label"><span class="marker" aria-hidden="true">{{marker}}</span><span>{{t.labelText}}</span><span aria-hidden="true">·</span><button type="button" class="linkbtn" lang="{{otherLang}}" onClick="{{switchLang}}">{{t.labelLink}}</button></p>
+</footer>
 
 <nav class="pn" aria-label="{{t.pnLabel}}">
 <div class="pn-grid">
@@ -308,7 +288,7 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3700}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3300}}'>
 class Component extends DCLogic {
   renderVals() {
     var s = this.state || {};
@@ -317,11 +297,10 @@ class Component extends DCLogic {
     var STR = {
       en: {
         skip: "Skip to content", navLabel: "Main", journal: "Journal", photos: "Photos", now: "Now", about: "About",
-        otherLangName: "Italiano", dark: "Dark", topic: "Travel", aboutEntry: "About this entry",
-        mPublished: "Published", mWritten: "Written in", mWrittenVal: "Italian", mVersion: "This version", mVersionVal: "My translation", mRead: "Reading", mReadVal: "8 min", mComments: "Comments",
+        otherLangName: "Italiano", dark: "Dark theme", aboutEntry: "About this entry",
+        mDate: "21 October 2026", mReadVal: "8 min read",
         title: "Three weeks in Lisbon, mostly on foot",
         labelText: "Originally written in Italian", labelLink: "Read the original →",
-        stand: "I had a plan when I arrived and none when I left. On hills, trams, and taking fewer photographs.",
         p1: "The plan was a list of viewpoints; what I actually did was walk until my feet chose the route.",
         p2: "Lisbon is built on hills, so every walk is a negotiation. Uphill is slow and short of breath; downhill is quick and full of light. After three days I stopped checking the map and started following trams, cats and the smell of grilled sardines.",
         figTag: "[ photo ]", figAlt: "[Describe this photograph: what is in it and why it matters]", figCap: "[Photo title] · Lisbon, 2026",
@@ -330,7 +309,7 @@ class Component extends DCLogic {
         p4: "What I’m bringing home is a habit, not a souvenir: walk first, decide later.",
         place: "Lisbon",
         pnLabel: "More entries", prev: "Previous", prevTitle: "Why I shoot one roll a week", allLabel: "All entries", allTitle: "Back to the journal",
-        commentsTitle: "Comments (2)", commentsNote: "Comments appear after I’ve read them. I sometimes reply.", replyFrom: "Filippo replied",
+        commentsTitle: "Comments (2)", commentsNote: "Comments appear after I’ve read them. I sometimes reply.", replyFrom: "Phil replied",
         replyLab: "Reply", formTitle: "Your thoughts? Please leave a reply:", formIntro: "Write in English or Italian, whichever comes naturally.",
         fName: "Name", fEmail: "Email", fEmailHint: "Never shown — only so I can reply.", fComment: "Comment", fSend: "Send",
         fNote: "I read every comment before it appears here.", fThanks: "Thanks! I read every comment before it appears, so yours will show up soon.",
@@ -340,11 +319,10 @@ class Component extends DCLogic {
       },
       it: {
         skip: "Vai al contenuto", navLabel: "Principale", journal: "Diario", photos: "Foto", now: "Now", about: "Chi sono",
-        otherLangName: "English", dark: "Scuro", topic: "Viaggi", aboutEntry: "Informazioni su questa voce",
-        mPublished: "Pubblicato", mWritten: "Scritto in", mWrittenVal: "italiano", mVersion: "Questa versione", mVersionVal: "originale", mRead: "Lettura", mReadVal: "8 min", mComments: "Commenti",
+        otherLangName: "English", dark: "Tema scuro", aboutEntry: "Informazioni su questa voce",
+        mDate: "21 ottobre 2026", mReadVal: "8 min di lettura",
         title: "Tre settimane a Lisbona, quasi sempre a piedi",
         labelText: "Scritto in italiano", labelLink: "Read in English →",
-        stand: "Avevo un piano all’arrivo e nessuno alla partenza. Di colline, tram e del fotografare meno.",
         p1: "Il piano era una lista di belvedere; quello che ho fatto davvero è stato camminare finché i piedi non sceglievano la strada.",
         p2: "Lisbona è costruita sulle colline, quindi ogni passeggiata è una trattativa. In salita si va piano e col fiato corto; in discesa si va veloci e pieni di luce. Dopo tre giorni ho smesso di guardare la mappa e ho iniziato a seguire i tram, i gatti e l’odore delle sardine alla griglia.",
         figTag: "[ foto ]", figAlt: "[Descrivi questa foto: cosa mostra e perché conta]", figCap: "[Titolo] · Lisbona, 2026",
@@ -366,6 +344,7 @@ class Component extends DCLogic {
     return {
       t: STR[lang], lang: lang,
       otherLang: lang === "en" ? "it" : "en",
+      otherLangCode: lang === "en" ? "IT" : "EN",
       marker: lang === "en" ? "IT→EN" : "IT",
       themeClass: dark ? "dark" : "light",
       darkPressed: dark ? "true" : "false",
