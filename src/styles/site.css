@@ -69,7 +69,10 @@
   src: url("/_assets/fonts/crimson-pro-italic.woff2") format("woff2");
   font-weight: 300 400;
   font-style: italic;
-  font-display: swap;
+  /* Not swap: the italic is not preloaded and the fallbacks below are matched to the upright face only, so a late swap
+   * reflows the line the italic words sit in (the Home statement lost a line: CLS 0.10, budget 0.05). With optional
+   * the page keeps the fallback italic if the file is late; the next page view has it from the cache. */
+  font-display: optional;
 }
 
 /* Metric-matched fallbacks: until the web font arrives, a system serif is

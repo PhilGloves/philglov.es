@@ -69,6 +69,11 @@ sentence, the same space before the content.
 - **`jobTitle` in the Person JSON-LD** ("Photographer and developer", `src/data/site.json`) stays: it is for search
   engines, not a visible line, and the SEO section of the guide asks for it.
 - **About on desktop**: the text beside the portrait (see above), so the 80 px holds there.
+- **Italic font: `font-display: optional`** (was `swap`). With the role line gone, more of the Home photograph is in the
+  first screen, and the late swap to Crimson Pro Italic, which is narrower than the fallback's oblique, took a line out of
+  the statement and moved the photograph 41 px: Lighthouse CLS 0.10 on Home against the budget of 0.05. With `optional`
+  the page keeps the fallback italic when the file is late (the italic is not preloaded) and the next page view has the real
+  one from the cache. Home's CLS is 0.0006 after the change (throttled mobile run). The upright font is still `swap`.
 - **Decision numbers**: 0022 (the QA matrix) is still on its own branch.
 
 ## Tests
