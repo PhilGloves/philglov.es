@@ -2,12 +2,12 @@
 
 Tick each release (copy this file into the release notes and fill it in). The automated suites cannot do these.
 
-Release: ______  Date: ______  Tester: ______  Build / commit: ______
+Release: ______ Date: ______ Tester: ______ Build / commit: ______
 
 ## Publishing from a real phone, on a throttled connection
 
 - [ ] Phone on mobile data or a throttled Wi-Fi (about 1.6 Mbit/s, 150 ms). Open `/admin/write` (Access login works).
-- [ ] Write a short entry with a title, a topic and one photo (JPEG, straight from the camera roll). The upload shows
+- [ ] Write a short entry with a title and one photo (JPEG, straight from the camera roll). The upload shows
       progress; switch to airplane mode for ten seconds in the middle and back: it retries by itself.
 - [ ] Lock the phone and come back after five minutes: the text is still there.
 - [ ] Publish. The page says where the entry will be live. The pull request merges by itself and the entry is online in

@@ -207,14 +207,10 @@ Only runtime dependency allowed: `jose`. No framework. Stay within 10 ms CPU per
 Extend `tests/e2e/` and `lighthouserc.json` (the Lead's smoke tests are the seed) to the full matrix in the guide:
 every page × en/it × light/dark × 1440/1024/768/390/320 × JS on/off in Chromium; smoke subset in Firefox and WebKit.
 
-- [ ] Q1 console and network (no errors, warnings, failed requests, ≥ 400, or other hosts) — rule 2 and 11. Q2 axe +
-      keyboard. Q3 visual regression, no horizontal scroll at 320 px and 200 % zoom. Q4 theme. Q5 i18n: twin or graceful
-      fallback; the switch goes to the twin; lang, hreflang (pairs only when both exist) and the label are right for
-      originals, translations and one-language entries. Q6 forms against a local Worker. Q7 html-validate + link crawl.
-      Q8 Lighthouse (95 floor, LCP < 2 s, CLS < 0.05, budgets) and an SEO run against a `SITE_ENV=production` build.
-      Q9 headers. Q10 images. Q11 SEO. Q12 phone publishing (writing the other-language version of an existing entry
-      creates its twin with the right `originalLang`). Q13 print and cookies. Q14 rights and privacy. Q15 live-site check
-      through an Access service token.
+- [x] Q1–Q15 written 2026-11-15, see [0022](docs/decisions/0022-qa-matrix.md), `tests/e2e/qa/` and `QA-REPORT.md`. Open
+      findings are BUG-1 to BUG-8 in `docs/qa/bug-reports.md` (each with a `test.fail()` test where a browser can see
+      it); the launch gate (`pnpm test:launch`) fails until O1 is answered. Not run yet: Q8's Lighthouse on this
+      machine (Q17), Q15 against staging (needs an Access service token), the manual checks.
 - [x] Q16 Lighthouse stability on CI: `/`, the first URL measured, failed performance in 2 of 18 CI attempts on
       2026-11-11 (0.81, then 0.87 with TBT 522 ms on a page with no JavaScript) and passed on re-run. Owner decision
       2026-11-12: three runs per URL, every budget judged on the median, budgets unchanged, every report kept

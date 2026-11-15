@@ -28,3 +28,29 @@ Firefox and WebKit, fifteen suites, a live-site check, and a run that passes rep
 **Rejected.** Retries (they hide the flakiness the brief forbids). Visual baselines in CI (fonts render differently per
 operating system, so baselines are made and checked on the same one). Reading the CSP-blocked request as a failure
 (Chromium reports `csp` and nothing leaves the machine; the test asserts exactly that).
+
+## CI: one required check, two scopes
+
+The ruleset "Protect main" requires one status check, `Test` (checked with the GitHub API, 2026-11-15; "strict" is
+off). Publishing from the phone waits for it, so it must stay fast, and the QA matrix is about 20 minutes. Splitting into two jobs would mean changing the ruleset to require the second one as well, which is the owner's switch, so the split is **inside** `Test`, in a step that reads the diff:
+
+- **Fast scope:** the change touches only `src/content/journal/{en,it}/<slug>.md` (what the publisher writes; the same
+  pattern as the publisher guard). Runs: lint, the build with its content check, html-validate, and the Chromium core
+  suite (`E2E_SCOPE=core`: everything in `tests/e2e` except `tests/e2e/qa`, JavaScript on and off). Measured: the core
+  suite is 66 s on this laptop.
+- **Full scope:** any other change, and any trigger that is not a pull request or a push. Everything in the fast scope
+  plus typecheck, unit, Worker tests, the QA matrix, Firefox and WebKit, Lighthouse, and the checks on a
+  `SITE_ENV=production` build (SEO, rights; the launch gate informs without blocking until owner question O1 is
+  answered). The production build runs after the `dist` artifact is saved, so no deploy ever gets it.
+- **After a publish:** the push to `main` of an entry-only merge takes the fast scope too, so the entry goes live
+  without waiting; the job `full-qa-after-publish` then runs the full matrix on `main` in parallel. It gates nothing
+  and is not a required check; a red cross on `main` is its signal.
+
+## The stand-ins: no test can open a real pull request
+
+Every test that publishes talks to a GitHub stand-in: `tests/e2e/admin-worker.ts` (browser tests: `admin-write`,
+`qa/phone`, `qa/phone-throttled`) and `outboundService` in `vitest.config.ts` (Worker tests). Both answer
+`api.github.com` themselves and refuse every other host (the browser tests' server records the refusal and its
+`close()` fails the test that caused it; `qa/phone.spec.ts` proves it). The App credentials in a test are a key pair
+made for that run. CI's `Test` job has no GitHub App secret, and the local `.dev.vars` has empty GitHub values, so
+`pnpm preview` answers "Publishing is not set up".
