@@ -25,8 +25,9 @@ NON-NEGOTIABLES
    entry URLs (philglov.es/alps, philglov.es/it/alps). No trailing slashes. Never redirect by browser language. Every
    page has lang and originalLang in frontmatter; twins are the files with the same name in the en and it folders, and a
    page is a translation when its lang differs from its originalLang. Both versions are written by hand: no AI
-   translation, no translation script, API or key, anywhere. An entry may exist in one language only. Every page shows
-   the "originally written in" label.
+   translation, no translation script, API or key, anywhere. An entry may exist in one language only. Every entry and
+   the legal pages (Rights, Privacy) show the "originally written in" label; About and Now do not
+   ([0023](docs/decisions/0023-simplification-pass.md)).
 6. Accessibility: WCAG 2.2 AA, AAA body-text contrast, semantic HTML, skip link, visible focus, full keyboard use,
    descriptive alt text.
 7. Responsive and art-directed separately at 1440, 1024, 768 and 390 px, and fluid in between down to 320 px.
@@ -108,6 +109,11 @@ WAY OF WORKING
   `/admin/write` (slug and language fixed, refused if changed on GitHub meanwhile); O5 settled (an expired login
   reloads the page); view transitions removed, Q19 closed ([0021](docs/decisions/0021-publishing-goes-live.md)).
   "Allow auto-merge" is on in the repository settings.
+- 2026-11-15: simplification pass ([0023](docs/decisions/0023-simplification-pass.md)): the header's two controls are
+  round (an "IT"/"EN" link and a moon/sun button, both icons inline, CSS picks one); an entry opens with its text and
+  ends with a details block (number, date, reading time, the label); About and Now lose the label; **topics are gone**
+  (no field, pages, filter, column, category; old `tags:` lines are tolerated and ignored); replies read "Phil" on
+  English pages. The two prototypes in `docs/design/` were replaced by the owner.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -189,6 +195,10 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
 - Pages: the form field names and Worker slots are a contract (0016, 0018); keep them. The only inline JS is the theme
   script; the only public script file is `src/scripts/forms.ts` (`vite.build.assetsInlineLimit: 0` keeps it external).
   Both together stay ≤ 1,536 raw bytes on every page (`tests/unit/build-output.test.ts`). Footnote arrows and labels are fixed in `scripts/lib/footnotes.ts`.
+- Header controls: `.rbtn` (round, 44 px on phones, 40 px from tablet up). The theme toggle holds both inline SVG icons
+  and keeps a fixed `aria-label`; never change its text or the theme script to show the state. The language link
+  shows the code and carries the language name as `aria-label`. There are no topics: do not add a `tags` field, a
+  topic list or per-topic pages without a new decision.
 - Photos: draw them only with `<Photo>` (never a bare `<img>`); alt text in the page language, hand-written. Pass
   `sizes` from `src/lib/photo-sizes.ts` and `priority` on the first image of a page only. Per-photo colours are
   generated classes (`.c-<hex>`), never inline styles. Every output image gets rights metadata and must carry no GPS:

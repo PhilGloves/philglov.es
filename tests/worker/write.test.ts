@@ -82,7 +82,6 @@ describe("the entry file", () => {
     slug: "lisbona-due",
     lang: "it" as const,
     description: 'Una frase con "virgolette".',
-    tags: ["travel"],
     body: "Testo.\n\n## Titoletto",
     photos: [photo],
   };
@@ -93,12 +92,10 @@ describe("the entry file", () => {
     expect(slugFromTitle("???")).toBe("");
   });
 
-  test("valid input passes; reserved slugs, unknown topics and photos without alt text do not", () => {
+  test("valid input passes; reserved slugs and photos without alt text do not", () => {
     expect(validateEntry(base, ["about"])).toEqual({});
     expect(validateEntry({ ...base, slug: "about" }, ["about"]).slug).toMatch(/reserved/);
     expect(validateEntry({ ...base, slug: "Bad Slug" }, []).slug).toBeDefined();
-    expect(validateEntry({ ...base, tags: [] }, []).tags).toBeDefined();
-    expect(validateEntry({ ...base, tags: ["sport"] }, []).tags).toBeDefined();
     expect(validateEntry({ ...base, description: "" }, []).description).toBeDefined();
     expect(validateEntry({ ...base, photos: [{ ...photo, alt: "" }] }, []).photos).toMatch(/alt text/);
     expect(validateEntry({ ...base, photos: [{ ...photo, key: "other/tram.jpg" }] }, []).photos).toBeDefined();
@@ -114,7 +111,6 @@ describe("the entry file", () => {
         "lang: it",
         "originalLang: it",
         'description: "Una frase con \\"virgolette\\"."',
-        "tags: [travel]",
         "comments: true",
         "---",
         "",
@@ -128,15 +124,16 @@ describe("the entry file", () => {
       description: base.description,
       lang: "it",
       originalLang: "it",
-      tags: ["travel"],
     });
+    // Topics are gone (decision 0023): nothing writes a tags line.
+    expect(text).not.toContain("tags");
   });
 
-  test("the slug falls back to the title, and duplicate topics collapse", () => {
-    const form = new URLSearchParams(
-      "title=Alpi+d%27inverno&slug=&lang=it&tags=travel&tags=travel&body=x&description=y",
-    );
-    expect(readEntry(form)).toMatchObject({ slug: "alpi-d-inverno", tags: ["travel"] });
+  test("the slug falls back to the title; a posted topic is ignored", () => {
+    const form = new URLSearchParams("title=Alpi+d%27inverno&slug=&lang=it&tags=travel&body=x&description=y");
+    const entry = readEntry(form);
+    expect(entry).toMatchObject({ slug: "alpi-d-inverno" });
+    expect(entry).not.toHaveProperty("tags");
   });
 });
 
@@ -189,7 +186,6 @@ describe("drafts and publishing", () => {
       slug: "a-new-one",
       lang: "en",
       description: "One sentence.",
-      tags: "thoughts",
       body: "Hello.",
     });
     expect(res.status).toBe(200);
@@ -233,7 +229,6 @@ describe("drafts and publishing", () => {
       slug: single.slug,
       lang,
       description: "Una frase.",
-      tags: "photography",
       body: "Testo.",
     });
     expect(res.status).toBe(200);
@@ -253,7 +248,6 @@ describe("drafts and publishing", () => {
       slug,
       lang: "en",
       description: "x",
-      tags: "travel",
       body: "x",
     });
     expect(res.status).toBe(409);
@@ -272,7 +266,6 @@ describe("drafts and publishing", () => {
       slug: "with-photo",
       lang: "en",
       description: "x",
-      tags: "travel",
       body: "x",
       photo_key: "with-photo/missing.jpg",
       photo_alt: "A missing photo",
@@ -327,7 +320,6 @@ const newEntry = {
   slug: "a-new-one",
   lang: "en",
   description: "One sentence.",
-  tags: "thoughts",
   body: "Hello.",
 };
 
@@ -465,7 +457,6 @@ describe("editing a published entry", () => {
       body: "First paragraph, rewritten.",
       ...over,
     });
-    form.append("tags", "travel");
     for (const [key, alt, caption] of photos
       ? [
           ["phone-edit/square.jpg", "A square [at dawn]", 'Piazza, "early"'],
@@ -485,14 +476,14 @@ describe("editing a published entry", () => {
   const uploaded = () =>
     Promise.all(["phone-edit/square.jpg", "phone-edit/river.png"].map((k) => env.ORIGINALS.put(k, "x")));
 
-  test("opens in the same form: title, topics, text, photos with alt text and captions; slug and language fixed", async () => {
+  test("opens in the same form: title, text, photos with alt text and captions; slug and language fixed", async () => {
     const html = await open();
     expect(html).toContain("<title>Edit · philglov.es admin</title>");
     expect(html).toContain('value="Città on foot"');
     expect(html).toContain('value="A walk."');
-    expect(html).toMatch(/value="travel"\s+checked/);
-    expect(html).toMatch(/value="photography"\s+checked/);
-    expect(html).not.toMatch(/value="thoughts"\s+checked/);
+    // No topics (decision 0023): the file's old tags line is not shown and not kept.
+    expect(html).not.toContain('name="tags"');
+    expect(html).not.toContain("Topics");
     // The text keeps the inline photo; the two photos after it become photo items.
     expect(html).toContain(
       "First paragraph.\n\nSecond, with ![an inline photo](../../../.originals/phone-edit/inline.jpg) inside.</textarea",
@@ -536,7 +527,6 @@ describe("editing a published entry", () => {
         "lang: en",
         "originalLang: it",
         'description: "A longer walk."',
-        "tags: [travel]",
         "comments: false",
         "---",
         "",
@@ -639,7 +629,6 @@ describe("reading an entry back", () => {
     slug: "s",
     lang: "en",
     description: "D",
-    tags: ["travel"],
     body: "Text.\n\nMore text.",
     photos: [
       { key: "s/a.jpg", alt: "Brackets [ ] and \\ slash", caption: 'Quote " and \\' },
@@ -658,10 +647,11 @@ describe("reading an entry back", () => {
     expect(splitPhotos("![x](https://example.com/a.jpg)", "s").photos).toEqual([]);
   });
 
-  test("comments and both forms of the topic list are read; comments are written as found", () => {
+  test("comments are read; an old tags line, in either form, is ignored; comments are written as found", () => {
     const block = "---\ntitle: T\ntags:\n  - travel\n  - photography\ncomments: false\n---\nBody";
-    expect(parseEntry(block)).toMatchObject({ tags: ["travel", "photography"], comments: false, body: "Body" });
-    expect(parseEntry("---\ntags: [a, b]\ncomments: true\n---\n")).toMatchObject({ tags: ["a", "b"], comments: true });
+    expect(parseEntry(block)).toMatchObject({ comments: false, body: "Body" });
+    expect(parseEntry(block)).not.toHaveProperty("tags");
+    expect(parseEntry("---\ntags: [a, b]\ncomments: true\n---\n")).toMatchObject({ comments: true });
     expect(entryMarkdown(input, "en", "2026-11-13", false)).toContain("\ncomments: false\n");
     expect(entryMarkdown(input, "en", "2026-11-13")).toContain("\ncomments: true\n");
   });

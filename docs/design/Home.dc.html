@@ -41,10 +41,11 @@ body{margin:0}
 .nav ul{list-style:none;margin:0;padding:0;display:flex;gap:32px;flex-wrap:wrap}
 .nav a{font-size:19px;font-weight:400}
 .nav a[aria-current="page"]{border-bottom:2px solid var(--moss);padding-bottom:2px}
-.tools{grid-column:10/span 3;display:flex;justify-content:flex-end;align-items:center;gap:18px}
-.tools a{font-size:18px;font-weight:400}
-.tbtn{font:inherit;font-size:16px;font-weight:600;background:none;color:var(--ink);border:1px solid var(--ink);border-radius:999px;padding:0 16px;min-height:36px;cursor:pointer}
-.tbtn[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.tools{grid-column:10/span 3;display:flex;justify-content:flex-end;align-items:center;gap:10px}
+.rbtn{font:inherit;font-size:15px;font-weight:600;letter-spacing:.04em;width:40px;height:40px;display:inline-grid;place-items:center;padding:0;background:none;color:var(--ink);border:1px solid var(--ink);border-radius:50%;cursor:pointer}
+.rbtn:hover{color:var(--moss);border-color:var(--moss)}
+.rbtn svg{width:18px;height:18px}
+.bx.light .i-sun,.bx.dark .i-moon{display:none}
 
 /* hero */
 .hero{padding:88px 0 56px}
@@ -84,7 +85,7 @@ body{margin:0}
 .n{font-weight:600;font-size:23px;width:5rem;font-variant-numeric:tabular-nums}
 .dt{width:9rem;color:var(--muted)}
 .t{font-size:22px;font-weight:400;line-height:1.25}
-.tp,.ln,.mn{font-size:17px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.ln,.mn{font-size:17px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
 .ln{font-size:14px;letter-spacing:.06em}
 .ln span{color:var(--moss);font-weight:600}
 .mn{text-align:right}
@@ -127,7 +128,6 @@ body{margin:0}
 .hero{padding:64px 0 44px}
 .latest h3,.latest .ex{grid-column:1/-1}
 .latest h3{margin-bottom:16px}
-.tp{display:none}
 .nav{grid-column:1/-1;order:3;margin-top:14px}
 .name{grid-column:1/span 6}
 .tools{grid-column:7/span 6}
@@ -136,6 +136,7 @@ body{margin:0}
 @container (max-width: 640px){
 .page{padding:0 20px}
 .g{column-gap:16px}
+.rbtn{width:44px;height:44px}
 .bx{font-size:18px}
 .nav ul{gap:22px}
 .hero{padding:44px 0 32px}
@@ -173,8 +174,8 @@ body{margin:0}
 </ul>
 </nav>
 <div class="tools">
-<a href="#main" lang="it">Italiano</a>
-<button type="button" class="tbtn" aria-pressed="{{darkPressed}}" onClick="{{toggleDark}}">Dark</button>
+<a class="rbtn" href="#main" lang="it" hreflang="it" aria-label="Italiano">IT</a>
+<button type="button" class="rbtn" aria-pressed="{{darkPressed}}" aria-label="Dark theme" onClick="{{toggleDark}}"><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"></path></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"></path></svg></button>
 </div>
 </header>
 </div>
@@ -203,7 +204,7 @@ body{margin:0}
 </div>
 <div class="con">
 <article class="latest" aria-labelledby="lt-h">
-<p class="meta fine"><span>No. 042</span><span>2026-10-21</span><span>Travel</span><b>IT→EN</b></p>
+<p class="meta fine"><span>No. 042</span><span>2026-10-21</span><b>IT→EN</b></p>
 <h3 id="lt-h"><a href="Article.dc.html">Three weeks in Lisbon, mostly on foot</a></h3>
 <div class="ex">
 <p>I had a plan when I arrived and none when I left. The plan was a list of viewpoints; what I actually did was walk until my feet chose the route.</p>
@@ -213,7 +214,7 @@ body{margin:0}
 <table class="idx">
 <caption class="up">Earlier entries</caption>
 <thead class="up">
-<tr><th scope="col">No.</th><th scope="col">Date</th><th scope="col">Title</th><th scope="col">Topic</th><th scope="col">Lang</th><th scope="col" style="text-align: right">Min</th></tr>
+<tr><th scope="col">No.</th><th scope="col">Date</th><th scope="col">Title</th><th scope="col">Lang</th><th scope="col" style="text-align: right">Min</th></tr>
 </thead>
 <tbody>
 <sc-for list="{{rows}}" as="e" hint-placeholder-count="7">
@@ -221,14 +222,13 @@ body{margin:0}
 <td class="n">{{e.n}}</td>
 <td class="dt fine">{{e.date}}</td>
 <td class="t"><a href="Article.dc.html">{{e.title}}</a></td>
-<td class="tp">{{e.topic}}</td>
 <td class="ln"><span>{{e.mark}}</span></td>
 <td class="mn">{{e.min}}</td>
 </tr>
 </sc-for>
 </tbody>
 </table>
-<p class="idx-more"><a class="go" href="#journal">Full index, by year and topic →</a></p>
+<p class="idx-more"><a class="go" href="#journal">Full index, by year →</a></p>
 </div>
 </section>
 </div>
@@ -310,13 +310,13 @@ class Component extends DCLogic {
       formVisible: !s.sent,
       submit: function (ev) { if (ev && ev.preventDefault) { ev.preventDefault(); } self.setState({ sent: true }); },
       rows: [
-        { n: "041", date: "2026-10-09", title: "Why I shoot one roll a week", topic: "Photography", mark: "EN", min: "5" },
-        { n: "040", date: "2026-09-27", title: "Rebuilding this site with almost no JavaScript", topic: "Projects", mark: "EN", min: "11" },
-        { n: "039", date: "2026-09-12", title: "Notes on getting lost on purpose", topic: "Thoughts", mark: "IT→EN", min: "4" },
-        { n: "038", date: "2026-08-30", title: "A month without a phone camera", topic: "Photography", mark: "EN", min: "6" },
-        { n: "037", date: "2026-08-14", title: "My grandmother’s recipe book and version control", topic: "Projects", mark: "IT→EN", min: "7" },
-        { n: "036", date: "2026-07-28", title: "Night train to Vienna", topic: "Travel", mark: "IT→EN", min: "9" },
-        { n: "035", date: "2026-07-03", title: "Things I stopped buying", topic: "Thoughts", mark: "EN", min: "3" }
+        { n: "041", date: "2026-10-09", title: "Why I shoot one roll a week", mark: "EN", min: "5" },
+        { n: "040", date: "2026-09-27", title: "Rebuilding this site with almost no JavaScript", mark: "EN", min: "11" },
+        { n: "039", date: "2026-09-12", title: "Notes on getting lost on purpose", mark: "IT→EN", min: "4" },
+        { n: "038", date: "2026-08-30", title: "A month without a phone camera", mark: "EN", min: "6" },
+        { n: "037", date: "2026-08-14", title: "My grandmother’s recipe book and version control", mark: "IT→EN", min: "7" },
+        { n: "036", date: "2026-07-28", title: "Night train to Vienna", mark: "IT→EN", min: "9" },
+        { n: "035", date: "2026-07-03", title: "Things I stopped buying", mark: "EN", min: "3" }
       ],
       shots: [
         { cls: "w2", tone: "#2F4550", cap: "Lisbon · 2026" },

@@ -10,7 +10,7 @@ Status: Accepted · 2026-11-11 · Owner decision · Supersedes [0011](0011-ci-tr
   key, secret or dependency, and none may be added.
 - The frontmatter has no `translation` field. A page is the original when `lang` equals `originalLang`, and the
   owner's own translation otherwise. The schema is `.strict()`, so a leftover `translation:` key fails the build.
-- An entry may exist in one language only. It is still listed in the other language's journal index and topic pages,
+- An entry may exist in one language only. It is still listed in the other language's journal index (topic pages were removed by 0023),
   marked `IT only` (on English pages) or `solo EN` (on Italian pages), linking to the version that exists with the
   right `lang` attribute. It appears only in its own language's feed.
 - `hreflang` pairs (en, it, x-default) are emitted only when both versions exist.

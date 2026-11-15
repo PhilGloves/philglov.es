@@ -1,9 +1,8 @@
 /** Feeds, sitemap and the share-image manifest, built from the collections. */
 import { getPages, getSeries, getSlots } from "./collections.ts";
-import { isoDate, journalPath, pathFor, slugOf, type Locale } from "./entries.ts";
-import { topicName, t } from "../i18n";
+import { isoDate, pathFor, slugOf, type Locale } from "./entries.ts";
+import { t } from "../i18n";
 import { absolute } from "./seo.ts";
-import { TOPICS } from "./topics.ts";
 import { rssFeed, sitemapXml, type SitemapUrl } from "./xml.ts";
 
 /** One feed per language; an entry appears only in the feed of each language it exists in. */
@@ -20,7 +19,6 @@ export async function feedFor(locale: Locale): Promise<string> {
       link: absolute(pathFor(locale, `/${slot.slug}`)),
       description: v.entry.data.description,
       date: slot.date,
-      categories: v.entry.data.tags.map((tag) => topicName(locale, tag)),
     }));
   return rssFeed({
     title: t(locale, "feedTitle"),
@@ -51,7 +49,6 @@ export async function sitemapFor(): Promise<string> {
 
   urls.push(...pair("/", "/it"));
   for (const rest of ["/journal", "/photos"]) urls.push(...both(rest));
-  for (const tag of TOPICS) urls.push(...pair(journalPath("en", tag), journalPath("it", tag)));
 
   const slots = await getSlots();
   for (const slot of slots) {

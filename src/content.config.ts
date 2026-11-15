@@ -1,7 +1,6 @@
 import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
-import { TOPICS } from "./lib/topics.ts";
 
 /**
  * The content schema is the contract: an entry missing a field fails the
@@ -15,9 +14,14 @@ import { TOPICS } from "./lib/topics.ts";
  */
 
 export const LOCALES = ["en", "it"] as const;
-export { TOPICS } from "./lib/topics.ts";
 
 const locale = z.enum(LOCALES);
+
+/**
+ * Topics were removed on 2026-11-15 (decision 0023). Older files may still carry a `tags:` line, so the strict
+ * schemas accept one; nothing reads it, and the publisher no longer writes it.
+ */
+const legacyTags = z.array(z.string()).optional();
 
 /**
  * Both language versions are written by hand; there is no `translation`
@@ -38,7 +42,7 @@ const journal = defineCollection({
   schema: z
     .object({
       ...languageFields,
-      tags: z.array(z.enum(TOPICS)).min(1),
+      tags: legacyTags,
       comments: z.boolean(),
     })
     .strict(),
@@ -50,7 +54,7 @@ const pages = defineCollection({
   schema: z
     .object({
       ...languageFields,
-      tags: z.array(z.enum(TOPICS)).default([]),
+      tags: legacyTags,
       comments: z.boolean().default(false),
     })
     .strict(),

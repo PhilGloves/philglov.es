@@ -42,7 +42,6 @@ pnpm lint && pnpm typecheck && pnpm build && pnpm validate:html && pnpm test:uni
    date: 2026-10-29
    lang: it # language of THIS file
    originalLang: it # language you actually wrote it in (same as lang for an original)
-   tags: [travel, photography] # travel | photography | projects | thoughts
    comments: true
    ```
 
@@ -60,8 +59,8 @@ Everything is written by hand; nothing on this site is machine-translated, and t
   `pnpm new lisbona --lang en` creates `src/content/journal/en/lisbona.md` with `lang: en` and `originalLang` taken
   from the Italian file _(ticket C4)_. On the phone, use `/admin/write` with the same slug; it shows the existing text
   for reference _(ticket B8)_.
-- A page is your translation when `lang` differs from `originalLang`. Its label reads "Originally written in Italian ·
-  Read the original →".
+- A page is your translation when `lang` differs from `originalLang`. Its label, in the details block at the end of
+  the entry, reads "Originally written in Italian · Read the original →".
 - Until the other version exists, the entry says "Not yet available in Italian" (or "Non ancora disponibile in
   inglese"), is listed in the other language's journal index as `IT only` / `solo EN`, and has no `hreflang`
   pair. Write photo alt text and captions in the other language at the same time.

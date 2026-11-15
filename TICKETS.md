@@ -254,3 +254,15 @@ every page × en/it × light/dark × 1440/1024/768/390/320 × JS on/off in Chrom
       privacy, phone publishing, backup restore, data jurisdiction, Cloudflare dashboard extras). Public repository:
       also check that no secret or personal data is in any commit, branch or pull request. _Done when:
       `SECURITY-REPORT.md` with ranked findings, each re-tested after its fix._
+
+## 9 · Simplification pass (2026-11-15, owner decision, [0023](docs/decisions/0023-simplification-pass.md))
+
+- [x] X1 Header controls: round theme toggle (moon in light, sun in dark; both inline SVG, CSS picks one; fixed name and
+      `aria-pressed`; theme script unchanged, public JavaScript still 1,525 of 1,536 bytes) and round "IT"/"EN"
+      language link (`lang`, `hreflang`, full name as the accessible name); 44 px on phones.
+- [x] X2 Journal entries: text straight under the title; the details (number, date, reading time, label) in a block after
+      the text; the description only in the head, feeds and share cards.
+- [x] X3 No label on About and Now, in both languages.
+- [x] X4 Topics removed everywhere (site, feeds, sitemap, `/admin/write`, `pnpm new`); old `tags:` lines tolerated.
+- [x] X5 Replies signed "Phil" on English pages, "Filippo" on Italian pages.
+- [x] X6 Tests, styleguide and docs updated; prototypes in `docs/design/` replaced by the owner.

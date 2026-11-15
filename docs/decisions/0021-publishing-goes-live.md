@@ -12,7 +12,8 @@ Status: Accepted · 2026-11-13 · Owner decisions · Amends [0017](0017-backend-
    the entry will be live in a few minutes, with the link; a publisher pull request still open after 15 minutes shows
    as "needs attention", with its link.
 2. **Editing a published entry from the phone.** `/admin/write` lists the published entries, newest first, with a
-   search by title. Tapping one loads its title, topics, text, photos, alt text and captions into the same form.
+   search by title. Tapping one loads its title, text, photos, alt text and captions into the same form (topics were removed by
+   [0023](0023-simplification-pass.md)).
    Saving opens a pull request that changes only that entry's file and auto-merges under the same rule. The slug and
    the language cannot be changed while editing, so links never break. If the entry changed on GitHub since it was
    opened, the page says so instead of overwriting it.

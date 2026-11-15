@@ -38,8 +38,7 @@ test("the list of published entries opens one in the same form, slug and languag
   await page.waitForURL(/\/admin\/write\?edit=1&slug=lisbona&lang=en$/);
   await expect(page.getByRole("heading", { name: "Edit", exact: true })).toBeVisible();
   await expect(page.locator("#w-title")).toHaveValue(LISBON);
-  await expect(page.locator('input[name="tags"][value="travel"]')).toBeChecked();
-  await expect(page.locator('input[name="tags"][value="photography"]')).toBeChecked();
+  await expect(page.locator('input[name="tags"]')).toHaveCount(0); // no topics (decision 0023)
   await expect(page.locator("#w-body")).toHaveValue(/^\[Placeholder text in English/);
   await expect(page.locator("#w-slug")).toHaveValue("lisbona");
   await expect(page.locator("#w-slug")).toHaveAttribute("readonly", "");

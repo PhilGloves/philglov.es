@@ -28,7 +28,7 @@ const sections = [
   {
     id: "entry",
     short: "Entry",
-    title: "Journal entry: head, language label, text, figure, previous/next",
+    title: "Journal entry: title, text, figure, details block, previous/next, language label",
     Section: SgArticle,
   },
   {
@@ -37,7 +37,7 @@ const sections = [
     title: "Comments, forms, error and success states",
     Section: SgComments,
   },
-  { id: "photos", short: "Photos", title: "Photos: series, grid, single photo, topics, paging", Section: SgPhotos },
+  { id: "photos", short: "Photos", title: "Photos: series, grid, single photo, paging", Section: SgPhotos },
   { id: "pages", short: "Pages", title: "Page templates: About, Now, legal, 404", Section: SgPages },
   { id: "admin", short: "Admin", title: "Admin: moderation and write from phone", Section: SgAdmin },
 ];
@@ -62,7 +62,7 @@ const sections = [
         each layout. Not linked from anywhere, not indexed.
       </p>
     </div>
-    <ul class="tags">
+    <ul class="chips">
       {sections.map((s) => (
         <li>
           <a href={`#${s.id}`}>{s.short}</a>

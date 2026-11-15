@@ -86,7 +86,6 @@ test("RSS escapes text and lists each item once", () => {
         link: "https://philglov.es/x",
         description: "y",
         date: new Date("2026-10-21"),
-        categories: ["Travel"],
       },
     ],
   });

@@ -4,7 +4,6 @@
  * build checks it again, so a malformed phone entry fails its pull request
  * instead of reaching the site.
  */
-import { TOPICS } from "../../src/lib/topics.ts";
 import type { Lang } from "./manifest.ts";
 import { clean, length } from "./validate.ts";
 
@@ -20,12 +19,11 @@ export interface EntryInput {
   slug: string;
   lang: Lang;
   description: string;
-  tags: string[];
   body: string;
   photos: PhotoRef[];
 }
 
-export type EntryField = "title" | "slug" | "lang" | "description" | "tags" | "body" | "photos";
+export type EntryField = "title" | "slug" | "lang" | "description" | "body" | "photos";
 export type EntryErrors = Partial<Record<EntryField, string>>;
 
 export const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -68,7 +66,6 @@ export function readEntry(form: URLSearchParams): EntryInput {
     slug,
     lang,
     description: clean(form.get("description"), false),
-    tags: form.getAll("tags").filter((t, i, all) => all.indexOf(t) === i),
     body: clean(form.get("body"), true),
     photos: keys.map((key, i) => ({
       key: clean(key, false),
@@ -88,8 +85,6 @@ export function validateEntry(input: EntryInput, taken: readonly string[]): Entr
   else if (taken.includes(input.slug)) errors.slug = `"${input.slug}" is reserved or used by a page.`;
   if (!input.description) errors.description = "Write one sentence for search results and link previews.";
   else if (length(input.description) > 200) errors.description = "Use at most 200 characters.";
-  if (input.tags.length === 0) errors.tags = "Pick at least one topic.";
-  else if (!input.tags.every((t) => (TOPICS as readonly string[]).includes(t))) errors.tags = "Unknown topic.";
   if (!input.body && input.photos.length === 0) errors.body = "Write the text.";
   else if (length(input.body) > 100_000) errors.body = "Use at most 100,000 characters.";
   for (const photo of input.photos) {
@@ -127,7 +122,6 @@ export function entryMarkdown(input: EntryInput, originalLang: Lang, date: strin
     `lang: ${input.lang}`,
     `originalLang: ${originalLang}`,
     `description: ${yamlString(input.description)}`,
-    `tags: [${input.tags.join(", ")}]`,
     `comments: ${comments}`,
     "---",
     "",
@@ -142,7 +136,6 @@ export interface ParsedEntry {
   date: string;
   lang: string;
   originalLang: string;
-  tags: string[];
   /** undefined when the file does not say (the schema then fails the build anyway). */
   comments: boolean | undefined;
   body: string;
@@ -166,19 +159,10 @@ export function parseEntry(text: string): ParsedEntry | null {
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(text);
   if (!match) return null;
   const fields = new Map<string, string>();
-  /** Items of a block list ("tags:" then "  - travel" lines), the other way laptop files write a list. */
-  const items = new Map<string, string[]>();
-  let current = "";
   for (const line of (match[1] ?? "").split(/\r?\n/)) {
     const m = /^([A-Za-z]+):\s*(.*)$/.exec(line);
-    const item = /^\s+-\s+(.*)$/.exec(line);
-    if (m?.[1]) {
-      current = m[1];
-      fields.set(current, m[2] ?? "");
-    } else if (item && current) items.set(current, [...(items.get(current) ?? []), item[1] ?? ""]);
+    if (m?.[1]) fields.set(m[1], m[2] ?? "");
   }
-  const inline = /^\[(.*)\]$/.exec((fields.get("tags") ?? "").trim())?.[1];
-  const tags = inline !== undefined ? inline.split(",") : (items.get("tags") ?? []);
   const comments = (fields.get("comments") ?? "").trim();
   return {
     title: unquote(fields.get("title") ?? ""),
@@ -186,7 +170,6 @@ export function parseEntry(text: string): ParsedEntry | null {
     date: (fields.get("date") ?? "").trim(),
     lang: (fields.get("lang") ?? "").trim(),
     originalLang: (fields.get("originalLang") ?? "").trim(),
-    tags: tags.map((t) => unquote(t)).filter(Boolean),
     comments: comments === "true" ? true : comments === "false" ? false : undefined,
     body: (match[2] ?? "").replace(/^\n+/, "").trimEnd(),
   };
