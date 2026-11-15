@@ -2,7 +2,11 @@
 import LanguageLabel from "../components/LanguageLabel.astro";
 import Photo from "../components/Photo.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
-/** Standalone pages: About, Now, Rights, Privacy (the page template in /styleguide). */
+/**
+ * Standalone pages: About, Now, Rights, Privacy (the page template in /styleguide). One grid for the head and the
+ * text (decision 0025): the intro is the .lede of the journal and photos pages, and on About the portrait stands
+ * beside both on desktop and between the intro and the text on phones and tablets.
+ */
 import { render } from "astro:content";
 import site from "../data/site.json" with { type: "json" };
 import { tf, type Locale } from "../i18n";
@@ -38,7 +42,12 @@ const isRealEmail = /^[^@\s[\]]+@[^@\s[\]]+\.[^@\s[\]]+$/.test(email);
   jsonLd={isAbout ? [personJsonLd(locale)] : []}
 >
   <article class="page">
-    <div class="g top">
+    <div class="g top top--intro">
+      <h1 class="title">{page.data.title}</h1>
+      {showLabel && (
+        <LanguageLabel locale={locale} originalLang={page.data.originalLang} rest={`/${slug}`} hasTwin={hasTwin} />
+      )}
+      <p class="lede">{page.data.description}</p>
       {isAbout && (
         <div class="lab">
           <div class="portrait">
@@ -50,15 +59,6 @@ const isRealEmail = /^[^@\s[\]]+@[^@\s[\]]+\.[^@\s[\]]+$/.test(email);
           </div>
         </div>
       )}
-      <div class="con">
-        <h1 class="title">{page.data.title}</h1>
-        {showLabel && (
-          <LanguageLabel locale={locale} originalLang={page.data.originalLang} rest={`/${slug}`} hasTwin={hasTwin} />
-        )}
-        <p class="stand">{page.data.description}</p>
-      </div>
-    </div>
-    <div class="g">
       <div class="con">
         <div class="prose">
           <Content />

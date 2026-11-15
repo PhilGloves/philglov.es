@@ -73,32 +73,26 @@ test("no heading repeats the page title; the heading order stays valid", async (
   await expect(page.locator("h2", { hasText: /^Foto$/ })).toHaveCount(0);
 });
 
-// Distances in the browser, in px, at the owner's three widths (decision 0024); 1 px is allowed.
+// Distance in the browser, in px, at the owner's three widths (decision 0024); 1 px is allowed. The space above
+// the title is no longer a fixed number: decision 0025 replaced it with the mirror rule (tests/e2e/page-head.spec.ts).
 const targets = [
-  { width: 390, head: 32, intro: 52 },
-  { width: 768, head: 44, intro: 68 },
-  { width: 1440, head: 56, intro: 80 },
+  { width: 390, intro: 52 },
+  { width: 768, intro: 68 },
+  { width: 1440, intro: 80 },
 ] as const;
 
 for (const path of ["/journal", "/photos"]) {
-  test(`${path}: header line to h1, and intro to the section below, at 390, 768 and 1440 px`, async ({ page }) => {
-    for (const { width, head, intro } of targets) {
+  test(`${path}: intro to the section below, at 390, 768 and 1440 px`, async ({ page }) => {
+    for (const { width, intro } of targets) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(path);
       const m = await page.evaluate(() => {
         const rect = (selector: string) => (document.querySelector(selector) as Element).getBoundingClientRect();
         const section = document.querySelector(".hero + .sec") as Element;
         const tops = [...section.children].map((c) => c.getBoundingClientRect().top);
-        return {
-          headLine: rect("header.head").bottom,
-          h1: rect("h1").top,
-          lede: rect(".hero .lede").bottom,
-          content: Math.min(...tops),
-        };
+        return { lede: rect(".hero .lede").bottom, content: Math.min(...tops) };
       });
-      const headGap = m.h1 - m.headLine;
       const introGap = m.content - m.lede;
-      expect(Math.abs(headGap - head), `${path} at ${width}px: header line to h1 is ${headGap}`).toBeLessThanOrEqual(1);
       expect(Math.abs(introGap - intro), `${path} at ${width}px: intro to content is ${introGap}`).toBeLessThanOrEqual(
         1,
       );
@@ -106,10 +100,8 @@ for (const path of ["/journal", "/photos"]) {
   });
 }
 
-test("Home and the other pages keep their spacing", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
+test("only the journal index, the photos index and the series pages use the tighter head", async ({ page }) => {
   await page.goto("/");
-  expect(await page.locator(".hero").evaluate((el) => getComputedStyle(el).paddingTop)).toBe("88px");
   await expect(page.locator(".hero--inner")).toHaveCount(0);
   await page.goto("/photos/lisbon");
   await expect(page.locator(".hero.hero--inner")).toHaveCount(1);

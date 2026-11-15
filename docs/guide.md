@@ -74,7 +74,7 @@ Chosen in the v3 prototype ("Index × v1"), now set in one typeface, Crimson Pro
 - **Titles:** Crimson Pro Light (weight 300), only at 28 px and larger. The home statement, entry titles, the reply heading, and pull quotes in italic.
 - **Text and interface:** Crimson Pro Regular (400), with 600 for emphasis and index numbers. Entry bodies, excerpts, the Now paragraph, the navbar, the journal table and the footer.
 - **Small labels:** the same typeface, small and muted, with tabular figures; column headings are uppercase and tracked. Dates, IT→EN markers, camera data, captions, the domain under your name. Code samples use the reader's system monospace, which adds no download.
-- Budget: 2 files (upright with weights 300–600, italic with weights 300–400), about 66 KB against an 80 KB cap, Latin subset (covers à è é ì ò ù), `font-display: swap`, only the upright file preloaded. Crimson Pro has no arrow glyphs, so interface arrows are one small inline SVG.
+- Budget: 2 files (upright with weights 300–600, italic with weights 300–400), about 66 KB against an 80 KB cap, Latin subset (covers à è é ì ò ù), `font-display: swap` for the upright file and `optional` for the italic, the upright file preloaded on every page and the italic on the Home page only (decision 0025). Crimson Pro has no arrow glyphs, so interface arrows are one small inline SVG.
 - Sizes: interface 19 px desktop / 18 px phone; reading text 22 px desktop / 20 px phone; latest-entry title 42 px; home statement and entry titles up to 64 px (40 px on phones); sections spaced about 72 px apart (56 px tablet, 44 px phone).
 
 ### Colour
@@ -141,7 +141,7 @@ QA treats every row as a failing test, not a goal.
 | HTML per text page | ≤ 30 KB compressed |
 | CSS, whole site | 1 file, ≤ 20 KB compressed |
 | JavaScript | ≤ 1.5 KB (theme toggle only); 0 KB needed for any content or form |
-| Fonts | ≤ 2 files, ≤ 80 KB (Crimson Pro upright 300–600 and italic 300–400; Latin subset; the italic is not preloaded) |
+| Fonts | ≤ 2 files, ≤ 80 KB (Crimson Pro upright 300–600 and italic 300–400; Latin subset; the italic is preloaded on the Home page only) |
 | Text page, first visit total | ≤ 180 KB |
 | Photo page, first screen on a phone | ≤ 400 KB |
 | Largest Contentful Paint | < 2.0 s on throttled "Slow 4G", mid-range Android profile |
