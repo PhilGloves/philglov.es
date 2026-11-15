@@ -1,6 +1,6 @@
 ---
 import Arrows from "../Arrows.astro";
-/** Photos: series cards, a series grid, the single photo page, topic tags and paging. */
+/** Photos: series cards, a series grid, the single photo page and paging. */
 const series = [
   { title: "Lisbon", meta: "12 photos · 2026", tone: "tone-1" },
   { title: "Vienna", meta: "8 photos · 2026", tone: "tone-3" },
@@ -122,28 +122,9 @@ const grid = [
 
   <div class="g sec">
     <div class="lab">
-      <h3>Topics</h3>
+      <h3>Paging</h3>
     </div>
     <div class="con">
-      <ul class="tags">
-        <li>
-          <a href="#sg-top" aria-current="page">
-            All
-          </a>
-        </li>
-        <li>
-          <a href="#sg-top">Travel</a>
-        </li>
-        <li>
-          <a href="#sg-top">Photography</a>
-        </li>
-        <li>
-          <a href="#sg-top">Projects</a>
-        </li>
-        <li>
-          <a href="#sg-top">Thoughts</a>
-        </li>
-      </ul>
       <div class="pager">
         <a class="go" href="#sg-top">
           <Arrows text="← Newer" />

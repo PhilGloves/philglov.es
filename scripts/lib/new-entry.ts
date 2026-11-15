@@ -7,7 +7,6 @@ export interface NewEntryInput {
   slug: string;
   lang: Lang;
   today: string; // YYYY-MM-DD
-  tags?: string[];
   /** Text of the existing file in the other language, if there is one. */
   twinText?: string;
   /** Slugs of standalone pages, which share the /<slug> space. */
@@ -24,13 +23,10 @@ export function newEntry(input: NewEntryInput): string {
     throw new Error(`"${slug}" is a reserved or taken slug`);
 
   let originalLang: Lang = lang;
-  let tags = input.tags?.length ? input.tags : ["thoughts"];
   if (twinText) {
     const orig = field(twinText, "originalLang");
     if (orig !== "en" && orig !== "it") throw new Error("the existing version has no valid originalLang");
     originalLang = orig;
-    const twinTags = /^tags:\s*\[(.*)\]\s*$/m.exec(twinText)?.[1];
-    if (!input.tags?.length && twinTags) tags = twinTags.split(",").map((t) => t.trim());
   }
   const it = lang === "it";
   const title = it ? "Titolo" : "Title";
@@ -50,7 +46,6 @@ export function newEntry(input: NewEntryInput): string {
     `lang: ${lang}`,
     `originalLang: ${originalLang}`,
     `description: "${desc}"`,
-    `tags: [${tags.join(", ")}]`,
     "comments: true",
     "---",
     "",

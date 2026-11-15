@@ -9,7 +9,10 @@ test("an entry with a twin: switch goes to the twin, hreflang pair, own-translat
   await expect(page.locator("p.label a")).toHaveAttribute("href", "/it/lisbona");
   await expect(page.locator("p.label .marker")).toHaveText("ITEN"); // the arrow between is an SVG
   await expect(page.locator("p.label .marker svg.arr")).toHaveCount(1);
-  await expect(page.locator("dl.entry-meta")).toContainText("My translation");
+  // The details block closes the text: number, date in words, reading time, then the label with its link.
+  const about = page.locator("footer.about");
+  await expect(about.locator(".facts")).toContainText(/^No\. \d{3} \d{1,2} [A-Z][a-z]+ 20\d\d \d+ min read$/);
+  await expect(about.locator("p.label")).toHaveCount(1);
 });
 
 test("the Italian original: label, link to the English twin, own number", async ({ page }) => {
@@ -19,7 +22,8 @@ test("the Italian original: label, link to the English twin, own number", async 
   await expect(page.locator("p.label a")).toHaveAttribute("href", "/lisbona");
   await expect(page.locator("p.label a")).toHaveAttribute("lang", "en");
   await expect(page.locator("header a.lang-switch")).toHaveAttribute("href", "/lisbona");
-  await expect(page.locator("dl.entry-meta")).toContainText("002");
+  await expect(page.locator("footer.about .facts")).toContainText("N. 002");
+  await expect(page.locator("footer.about .facts")).toContainText("21 ottobre 2026");
 });
 
 test("an English-only entry: no hreflang, switch goes to the Italian home and says so, label says not yet", async ({
@@ -29,7 +33,9 @@ test("an English-only entry: no hreflang, switch goes to the Italian home and sa
   await expect(page.locator('link[rel="alternate"][hreflang]')).toHaveCount(0);
   const switchLink = page.locator("header a.lang-switch");
   await expect(switchLink).toHaveAttribute("href", "/it");
-  await expect(switchLink).toContainText("not available in Italian");
+  // The visible text is the code; the accessible name is the language and says what the link does here.
+  await expect(switchLink).toHaveText("IT");
+  await expect(switchLink).toHaveAttribute("aria-label", /^Italiano — This page is not available in Italian/);
   await expect(page.locator("p.label")).toContainText("Not yet available in Italian");
 });
 
@@ -39,10 +45,33 @@ test("the Italian journal lists the English-only entry as solo EN, linking to it
   await expect(row.locator("td.ln")).toContainText("solo EN");
   await expect(row.locator("a")).toHaveAttribute("href", "/one-roll");
   await expect(row.locator("a")).toHaveAttribute("lang", "en");
-  await page.goto("/it/journal/photography");
-  await expect(page.locator("tr", { hasText: "An entry that exists in English only" })).toHaveCount(1);
-  await page.goto("/it/journal/projects");
-  await expect(page.locator("tbody tr")).toHaveCount(0);
+});
+
+test("no topics: no topic column, filter or pages", async ({ page }) => {
+  for (const path of ["/journal", "/it/journal"]) {
+    await page.goto(path);
+    await expect(page.locator("th", { hasText: /^(Topic|Argomento)$/ })).toHaveCount(0);
+    await expect(page.locator("ul.tags, .idx .tp")).toHaveCount(0);
+    await expect(page.locator('a[href*="/journal/travel"], a[href*="/journal/photography"]')).toHaveCount(0);
+  }
+  for (const path of ["/journal/travel", "/journal/photography", "/it/journal/projects", "/it/journal/thoughts"]) {
+    const response = await page.goto(path);
+    expect(response?.status(), path).toBe(404);
+  }
+});
+
+test("About and Now carry no 'written in' label, in both languages; the legal pages and entries do", async ({
+  page,
+}) => {
+  for (const path of ["/about", "/now", "/it/about", "/it/now"]) {
+    await page.goto(path);
+    await expect(page.locator("p.label, .marker"), path).toHaveCount(0);
+    await expect(page.locator("h1"), path).toHaveCount(1);
+  }
+  for (const path of ["/rights", "/privacy", "/it/rights", "/lisbona"]) {
+    await page.goto(path);
+    await expect(page.locator("p.label"), path).toHaveCount(1);
+  }
 });
 
 test("feeds: an entry appears only in the feed of each language it exists in", async ({ request }) => {
@@ -52,6 +81,7 @@ test("feeds: an entry appears only in the feed of each language it exists in", a
   expect(en).toContain("https://philglov.es/one-roll");
   expect(it).toContain("https://philglov.es/it/lisbona");
   expect(it).not.toContain("one-roll");
+  expect(en).not.toContain("<category>");
   expect(en).toContain("<language>en</language>");
   expect(it).toContain("<language>it</language>");
 });

@@ -22,6 +22,8 @@ const { Content } = await render(page);
 const path = pathFor(locale, `/${slug}`);
 const current = slug === "now" || slug === "about" ? slug : undefined;
 const isAbout = slug === "about";
+// About and Now carry no "originally written in" label (decision 0023); the legal pages and entries do.
+const showLabel = !(isAbout || slug === "now");
 const email = site.contactEmail;
 const isRealEmail = /^[^@\s[\]]+@[^@\s[\]]+\.[^@\s[\]]+$/.test(email);
 ---
@@ -53,7 +55,9 @@ const isRealEmail = /^[^@\s[\]]+@[^@\s[\]]+\.[^@\s[\]]+$/.test(email);
       </div>
       <div class="con">
         <h1 class="title">{page.data.title}</h1>
-        <LanguageLabel locale={locale} originalLang={page.data.originalLang} rest={`/${slug}`} hasTwin={hasTwin} />
+        {showLabel && (
+          <LanguageLabel locale={locale} originalLang={page.data.originalLang} rest={`/${slug}`} hasTwin={hasTwin} />
+        )}
         <p class="stand">{page.data.description}</p>
       </div>
     </div>

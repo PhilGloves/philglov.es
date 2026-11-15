@@ -328,7 +328,7 @@
   .cap,
   .latest-meta,
   .crumb,
-  .entry-meta,
+  .about,
   .label,
   .idx .dt,
   .hint,
@@ -450,32 +450,61 @@
   .tools {
     display: flex;
     align-items: center;
-    gap: var(--sp-18);
+    gap: var(--sp-10);
   }
 
-  .lang-switch {
-    font-size: var(--fs-18);
-    font-weight: 400;
-  }
-
-  .theme-toggle {
-    min-block-size: 2.25rem;
-    padding-inline: var(--sp-16);
+  /* The two header controls: round, a code or an icon inside. 44 px on phones, 40 px from tablet up. */
+  .rbtn {
+    display: inline-grid;
+    place-items: center;
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+    padding: 0;
     border: 1px solid var(--text);
-    border-radius: var(--radius-pill);
+    border-radius: 50%;
     background: none;
     color: var(--text);
-    font-size: var(--fs-16);
+    font-size: var(--fs-15);
     font-weight: 600;
+    letter-spacing: 0.04em;
     cursor: pointer;
     transition:
-      background-color var(--dur-fast) var(--ease),
-      color var(--dur-fast) var(--ease);
+      color var(--dur-fast) var(--ease),
+      border-color var(--dur-fast) var(--ease);
   }
 
-  .theme-toggle[aria-pressed="true"] {
-    background: var(--text);
-    color: var(--bg);
+  .rbtn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .rbtn svg {
+    inline-size: 1.125rem;
+    block-size: 1.125rem;
+  }
+
+  /* One icon at a time: the moon in light mode, the sun in dark mode. The visitor's choice (data-theme) wins over
+     the system setting, as in tokens.css. No JavaScript is involved. */
+  .theme-toggle .i-sun {
+    display: none;
+  }
+
+  :root[data-theme="dark"] .theme-toggle .i-moon {
+    display: none;
+  }
+
+  :root[data-theme="dark"] .theme-toggle .i-sun {
+    display: block;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-toggle .i-moon {
+      display: none;
+    }
+
+    :root:not([data-theme="light"]) .theme-toggle .i-sun {
+      display: block;
+    }
   }
 
   /* Without JavaScript the toggle can do nothing, so it is not offered. */
@@ -486,6 +515,11 @@
   }
 
   @container page (width > 40rem) {
+    .rbtn {
+      inline-size: 2.5rem;
+      block-size: 2.5rem;
+    }
+
     .nav ul {
       gap: 0 var(--sp-32);
     }
@@ -847,7 +881,7 @@
     }
   }
 
-  /* ===== journal table (home, index, topic pages) ===== */
+  /* ===== journal table (home, index) ===== */
   .idx {
     inline-size: 100%;
   }
@@ -909,16 +943,11 @@
     line-height: 1.25;
   }
 
-  .idx td.tp,
   .idx td.mn {
     color: var(--muted);
     font-size: var(--fs-17);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-  }
-
-  .idx .tp {
-    display: none;
   }
 
   .idx .mn {
@@ -946,12 +975,6 @@
 
   .idx-more {
     margin-block-start: var(--sp-22);
-  }
-
-  @container page (width > 65rem) {
-    .idx .tp {
-      display: table-cell;
-    }
   }
 
   /* stacked rows when the table has little room */
@@ -987,8 +1010,8 @@
     }
   }
 
-  /* year / topic navigation above an index */
-  .tags {
+  /* link chips: the styleguide's list of sections */
+  .chips {
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-8) var(--sp-12);
@@ -997,7 +1020,7 @@
     list-style: none;
   }
 
-  .tags a {
+  .chips a {
     display: inline-flex;
     align-items: center;
     min-block-size: 2.25rem;
@@ -1006,12 +1029,6 @@
     border-radius: var(--radius-pill);
     font-size: var(--fs-17);
     font-weight: 400;
-  }
-
-  .tags a[aria-current="page"] {
-    border-color: var(--text);
-    background: var(--text);
-    color: var(--bg);
   }
 
   .pager {
@@ -1159,26 +1176,6 @@
     color: var(--accent);
   }
 
-  .entry-meta div {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
-    gap: var(--sp-12);
-    padding-block: 0.5625rem;
-    border-block-start: 1px solid var(--rule);
-  }
-
-  .entry-meta dt {
-    color: var(--muted);
-  }
-
-  .entry-meta dd {
-    margin: 0;
-  }
-
-  .entry-meta .moss {
-    color: var(--accent);
-  }
-
   .title {
     max-inline-size: 20ch;
     margin-block-end: var(--sp-20);
@@ -1187,6 +1184,31 @@
     line-height: 1.04;
     letter-spacing: -0.016em;
     text-wrap: balance;
+  }
+
+  /* An entry's title is alone in its head: the text starts right under it. */
+  .top .title:last-child {
+    margin-block-end: 0;
+  }
+
+  /* The details block at the end of an entry's text: number, date, reading time, the label (decision 0023). */
+  .about {
+    max-inline-size: var(--measure);
+    margin-block-start: var(--sp-44);
+    padding-block-start: var(--sp-18);
+    border-block-start: 1px solid var(--rule);
+    color: var(--muted);
+  }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-4) var(--sp-20);
+    margin-block-end: var(--sp-10);
+  }
+
+  .about .label {
+    margin-block-end: 0;
   }
 
   /* "originally written in …" label, with its IT→EN marker */
@@ -1247,12 +1269,6 @@
     .stand {
       font-size: var(--fs-26);
     }
-
-    .entry-meta {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      column-gap: var(--sp-24);
-    }
   }
 
   @container page (width > 65rem) {
@@ -1263,14 +1279,6 @@
     .top .lab {
       order: 0;
       margin-block: 0;
-    }
-
-    .entry-meta {
-      display: block;
-    }
-
-    .entry-meta div:last-child {
-      border-block-end: 1px solid var(--rule);
     }
   }
 
@@ -2248,8 +2256,8 @@
   /* ----- people who ask for it: forced colours ----- */
   @media (forced-colors: active) {
     .btn,
-    .theme-toggle,
-    .tags a {
+    .rbtn,
+    .chips a {
       border: 1px solid ButtonText;
     }
 

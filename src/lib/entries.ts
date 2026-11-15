@@ -29,7 +29,6 @@ export interface EntryLike {
     date: Date;
     lang: Locale;
     originalLang: Locale;
-    tags: readonly string[];
     comments: boolean;
   };
 }
@@ -77,6 +76,15 @@ export function readingMinutes(body: string | undefined): number {
 export const slugOf = (id: string): string => id.slice(id.indexOf("/") + 1);
 
 export const isoDate = (date: Date): string => date.toISOString().slice(0, 10);
+
+/** "21 October 2026" / "21 ottobre 2026": the date in words, as the entry's details block shows it. */
+export const longDate = (locale: Locale, date: Date): string =>
+  date.toLocaleDateString(locale === "en" ? "en-GB" : "it-IT", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 
 /** Groups files into entries (twins share a slug) and numbers them by publication order. */
 export function buildSlots<E extends EntryLike>(entries: readonly E[]): Slot<E>[] {
@@ -168,10 +176,9 @@ export function paginate<T>(items: readonly T[], page: number, size = PAGE_SIZE)
   return { items: items.slice((page - 1) * size, page * size), page, pages };
 }
 
-/** "/journal", "/journal/page/2", "/journal/travel", "/journal/travel/page/2" in one language. */
-export function journalPath(locale: Locale, tag?: string, page = 1): string {
-  const base = `/journal${tag ? `/${tag}` : ""}${page > 1 ? `/page/${page}` : ""}`;
-  return pathFor(locale, base);
+/** "/journal" and "/journal/page/2" in one language. */
+export function journalPath(locale: Locale, page = 1): string {
+  return pathFor(locale, page > 1 ? `/journal/page/${page}` : "/journal");
 }
 
 /** Fills {name} placeholders in an interface string. */

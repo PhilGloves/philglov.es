@@ -1,7 +1,6 @@
 /** getStaticPaths helpers for the four dynamic routes (entries and pages, journal, photos), shared by en and it. */
 import { getPages, getSeries, getSlots } from "./collections.ts";
 import { otherLocale, paginate, rowsFor, slugOf, type Locale } from "./entries.ts";
-import { TOPICS } from "./topics.ts";
 
 /** /<slug> and /it/<slug>: journal entries and standalone pages (about, now, rights, privacy). */
 export async function slugPaths(locale: Locale) {
@@ -19,20 +18,14 @@ export async function slugPaths(locale: Locale) {
   ];
 }
 
-/** /journal, /journal/page/2, /journal/travel, /journal/travel/page/2 … */
+/** /journal, /journal/page/2 … */
 export async function journalPaths(locale: Locale) {
   const rows = rowsFor(await getSlots(), locale);
-  const paths: { params: { rest: string | undefined }; props: { tag: string | undefined; page: number } }[] = [];
-  for (const tag of [undefined, ...TOPICS]) {
-    const count = rows.filter((r) => !tag || r.version.entry.data.tags.includes(tag)).length;
-    const { pages } = paginate(Array.from({ length: count }), 1);
-    for (let page = 1; page <= pages; page++) {
-      const base = tag ? `${tag}/` : "";
-      const rest = page === 1 ? (tag ?? undefined) : `${base}page/${page}`;
-      paths.push({ params: { rest }, props: { tag, page } });
-    }
-  }
-  return paths;
+  const { pages } = paginate(rows, 1);
+  return Array.from({ length: pages }, (_, i) => {
+    const page = i + 1;
+    return { params: { rest: page === 1 ? undefined : `page/${page}` }, props: { page } };
+  });
 }
 
 /** /photos, /photos/<series>, /photos/<series>/<photo> */

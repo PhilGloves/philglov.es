@@ -11,7 +11,6 @@ const rows = [
     n: "041",
     date: "2026-10-09",
     title: "Why I shoot one roll a week",
-    topic: "Photography",
     mark: "EN",
     min: "5",
     only: false,
@@ -20,7 +19,6 @@ const rows = [
     n: "040",
     date: "2026-09-27",
     title: "Rebuilding this site with almost no JavaScript",
-    topic: "Projects",
     mark: "EN",
     min: "11",
     only: false,
@@ -29,7 +27,6 @@ const rows = [
     n: "039",
     date: "2026-09-12",
     title: "Notes on getting lost on purpose",
-    topic: "Thoughts",
     mark: "IT→EN",
     min: "4",
     only: false,
@@ -38,7 +35,6 @@ const rows = [
     n: "038",
     date: "2026-08-30",
     title: "Un mese senza fotocamera nel telefono",
-    topic: "Photography",
     mark: "IT only",
     min: "6",
     only: true,
@@ -47,7 +43,6 @@ const rows = [
     n: "037",
     date: "2026-08-14",
     title: "My grandmother’s recipe book and version control",
-    topic: "Projects",
     mark: "IT→EN",
     min: "7",
     only: false,
@@ -136,9 +131,6 @@ const shots = [
             <th scope="col">No.</th>
             <th scope="col">Date</th>
             <th scope="col">Title</th>
-            <th scope="col" class="tp">
-              Topic
-            </th>
             <th scope="col">Lang</th>
             <th scope="col" class="mn">
               Min
@@ -153,7 +145,6 @@ const shots = [
               <td class="t">
                 <a href="#sg-top">{e.title}</a>
               </td>
-              <td class="tp">{e.topic}</td>
               <td class="ln">
                 <span class:list={{ only: e.only }}>
                   <Arrows text={e.mark} />
@@ -166,7 +157,7 @@ const shots = [
       </table>
       <p class="idx-more">
         <a class="go" href="#sg-top">
-          <Arrows text="Full index, by year and topic →" />
+          <Arrows text="Full index, by year →" />
         </a>
       </p>
     </div>
