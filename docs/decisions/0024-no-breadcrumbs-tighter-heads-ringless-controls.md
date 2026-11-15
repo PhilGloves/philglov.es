@@ -1,6 +1,7 @@
 # 0024 — No breadcrumbs, no repeated headings, tighter heads, header controls without a ring
 
-Status: Accepted · 2026-11-15 · Owner decision · Amends [0016](0016-frontend-pages.md) (page templates) and
+Status: Accepted · 2026-11-15 · Owner decision · The fixed space above the title (32 / 44 / 56 px) is replaced by the
+mirror rule of [0025](0025-one-page-head.md) · Amends [0016](0016-frontend-pages.md) (page templates) and
 [0023](0023-simplification-pass.md) (header controls)
 
 ## Owner decisions (2026-11-15)

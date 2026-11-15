@@ -278,3 +278,6 @@ every page × en/it × light/dark × 1440/1024/768/390/320 × JS on/off in Chrom
 - [x] X7 ([0024](docs/decisions/0024-no-breadcrumbs-tighter-heads-ringless-controls.md)) No breadcrumb anywhere; no heading
       that repeats the page title; tighter `.hero--inner` heads (journal index, photos index, series pages); header
       controls without a ring (transparent border kept for forced-colours mode), prototypes updated.
+- [x] X8 ([0025](docs/decisions/0025-one-page-head.md)) One page head: mirror spacing under the header line (computed, 2 px,
+      four widths), left column level with the title's capitals, one title size, one intro sentence, text 52/68/80 px
+      under it; Home without the role line (name kept in a `.sr-only` span in the h1); prototypes and `/styleguide` updated.
