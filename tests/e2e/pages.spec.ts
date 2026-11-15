@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { fontsSettled, requestFailure } from "./fonts.ts";
+import { fontsSettled, imagesSettled, pageSettled, requestFailure } from "./fonts.ts";
 
 // The page × language × theme × width matrix moved to qa/matrix.spec.ts (one test per page, QA suite 1).
 
@@ -15,6 +15,33 @@ test("a font that really fails is still reported: 404 on the italic file", async
   problems.push(...(await fontsSettled(page)));
   expect(problems).toContain("HTTP 404: /_assets/fonts/crimson-pro-italic.woff2");
   expect(problems.some((p) => /^font failed: .+ italic /.test(p))).toBe(true);
+});
+
+test("a photo that really fails is still reported: 404 on a lazy photo of the series", async ({ page }) => {
+  const problems: string[] = [];
+  page.on("requestfailed", (req) => problems.push(requestFailure(req)));
+  page.on("response", (res) => {
+    if (res.status() >= 400) problems.push(`HTTP ${res.status()}: ${new URL(res.url()).pathname}`);
+  });
+  // Every size and format of the series' second photo (lazy, below the first one) answers 404.
+  await page.route("**/_assets/graca.*", (route) => route.fulfill({ status: 404, body: "" }));
+  await page.goto("/photos/lisbon");
+  // Like tests/e2e/photos.spec.ts: without originals in the build the page draws placeholders, no <img>.
+  test.skip((await page.locator(".frame picture").count()) === 0, "no originals in this build: placeholders only");
+  const photo = page.locator('img[src*="/_assets/graca."]');
+  await expect(photo).toHaveAttribute("loading", "lazy");
+  // As in the page matrix: the widths change after load, which brings the lazy photo in and picks new sources.
+  for (const width of widths) await page.setViewportSize({ width, height: 900 });
+  await photo.scrollIntoViewIfNeeded();
+  problems.push(...(await imagesSettled(page)));
+  expect(
+    problems.some((p) => /^HTTP 404: \/_assets\/graca\./.test(p)),
+    problems.join("\n"),
+  ).toBe(true);
+  expect(
+    problems.some((p) => /^image failed: \/_assets\/graca\./.test(p)),
+    problems.join("\n"),
+  ).toBe(true);
 });
 
 test("a missing page answers 404 with the bilingual help page", async ({ page }) => {

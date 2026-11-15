@@ -71,13 +71,14 @@ test("the label has the right text in both languages for the three states", () =
   assert.equal(labelText("en", "en", false, "/x").action, "Not yet available in Italian");
 });
 
-test("pnpm new: fresh entry is its own original; the other language copies originalLang and tags", () => {
+test("pnpm new: fresh entry is its own original; the other language copies originalLang; no tags line", () => {
   const fresh = newEntry({ slug: "alps", lang: "it", today: "2026-11-12" });
   assert.match(fresh, /lang: it\noriginalLang: it/);
-  const twinText = "originalLang: it\ntags: [travel, photography]\n";
+  const twinText = "originalLang: it\ntags: [travel, photography]\n"; // an older file may still have a tags line
   const twin = newEntry({ slug: "lisbona", lang: "en", today: "2026-11-12", twinText });
   assert.match(twin, /lang: en\noriginalLang: it/);
-  assert.match(twin, /tags: \[travel, photography\]/);
+  assert.doesNotMatch(twin, /tags/);
+  assert.doesNotMatch(fresh, /tags/);
   assert.throws(() => newEntry({ slug: "journal", lang: "en", today: "2026-11-12" }), /reserved/);
   assert.throws(() => newEntry({ slug: "colophon", lang: "en", today: "x", pageSlugs: ["colophon"] }), /taken/);
 });

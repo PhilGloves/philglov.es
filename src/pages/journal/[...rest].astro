@@ -6,7 +6,7 @@ export async function getStaticPaths() {
   return journalPaths("en");
 }
 
-const { tag, page } = Astro.props;
+const { page } = Astro.props;
 ---
 
-<JournalView locale="en" tag={tag} page={page} />
+<JournalView locale="en" page={page} />

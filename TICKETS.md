@@ -239,12 +239,21 @@ every page × en/it × light/dark × 1440/1024/768/390/320 × JS on/off in Chrom
       `tests/e2e/navigation.spec.ts` clicks through the site with motion allowed and expects an empty console (it fails
       with the old rule back); `tests/unit/css.test.ts` keeps the rules out; the admin tests no longer emulate reduced
       motion.
-- [ ] Q20 Flaky page matrix with real photos (found 2026-11-13, also on `main`): with photo originals in
-      `src/.originals/`, `tests/e2e/pages.spec.ts` fails about 2 runs in 30 with
-      `requestfailed: …/_assets/<photo>.avif (net::ERR_ABORTED)`. A lazy photo that starts loading after `load` (a new
-      width picks another source) is cut off when the test moves to the next page, the same pattern as Q18 for fonts.
-      CI has not shown it yet, likely because R2 has no photos so far. Fix like Q18, no retries: before leaving a page,
-      wait for the images that started loading to finish, and still report one that really fails.
+- [x] Q20 Flaky page matrix with real photos (found 2026-11-13, also on `main`): with photo originals in
+      `src/.originals/`, `tests/e2e/pages.spec.ts` failed with `requestfailed: …/_assets/<photo>.avif (net::ERR_ABORTED)`
+      (locally 5 of 6 runs with `--repeat-each 6`). CI has not shown it yet, likely because R2 has no photos so far.
+      _Cause:_ not the next navigation, as first thought, but the test's own resizing. Tagging each abort with the step
+      it happened in showed them all on the page itself, during or just after the change to a wider viewport, and
+      always on the 1200w AVIF: the wider width makes the `<picture>` pick the 1600w candidate, and Chromium drops the
+      1200w request still in flight. Users see no error from this; it happens because the test resizes faster than the
+      photos load. Not a site bug. A wait before leaving the page alone did not help (still 1–5 failures per 6 runs).
+      _Fix (2026-11-13, no retries):_ `tests/e2e/fonts.ts` `imagesSettled()` waits until no image with a current source
+      is still loading (two checks in a row, 100 ms apart, polled from the test because the no-JS project runs no page
+      callbacks; lazy images not yet started have no `currentSrc` and are skipped) and reports every image whose source
+      failed (`image failed: <path>`). The page matrix calls it after every width, and `pageSettled()` (fonts and
+      images) before leaving each page. A new test serves a lazy photo of the series as 404 and checks it is still
+      reported (HTTP 404 and `image failed`); it skips without originals, like `photos.spec.ts`. The page spec then
+      passed 5 runs in a row with `--repeat-each 6` in both projects, and the full `pnpm test:e2e` passed.
 - _Done when: the full matrix passes twice in a row with no flaky tests; `QA-REPORT.md` written._
 
 ## 8 · Security audit (S) — Opus, xhigh — runs last
@@ -254,3 +263,21 @@ every page × en/it × light/dark × 1440/1024/768/390/320 × JS on/off in Chrom
       privacy, phone publishing, backup restore, data jurisdiction, Cloudflare dashboard extras). Public repository:
       also check that no secret or personal data is in any commit, branch or pull request. _Done when:
       `SECURITY-REPORT.md` with ranked findings, each re-tested after its fix._
+
+## 9 · Simplification pass (2026-11-15, owner decision, [0023](docs/decisions/0023-simplification-pass.md))
+
+- [x] X1 Header controls: round theme toggle (moon in light, sun in dark; both inline SVG, CSS picks one; fixed name and
+      `aria-pressed`; theme script unchanged, public JavaScript still 1,525 of 1,536 bytes) and round "IT"/"EN"
+      language link (`lang`, `hreflang`, full name as the accessible name); 44 px on phones.
+- [x] X2 Journal entries: text straight under the title; the details (number, date, reading time, label) in a block after
+      the text; the description only in the head, feeds and share cards.
+- [x] X3 No label on About and Now, in both languages.
+- [x] X4 Topics removed everywhere (site, feeds, sitemap, `/admin/write`, `pnpm new`); old `tags:` lines tolerated.
+- [x] X5 Replies signed "Phil" on English pages, "Filippo" on Italian pages.
+- [x] X6 Tests, styleguide and docs updated; prototypes in `docs/design/` replaced by the owner.
+- [x] X7 ([0024](docs/decisions/0024-no-breadcrumbs-tighter-heads-ringless-controls.md)) No breadcrumb anywhere; no heading
+      that repeats the page title; tighter `.hero--inner` heads (journal index, photos index, series pages); header
+      controls without a ring (transparent border kept for forced-colours mode), prototypes updated.
+- [x] X8 ([0025](docs/decisions/0025-one-page-head.md)) One page head: mirror spacing under the header line (computed, 2 px,
+      four widths), left column level with the title's capitals, one title size, one intro sentence, text 52/68/80 px
+      under it; Home without the role line (name kept in a `.sr-only` span in the h1); prototypes and `/styleguide` updated.

@@ -8,7 +8,7 @@ home), each a thin wrapper around a view in `src/views/`. `[slug]` serves journa
 (about, now, rights, privacy); a slug used by both is not caught today, the Content agent's check (C2) must catch it.
 Logic lives in pure, tested `src/lib/entries.ts`: twins share a slug; the entry number is the rank of the original's
 date; reading time is words / 200; markers `IT`, `EN`, `IT→EN`, `EN→IT`, `IT only`, `solo EN`; 50 per page at
-`/journal/page/2` and `/journal/<topic>/page/2`. The journal index lists entries that exist in the other language only,
+`/journal/page/2` (topic pages and `/journal/<topic>/page/2` were removed by [0023](0023-simplification-pass.md); every page head, its title size and its intro sentence follow [0025](0025-one-page-head.md)). The journal index lists entries that exist in the other language only,
 linked with the right `lang`.
 
 **Theme script and CSP.** One inline script in `<head>` (`src/scripts/theme.js`, 0.8 KB): reads `localStorage` in
@@ -46,8 +46,8 @@ byte) and `/.well-known/tdmrep.json` (`[{"location":"/","tdm-reservation":1}]`, 
 `X-Robots-Tag: noai, noimageai` for every file there (harmless on CSS and fonts); pages get `tdm-reservation` from the
 Worker and the meta tag.
 
-**Home italic.** The home statement uses `<em>` (prototype), so the italic file is fetched on the home page; it is still
-not preloaded. `typography.spec.ts` now asserts that.
+**Home italic.** The home statement uses `<em>` (prototype), so the italic file is fetched on the home page. It was not
+preloaded; [0025](0025-one-page-head.md) preloads it on the home page only.
 
 **Placeholders.** Seed entries, Now, About and the photo series are marked placeholders (O1, C5); the Italian UI strings
 added here are drafts for the owner to review. `site.json` holds contact email, city, `sameAs` (omitted while empty) and

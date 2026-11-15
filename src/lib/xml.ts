@@ -7,7 +7,6 @@ export interface FeedItem {
   link: string;
   description: string;
   date: Date;
-  categories: readonly string[];
 }
 
 export interface Feed {
@@ -30,7 +29,6 @@ export function rssFeed(feed: Feed): string {
         `      <guid isPermaLink="true">${escape(i.link)}</guid>`,
         `      <pubDate>${i.date.toUTCString()}</pubDate>`,
         `      <description>${escape(i.description)}</description>`,
-        ...i.categories.map((c) => `      <category>${escape(c)}</category>`),
         "    </item>",
       ].join("\n"),
     )

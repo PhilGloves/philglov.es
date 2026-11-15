@@ -24,8 +24,9 @@ layers, tokens, container queries, brand, print, admin, view transitions) still 
   (32 px on phones). `font-synthesis: none`, so a missing weight is never faked.
 - **No monospace or sans-serif web font.** Code (`pre`, `code`, `kbd`, print link addresses) uses the system
   monospace stack `--font-code`. The `.mono` class is gone; metadata uses `.fine`.
-- **Preload only the upright file.** The italic is fetched when italic text is on the page (`tests/e2e/typography.spec.ts`
-  checks that the home page requests the upright file only).
+- **Preload the upright file everywhere, the italic on the Home page only** ([0025](0025-one-page-head.md); it first said "upright
+  only"). The italic is fetched when italic text is on the page; the Home statement has italic words above the fold, so
+  Home preloads it too (`tests/e2e/typography.spec.ts` checks Home, `/it` and that no other page preloads it).
 - **Fallback.** The guide's stack (Iowan Old Style, Palatino Linotype, Palatino, Georgia, serif) with two
   size-adjusted fallback faces: Palatino (size-adjust 89.7 %, ascent 99.9 %, descent 23.9 %) and Georgia (90.7 %,
   98.8 %, 23.7 %), measured from letter-frequency-weighted advance widths by `scripts/build-fonts.py`. Iowan Old Style

@@ -3,13 +3,14 @@ import Arrows from "../components/Arrows.astro";
 import CommentSection from "../components/CommentSection.astro";
 import LanguageLabel from "../components/LanguageLabel.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
-/** A journal entry (Article.dc.html): head, label, prose, sign-off, previous/next, comments. */
+/** A journal entry (Article.dc.html): the title, then the text at once; the details block, previous/next, comments. */
 import { render } from "astro:content";
-import { t, tf, topicName, type Locale } from "../i18n";
+import { t, tf, type Locale } from "../i18n";
 import { getSlots, type JournalEntry } from "../lib/collections.ts";
 import {
   isoDate,
   journalPath,
+  longDate,
   otherLocale,
   pathFor,
   rowsFor,
@@ -37,9 +38,7 @@ const older = rows[at + 1];
 const newer = at > 0 ? rows[at - 1] : undefined;
 const path = pathFor(locale, `/${slot.slug}`);
 const number = String(slot.number).padStart(3, "0");
-const firstTag = entry.data.tags[0];
 const shareImage = `/_assets/share/${locale}-${slot.slug}.png`;
-const languageName = (l: Locale) => t(locale, l === "en" ? "langEn" : "langIt");
 
 const neighbours = [
   older && { row: older, k: tf(locale, "prevEntry", { n: older.number }) },
@@ -69,59 +68,7 @@ const neighbours = [
 >
   <article class="page">
     <div class="g top">
-      <div class="lab">
-        <p class="crumb">
-          <a href={journalPath(locale)}>{t(locale, "navJournal")}</a>
-          {firstTag && (
-            <>
-              {" / "}
-              <a href={journalPath(locale, firstTag)}>{topicName(locale, firstTag)}</a>
-            </>
-          )}
-        </p>
-        <dl class="entry-meta">
-          <div>
-            <dt>{t(locale, "metaNo")}</dt>
-            <dd>{number}</dd>
-          </div>
-          <div>
-            <dt>{t(locale, "metaPublished")}</dt>
-            <dd>
-              <time datetime={isoDate(slot.date)}>{isoDate(slot.date)}</time>
-            </dd>
-          </div>
-          <div>
-            <dt>{t(locale, "metaWrittenIn")}</dt>
-            <dd>{languageName(version.originalLang)}</dd>
-          </div>
-          <div>
-            <dt>{t(locale, "metaVersion")}</dt>
-            <dd class:list={{ moss: !version.isOriginal }}>
-              {t(locale, version.isOriginal ? "versionOriginal" : "versionTranslation")}
-            </dd>
-          </div>
-          <div>
-            <dt>{t(locale, "metaReading")}</dt>
-            <dd>{tf(locale, "minutes", { n: version.minutes })}</dd>
-          </div>
-          {entry.data.comments && (
-            <div>
-              <dt>{t(locale, "metaComments")}</dt>
-              <dd>
-                <a href="#comments">
-                  <Arrows text="→" />
-                  <span class="sr-only">{t(locale, "commentsTitle")}</span>
-                </a>
-              </dd>
-            </div>
-          )}
-        </dl>
-      </div>
-      <div class="con">
-        <h1 class="title">{entry.data.title}</h1>
-        <LanguageLabel locale={locale} originalLang={version.originalLang} rest={`/${slot.slug}`} hasTwin={hasTwin} />
-        <p class="stand">{entry.data.description}</p>
-      </div>
+      <h1 class="title">{entry.data.title}</h1>
     </div>
 
     <div class="g">
@@ -130,6 +77,17 @@ const neighbours = [
           <Content />
           <p class="sign">{t(locale, "signOff")}</p>
         </div>
+
+        <footer class="about" aria-label={t(locale, "aboutEntry")}>
+          <p class="facts">
+            <span>
+              {t(locale, "noShort")} {number}
+            </span>{" "}
+            <time datetime={isoDate(slot.date)}>{longDate(locale, slot.date)}</time>{" "}
+            <span>{tf(locale, "readTime", { n: version.minutes })}</span>
+          </p>
+          <LanguageLabel locale={locale} originalLang={version.originalLang} rest={`/${slot.slug}`} hasTwin={hasTwin} />
+        </footer>
 
         <nav class="pn" aria-label={t(locale, "navJournal")}>
           <div class="pn-grid">

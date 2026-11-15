@@ -8,7 +8,7 @@ test("language switch adds or removes /it and nothing else", () => {
   assert.equal(twinPath("en", "/photos/lisbon/tram-28"), "/it/photos/lisbon/tram-28");
   assert.equal(twinPath("it", "/it"), "/");
   assert.equal(twinPath("it", "/it/alps"), "/alps");
-  assert.equal(twinPath("it", "/it/journal/travel"), "/journal/travel");
+  assert.equal(twinPath("it", "/it/journal/page/2"), "/journal/page/2");
 });
 
 test("a slug that merely starts with 'it' is not mistaken for the prefix", () => {

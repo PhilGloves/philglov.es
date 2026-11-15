@@ -2,10 +2,14 @@
 import LanguageLabel from "../components/LanguageLabel.astro";
 import Photo from "../components/Photo.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
-/** Standalone pages: About, Now, Rights, Privacy (the page template in /styleguide). */
+/**
+ * Standalone pages: About, Now, Rights, Privacy (the page template in /styleguide). One grid for the head and the
+ * text (decision 0025): the intro is the .lede of the journal and photos pages, and on About the portrait stands
+ * beside both on desktop and between the intro and the text on phones and tablets.
+ */
 import { render } from "astro:content";
 import site from "../data/site.json" with { type: "json" };
-import { t, tf, type Locale } from "../i18n";
+import { tf, type Locale } from "../i18n";
 import { type PageEntry } from "../lib/collections.ts";
 import { isoDate, pathFor } from "../lib/entries.ts";
 import { personJsonLd } from "../lib/seo.ts";
@@ -22,6 +26,8 @@ const { Content } = await render(page);
 const path = pathFor(locale, `/${slug}`);
 const current = slug === "now" || slug === "about" ? slug : undefined;
 const isAbout = slug === "about";
+// About and Now carry no "originally written in" label (decision 0023); the legal pages and entries do.
+const showLabel = !(isAbout || slug === "now");
 const email = site.contactEmail;
 const isRealEmail = /^[^@\s[\]]+@[^@\s[\]]+\.[^@\s[\]]+$/.test(email);
 ---
@@ -36,12 +42,14 @@ const isRealEmail = /^[^@\s[\]]+@[^@\s[\]]+\.[^@\s[\]]+$/.test(email);
   jsonLd={isAbout ? [personJsonLd(locale)] : []}
 >
   <article class="page">
-    <div class="g top">
-      <div class="lab">
-        <p class="crumb">
-          <a href={pathFor(locale, "/")}>{t(locale, "crumbHome")}</a> / {page.data.title}
-        </p>
-        {isAbout && (
+    <div class="g top top--intro">
+      <h1 class="title">{page.data.title}</h1>
+      {showLabel && (
+        <LanguageLabel locale={locale} originalLang={page.data.originalLang} rest={`/${slug}`} hasTwin={hasTwin} />
+      )}
+      <p class="lede">{page.data.description}</p>
+      {isAbout && (
+        <div class="lab">
           <div class="portrait">
             <Photo tone={3} alt="[Portrait of Filippo Guanti: placeholder until the photograph is added]" />
             <ul class="contact">
@@ -49,15 +57,8 @@ const isRealEmail = /^[^@\s[\]]+@[^@\s[\]]+\.[^@\s[\]]+$/.test(email);
               <li>{site.city}</li>
             </ul>
           </div>
-        )}
-      </div>
-      <div class="con">
-        <h1 class="title">{page.data.title}</h1>
-        <LanguageLabel locale={locale} originalLang={page.data.originalLang} rest={`/${slug}`} hasTwin={hasTwin} />
-        <p class="stand">{page.data.description}</p>
-      </div>
-    </div>
-    <div class="g">
+        </div>
+      )}
       <div class="con">
         <div class="prose">
           <Content />

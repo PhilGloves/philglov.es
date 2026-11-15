@@ -43,14 +43,14 @@ body{margin:0}
 .nav ul{list-style:none;margin:0;padding:0;display:flex;gap:32px;flex-wrap:wrap}
 .nav a{font-size:19px;font-weight:400}
 .nav a[aria-current="page"]{border-bottom:2px solid var(--moss);padding-bottom:2px}
-.tools{grid-column:10/span 3;display:flex;justify-content:flex-end;align-items:center;gap:10px}
-.rbtn{font:inherit;font-size:15px;font-weight:600;letter-spacing:.04em;width:40px;height:40px;display:inline-grid;place-items:center;padding:0;background:none;color:var(--ink);border:1px solid var(--ink);border-radius:50%;cursor:pointer}
-.rbtn:hover{color:var(--moss);border-color:var(--moss)}
+.tools{grid-column:10/span 3;display:flex;justify-content:flex-end;align-items:center;margin-right:-11px}
+.rbtn{font:inherit;font-size:15px;font-weight:600;letter-spacing:.04em;width:40px;height:40px;display:inline-grid;place-items:center;padding:0;background:none;color:var(--ink);border:1px solid transparent;border-radius:50%;cursor:pointer}
+.rbtn:hover{color:var(--moss)}
 .rbtn svg{width:18px;height:18px}
 .bx.light .i-sun,.bx.dark .i-moon{display:none}
 
 /* article head */
-.top{padding:72px 0 30px}
+.top{padding:calc(42px - .275*clamp(2.5rem,4.6cqi,4rem)) 0 30px} /* decision 0025: the capitals of the title start as far under the header line as the menu baseline is above it */
 .title{margin:0;font-weight:300;font-size:clamp(2.5rem,4.6cqi,4rem);line-height:1.04;letter-spacing:-.016em;text-wrap:balance;max-width:20ch}
 .about{margin:44px 0 0;padding:18px 0 0;border-top:1px solid var(--hair);color:var(--muted);max-width:36rem}
 .facts{margin:0 0 10px;display:flex;flex-wrap:wrap;gap:4px 20px}
@@ -123,7 +123,7 @@ body{margin:0}
 
 @container (max-width: 1040px){
 .lab,.con,.foot .txt,.foot .links{grid-column:1/-1}
-.top{padding:56px 0 26px}
+.top{padding:calc(33px - .275*clamp(2.5rem,4.6cqi,4rem)) 0 26px}
 .sec .lab,.foot .lab{margin-bottom:16px}
 .nav{grid-column:1/-1;order:3;margin-top:14px}
 .name{grid-column:1/span 6}
@@ -133,9 +133,10 @@ body{margin:0}
 .page{padding:0 20px}
 .g{column-gap:16px}
 .rbtn{width:44px;height:44px}
+.tools{margin-right:-13px}
 .bx{font-size:18px}
 .nav ul{gap:22px}
-.top{padding:40px 0 20px}
+.top{padding:calc(41px - .275*clamp(2.5rem,4.6cqi,4rem)) 0 20px}
 .label span[aria-hidden]:not(.marker){display:none}
 .prose{font-size:20px}
 .fig{margin-left:-20px;margin-right:-20px}

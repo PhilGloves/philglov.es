@@ -4,7 +4,7 @@ import EntryTable from "../components/EntryTable.astro";
 import Photo from "../components/Photo.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 /** Home page (Home.dc.html): statement, one photograph, latest entry, journal table, Now band, photos. */
-import { t, tf, topicName, type Locale } from "../i18n";
+import { t, tf, type Locale } from "../i18n";
 import { getPage, getSeries, getSlots } from "../lib/collections.ts";
 import { journalPath, pathFor, rowsFor, isoDate, type EntryLike, type Row } from "../lib/entries.ts";
 import { SIZES } from "../lib/photo-sizes.ts";
@@ -35,6 +35,7 @@ const path = locale === "en" ? "/" : "/it";
   locale={locale}
   path={path}
   footer="flat"
+  preloadItalic
   fullTitle
   title={t(locale, "homeTitle")}
   description={t(locale, "homeDescription")}
@@ -43,13 +44,10 @@ const path = locale === "en" ? "/" : "/it";
   <div class="page">
     <div class="g hero">
       <div class="lab small">
-        <p>
-          <strong>{t(locale, "heroRole")}</strong>
-        </p>
         <p class="muted">{t(locale, "heroBased")}</p>
       </div>
       <h1 class="state">
-        <span class="kick">{t(locale, "heroKick")}</span>
+        <span class="sr-only">{t(locale, "heroKick")}</span>
         {t(locale, "heroLead")} <em>{t(locale, "heroEm")}</em>
       </h1>
       <p class="lede">
@@ -103,7 +101,6 @@ const path = locale === "en" ? "/" : "/it";
                 {t(locale, "noShort")} {latest.number}
               </span>
               <time datetime={isoDate(latest.slot.date)}>{isoDate(latest.slot.date)}</time>
-              <span>{latest.version.entry.data.tags.map((tag) => topicName(locale, tag)).join(", ")}</span>
               <b>
                 <Arrows text={latest.marker} />
               </b>

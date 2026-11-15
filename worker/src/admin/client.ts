@@ -150,10 +150,8 @@ export const WRITE_SCRIPT = String.raw`"use strict";
       var inputs = li.querySelectorAll("input");
       return { key: inputs[0].value, alt: inputs[1].value, caption: inputs[2].value };
     });
-    var tags = Array.prototype.filter.call(form.querySelectorAll('input[name="tags"]'), function (c) { return c.checked; })
-      .map(function (c) { return c.value; });
     return { savedAt: Date.now(), title: title.value, slug: slug.value, lang: lang.value,
-      description: form.elements.namedItem("description").value, tags: tags, body: body.value, photos: photos };
+      description: form.elements.namedItem("description").value, body: body.value, photos: photos };
   }
   var timer;
   function save() {
@@ -168,7 +166,6 @@ export const WRITE_SCRIPT = String.raw`"use strict";
     if (!saved || saved.savedAt <= serverTime) return;
     title.value = saved.title; slug.value = saved.slug; lang.value = saved.lang; body.value = saved.body;
     form.elements.namedItem("description").value = saved.description;
-    form.querySelectorAll('input[name="tags"]').forEach(function (c) { c.checked = saved.tags.indexOf(c.value) >= 0; });
     while (list.firstChild) list.removeChild(list.firstChild);
     saved.photos.forEach(function (p) { list.appendChild(photoItem(p.key, p.alt, p.caption)); });
     autoSlug = false;

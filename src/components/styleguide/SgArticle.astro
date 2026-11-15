@@ -1,7 +1,7 @@
 ---
 import Arrows from "../Arrows.astro";
 import Arrow from "../Arrow.astro";
-/** Journal entry: head, language label in all six states, prose, figure, pull quote, previous/next. */
+/** Journal entry: the title, prose, figure, pull quote, the details block, previous/next, and the language label in all six states. */
 interface Props {
   theme: "light" | "dark";
 }
@@ -25,57 +25,7 @@ const labels = [
 
 <div class="page">
   <div class="g top">
-    <div class="lab">
-      <p class="crumb">
-        <a href="#sg-top">Journal</a> / <a href="#sg-top">Travel</a>
-      </p>
-      <dl class="entry-meta">
-        <div>
-          <dt>No.</dt>
-          <dd>042</dd>
-        </div>
-        <div>
-          <dt>Published</dt>
-          <dd>2026-10-21</dd>
-        </div>
-        <div>
-          <dt>Written in</dt>
-          <dd>Italian</dd>
-        </div>
-        <div>
-          <dt>This version</dt>
-          <dd class="moss">My translation</dd>
-        </div>
-        <div>
-          <dt>Reading</dt>
-          <dd>8 min</dd>
-        </div>
-        <div>
-          <dt>Comments</dt>
-          <dd>
-            <a href="#sg-top">
-              <Arrows text="2 →" />
-            </a>
-          </dd>
-        </div>
-      </dl>
-    </div>
-    <div class="con">
-      <h2 class="title">Three weeks in Lisbon, mostly on foot</h2>
-      <p class="label">
-        <span class="marker" aria-hidden="true">
-          <Arrows text="IT→EN" />
-        </span>
-        <span>Originally written in Italian</span>
-        <span aria-hidden="true">·</span>
-        <a href="#sg-top" lang="it">
-          <Arrows text="Read the original →" />
-        </a>
-      </p>
-      <p class="stand">
-        I had a plan when I arrived and none when I left. On hills, trams, and taking fewer photographs.
-      </p>
-    </div>
+    <h2 class="title">Three weeks in Lisbon, mostly on foot</h2>
   </div>
 
   <div class="g">
@@ -162,6 +112,21 @@ const labels = [
         <p>What I’m bringing home is a habit, not a souvenir: walk first, decide later.</p>
         <p class="sign">— Filippo, Lisbon</p>
       </div>
+      <footer class="about" aria-label="About this entry">
+        <p class="facts">
+          <span>No. 042</span> <time datetime="2026-10-21">21 October 2026</time> <span>8 min read</span>
+        </p>
+        <p class="label">
+          <span class="marker" aria-hidden="true">
+            <Arrows text="IT→EN" />
+          </span>
+          <span>Originally written in Italian</span>
+          <span aria-hidden="true">·</span>
+          <a href="#sg-top" lang="it">
+            <Arrows text="Read the original →" />
+          </a>
+        </p>
+      </footer>
       <div class="pn">
         <div class="pn-grid">
           <a href="#sg-top">

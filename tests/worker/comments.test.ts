@@ -21,12 +21,23 @@ test("approved comments appear numbered, with the owner's reply set off; pending
   expect(items).toContain('<span class="c-n" aria-hidden="true">002</span>');
   expect(items.indexOf("Marta")).toBeLessThan(items.indexOf("Luca"));
   expect(items).toContain(
-    '<div class="c-reply"><span class="fine">Filippo replied</span><p lang="en">Thanks, Luca.</p></div>',
+    '<div class="c-reply"><span class="fine">Phil replied</span><p lang="en">Thanks, Luca.</p></div>',
   );
   expect(items).not.toContain("Pending");
   expect(items).not.toContain("Rejected");
   expect(html).toMatch(/<span data-slot="comment-count">\(2\)<\/span>/);
   expect(items).not.toContain("luca@example.com"); // the email is never shown
+});
+
+test("the owner's reply is signed Phil on English pages and Filippo on Italian pages", async () => {
+  const { slug, en, it } = await twinEntry();
+  await insertComment({ slug, lang: "it", name: "Giulia", body: "Che bello.", reply_body: "Grazie." });
+  const english = list(await page(en));
+  expect(english).toContain('<span class="fine">Phil replied</span>');
+  expect(english).not.toContain("Filippo");
+  const italian = list(await page(it));
+  expect(italian).toContain('<span class="fine">Filippo ha risposto</span>');
+  expect(italian).not.toContain("Phil");
 });
 
 test("one thread per slug: the same comments on both language versions", async () => {

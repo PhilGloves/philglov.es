@@ -46,8 +46,6 @@ import { manifest, pathFor, type Entry, type Lang } from "../manifest.ts";
 import { randomId } from "../crypto.ts";
 import { required } from "../secrets.ts";
 import { csrfToken } from "../tokens.ts";
-import { TOPICS } from "../../../src/lib/topics.ts";
-import en from "../../../src/i18n/en.json" with { type: "json" };
 import { adminPage, when } from "./layout.ts";
 import { MAX_PHOTO } from "./upload.ts";
 
@@ -67,7 +65,6 @@ interface DraftRow {
   title: string;
   description: string;
   body: string;
-  tags: string;
   photos: string;
   updated_at: number;
   base_sha: string;
@@ -92,7 +89,6 @@ const empty = (lang: Lang): EntryInput => ({
   slug: "",
   lang,
   description: "",
-  tags: [],
   body: "",
   photos: [],
 });
@@ -356,11 +352,6 @@ async function writePage(env: Env, identity: Identity, state: FormState, status 
           ${invalid(errors, "description")}
         />${fieldError(errors, "description", "w-desc")}
       </div>
-      <fieldset class="field">
-        <legend>Topics</legend>
-        ${TOPICS.map((topic) => html`<label><input type="checkbox" name="tags" value="${topic}" ${input.tags.includes(topic) ? new Safe(" checked") : ""} /> ${en[`topic_${topic}`]}</label> `)}
-        ${fieldError(errors, "tags", "w-tags")}
-      </fieldset>
       <div class="field">
         <label for="w-body">Text, in Markdown</label
         ><textarea id="w-body" name="body" class="write-body" aria-describedby="w-body-err" ${invalid(errors, "body")}>
@@ -454,7 +445,6 @@ export async function writeForm(env: Env, identity: Identity, url: URL): Promise
         lang: d.lang,
         description: d.description,
         body: d.body,
-        tags: JSON.parse(d.tags) as string[],
         photos: JSON.parse(d.photos) as PhotoRef[],
       };
       state.draftId = d.id;
@@ -475,7 +465,6 @@ export async function writeForm(env: Env, identity: Identity, url: URL): Promise
         slug,
         lang,
         description: parsed.description,
-        tags: parsed.tags,
         body,
         photos,
       };
@@ -506,9 +495,9 @@ export async function referenceJson(env: Env, url: URL): Promise<Response> {
 async function saveDraft(env: Env, input: EntryInput, draftId: string, baseSha: string): Promise<string> {
   const id = /^[A-Za-z0-9_-]{22}$/.test(draftId) ? draftId : randomId();
   await env.DB.prepare(
-    `INSERT INTO drafts (id, slug, lang, title, description, body, tags, photos, updated_at, base_sha)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
-     ON CONFLICT (id) DO UPDATE SET slug = ?2, lang = ?3, title = ?4, description = ?5, body = ?6, tags = ?7, photos = ?8, updated_at = ?9, base_sha = ?10`,
+    `INSERT INTO drafts (id, slug, lang, title, description, body, photos, updated_at, base_sha)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+     ON CONFLICT (id) DO UPDATE SET slug = ?2, lang = ?3, title = ?4, description = ?5, body = ?6, photos = ?7, updated_at = ?8, base_sha = ?9`,
   )
     .bind(
       id,
@@ -517,7 +506,6 @@ async function saveDraft(env: Env, input: EntryInput, draftId: string, baseSha: 
       input.title,
       input.description,
       input.body,
-      JSON.stringify(input.tags),
       JSON.stringify(input.photos),
       Date.now(),
       baseSha,
