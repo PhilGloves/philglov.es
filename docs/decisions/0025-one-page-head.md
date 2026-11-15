@@ -74,6 +74,12 @@ sentence, the same space before the content.
   the statement and moved the photograph 41 px: Lighthouse CLS 0.10 on Home against the budget of 0.05. With `optional`
   the page keeps the fallback italic when the file is late (the italic is not preloaded) and the next page view has the real
   one from the cache. Home's CLS is 0.0006 after the change (throttled mobile run). The upright font is still `swap`.
+- **Italic preloaded on Home only** (owner decision, same day). Home's italic words are above the fold, and without a preload the
+  file is requested only after the stylesheet arrives, so a first visit often showed the fallback italic. With the preload
+  and `optional` Chrome waits briefly for the file and never re-lays out. `BaseLayout` takes `preloadItalic`; only `HomeView`
+  sets it, so `/` and `/it` have two font preloads (upright, then italic) and every other page has one. Measured on Home with
+  Lighthouse (mobile, simulated Slow 4G, three runs per page, the valid ones): LCP 1.59–1.60 s, CLS 0, performance 100,
+  113 KB transferred on a first visit against the 180 KB budget. `docs/guide.md` (fonts line and budget table) says so now.
 - **Decision numbers**: 0022 (the QA matrix) is still on its own branch.
 
 ## Tests

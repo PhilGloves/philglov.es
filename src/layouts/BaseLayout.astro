@@ -30,6 +30,8 @@ interface Props {
   current?: "journal" | "photos" | "now" | "about" | undefined;
   /** "flat" for pages that already end in a hairline (home); default has a heavy rule. */
   footer?: "rule" | "flat";
+  /** Preload the italic file too: only the home page, whose statement has italic words above the fold (0025). */
+  preloadItalic?: boolean;
   /** Open Graph type. */
   ogType?: "website" | "article";
   /** Path of the 1200×630 share image under /_assets/share/. */
@@ -48,6 +50,7 @@ const {
   noindex = false,
   current,
   footer = "rule",
+  preloadItalic = false,
   ogType = "website",
   ogImage = "/_assets/share/default.png",
   jsonLd = [],
@@ -98,6 +101,9 @@ const otherLocale: Locale = locale === "en" ? "it" : "en";
     <link rel="icon" href={brand.icons.png32} type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href={brand.icons.appleTouch} />
     <link rel="preload" href="/_assets/fonts/crimson-pro.woff2" as="font" type="font/woff2" crossorigin />
+    {preloadItalic && (
+      <link rel="preload" href="/_assets/fonts/crimson-pro-italic.woff2" as="font" type="font/woff2" crossorigin />
+    )}
     <meta name="tdm-reservation" content="1" />
     {noindex && <meta name="robots" content="noindex" />}
     {jsonLd.map((data) => (

@@ -20,19 +20,62 @@ test("only the Crimson Pro files are fetched, and no arrow character is drawn", 
   expect(await page.locator("svg.arr").count()).toBeGreaterThan(10);
 });
 
-test("the home page preloads the upright font only; the italic (the hero's emphasis) loads when drawn", async ({
+const UPRIGHT = "/_assets/fonts/crimson-pro.woff2";
+const ITALIC = "/_assets/fonts/crimson-pro-italic.woff2";
+
+async function fontPreloads(page: import("@playwright/test").Page): Promise<string[]> {
+  return page
+    .locator('link[rel="preload"][as="font"]')
+    .evaluateAll((links) => links.map((l) => new URL((l as HTMLLinkElement).href).pathname));
+}
+
+test("the home page preloads the upright font, then the italic (the statement's emphasis is above the fold)", async ({
   page,
 }) => {
+  for (const path of ["/", "/it"]) {
+    const fonts: string[] = [];
+    page.on("response", (res) => {
+      if (res.request().resourceType() === "font") fonts.push(new URL(res.url()).pathname);
+    });
+    await page.goto(path);
+    await page.evaluate(() => document.fonts.ready);
+    expect(fonts, path).toContain(UPRIGHT);
+    expect(fonts, path).toContain(ITALIC);
+    for (const font of fonts) expect(font).toMatch(/^\/_assets\/fonts\/crimson-pro(-italic)?\.woff2$/);
+    // the upright first, the italic after it, and the italic link carries crossorigin like the upright one
+    expect(await fontPreloads(page), path).toEqual([UPRIGHT, ITALIC]);
+    const crossorigin = await page
+      .locator('link[rel="preload"][as="font"]')
+      .evaluateAll((links) => links.map((l) => l.getAttribute("crossorigin")));
+    expect(crossorigin.every((c) => c !== null)).toBe(true);
+    page.removeAllListeners("response");
+  }
+});
+
+test("no other page preloads the italic", async ({ page }) => {
+  for (const path of [
+    "/journal",
+    "/photos",
+    "/now",
+    "/about",
+    "/rights",
+    "/lisbona",
+    "/photos/lisbon/graca",
+    "/it/journal",
+    "/it/about",
+    "/no-such-page",
+  ]) {
+    await page.goto(path);
+    expect(await fontPreloads(page), path).toEqual([UPRIGHT]);
+  }
+});
+
+test("a page with no italic text never requests the italic file", async ({ page }) => {
   const fonts: string[] = [];
   page.on("response", (res) => {
     if (res.request().resourceType() === "font") fonts.push(new URL(res.url()).pathname);
   });
-  await page.goto("/");
+  await page.goto("/journal");
   await page.evaluate(() => document.fonts.ready);
-  expect(fonts).toContain("/_assets/fonts/crimson-pro.woff2");
-  for (const path of fonts) expect(path).toMatch(/^\/_assets\/fonts\/crimson-pro(-italic)?\.woff2$/);
-  const preloads = await page
-    .locator('link[rel="preload"][as="font"]')
-    .evaluateAll((links) => links.map((l) => new URL((l as HTMLLinkElement).href).pathname));
-  expect(preloads).toEqual(["/_assets/fonts/crimson-pro.woff2"]);
+  expect(fonts).not.toContain(ITALIC);
 });

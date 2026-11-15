@@ -132,10 +132,24 @@ test("one family only: no other web font anywhere in the styles or templates", (
   assert.doesNotMatch(css + tokens, /Archivo|Source Serif|PG Serif|JetBrains/);
 });
 
-test("fonts: only the upright file is preloaded, never the italic", () => {
+test("fonts: the upright file is preloaded everywhere, the italic only on the home page (0025)", () => {
   const layout = readFileSync(new URL("../../src/layouts/BaseLayout.astro", import.meta.url), "utf8");
   assert.match(layout, /preload" href="\/_assets\/fonts\/crimson-pro\.woff2"/);
-  assert.equal((layout.match(/rel="preload"/g) ?? []).length, 1);
+  // the italic preload exists once, behind the preloadItalic prop...
+  assert.equal((layout.match(/rel="preload"/g) ?? []).length, 2);
+  assert.match(layout, /preloadItalic && \(\s*<link rel="preload" href="\/_assets\/fonts\/crimson-pro-italic\.woff2"/);
+  // ...and only the home page's view turns it on
+  const views = new URL("../../src/", import.meta.url);
+  const users = [
+    "views/HomeView.astro",
+    "views/JournalView.astro",
+    "views/EntryView.astro",
+    "views/PageView.astro",
+    "views/PhotosView.astro",
+    "pages/404.astro",
+    "pages/styleguide.astro",
+  ].filter((f) => /preloadItalic/.test(readFileSync(new URL(f, views), "utf8")));
+  assert.deepEqual(users, ["views/HomeView.astro"]);
 });
 
 test("weight 300 is used only at 28 px and larger", () => {
