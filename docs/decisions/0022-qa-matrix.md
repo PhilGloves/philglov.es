@@ -113,3 +113,34 @@ purpose and seeing the test fail (the break-and-restore scripts are listed in `Q
   colour, all text in `<main>` reaches 7:1 in both themes at both widths).
 - **`/404` asked for directly answers 200: accepted** (BUG-8, owner, 2026-11-16). The page is noindex in its markup and its
   header, nothing links to it and the sitemap omits it; a test pins exactly those conditions.
+
+## Round 3, follow-up (2026-11-16): two tests that could not be trusted
+
+Tests only; the site is unchanged.
+
+- **The prefers-contrast check failed once in a full run and passed alone.** The check was axe's AAA rule on the comment
+  form's Send button on `/lisbona` at 1440 px (6.71:1, where the button is 7.0 or more). Cause, found by reproducing it (9 of
+  144 loads of that page, many at a time): on some loads, mostly on a busy machine, a style update happens before the
+  stylesheet is applied, so the Send button, the inputs and the header controls first have the browser's own style (the
+  button's face is `rgb(240, 240, 240)`) and then ease to their real colours when the stylesheet arrives: `.btn` over 150 ms
+  (`--dur-fast`), the body over 250 ms. `transitionrun` events fire at about 60 ms, while the document is still `interactive`.
+  A test that reads a colour right after `goto` can therefore read a frame of that ease (#4d6027 and #576833, between grey and
+  #4a5d23). It was never the contrast of the design, never the emulated preference arriving late (the tokens were right), and
+  not hover (the mouse was nowhere near).
+  **Fix, in two layers.** (1) The two prefers-contrast tests emulate `prefers-reduced-motion: reduce`, which sets both
+  durations to 0 ms (`tokens.css`), so there is no ease to read; the settled colours are the same, and the tokens test and the
+  "drawn" check say so. Measured on the same stress: 9 of 144 without it, 0 of 144 with it. (2) A new helper, `transitionsDone`
+  (`qa/lib.ts`), waits until no CSS transition is running, polling from the test so it also works with JavaScript off; it is
+  used in those two tests and in the other two that read a drawn colour straight after `goto` (the body text ratio in
+  `theme.spec.ts`, the print background in `print-cookies.spec.ts`). The helper alone was not enough in my stress probe (0 to 5
+  misses in 144, which I could not explain by a transition starting after the wait), so reduced motion is the part that makes
+  the check deterministic, and the helper is a second guard that has its own control test (it waits for a transition started
+  on purpose, and the colour after the wait is the final one).
+  **Observation for the owner, not changed here:** the same thing means a visitor on a slow stylesheet may see the Send
+  button and the form fields fade in from the browser's grey for 150 ms (not checked by eye: the test only sees the colours). See `docs/qa/bug-reports.md`, OBS-1.
+- **The phone test "nothing scrolls sideways" on the write page could not fail.** It compared `scrollWidth` with `innerWidth`,
+  and with phone emulation (`isMobile`) the layout viewport widens to fit the content, so `innerWidth` grows with the page. It
+  now compares with the width the test set (390 px, `page.viewportSize()`), in both places that measure it. Proved: with a table
+  900 px wide put into the admin page, the test fails (526 px too wide); the old measure stayed at 0 on the same page (it passed
+  its sideways line; the test then timed out later, on a control the wide table had pushed off screen). A control test keeps
+  this: it adds a 700 px element, expects the new measure to see it and the old one not to.
