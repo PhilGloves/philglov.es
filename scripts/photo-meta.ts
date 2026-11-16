@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { colourCss, type PhotoRecord } from "./lib/photo-meta.ts";
 import { hasExiftool, readExif } from "./lib/photo-rights.ts";
+import { isStandIn } from "./lib/standins.ts";
 
 const originals = new URL("../src/.originals/", import.meta.url);
 const metaFile = new URL("meta.json", originals);
@@ -44,6 +45,8 @@ let fresh = 0;
 
 for (const file of walk(originals).sort()) {
   const key = relative(root, file).split(sep).join("/");
+  // A grey stand-in for a missing original (BUG-6) has no colour or camera data to record.
+  if (isStandIn(root, key)) continue;
   const hash = createHash("sha256").update(readFileSync(file)).digest("hex");
   const old = previous[key];
   if (old?.hash === hash) {

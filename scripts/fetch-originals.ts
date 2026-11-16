@@ -14,6 +14,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { entryKeys, seriesKeys } from "./lib/photo-keys.ts";
+import { isStandIn } from "./lib/standins.ts";
 import { getObject, type R2Config } from "./lib/r2.ts";
 
 const root = new URL("../src/", import.meta.url);
@@ -45,9 +46,11 @@ const [accountId, accessKeyId, secretAccessKey, bucket] = [
 const force = process.argv.includes("--force");
 const keys = neededKeys();
 const local = (key: string) => new URL(`.originals/${key}`, root);
+// A grey stand-in from a build with ALLOW_MISSING_ORIGINALS=1 is not an original: it is replaced like a missing file.
+const have = (key: string) => existsSync(local(key)) && !isStandIn(fileURLToPath(new URL(".originals/", root)), key);
 
 if (!accountId || !accessKeyId || !secretAccessKey || !bucket) {
-  const missing = keys.filter((k) => !existsSync(local(k)));
+  const missing = keys.filter((k) => !have(k));
   console.log(
     `fetch-originals: no R2 credentials; ${keys.length - missing.length}/${keys.length} originals already local` +
       (missing.length ? " (the rest show as placeholders)" : ""),
@@ -59,7 +62,7 @@ const cfg: R2Config = { accountId, accessKeyId, secretAccessKey, bucket };
 let downloaded = 0;
 const failed: string[] = [];
 for (const key of keys) {
-  if (!force && existsSync(local(key))) continue;
+  if (!force && have(key)) continue;
   try {
     const bytes = await getObject(cfg, key);
     mkdirSync(dirname(fileURLToPath(local(key))), { recursive: true });

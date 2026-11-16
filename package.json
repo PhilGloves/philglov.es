@@ -11,7 +11,7 @@
     "dev": "astro dev",
     "check:content": "node scripts/check-content.ts",
     "new": "node scripts/new.ts",
-    "build": "node scripts/check-content.ts && node scripts/photo-meta.ts && astro build && node scripts/share-images.ts && node scripts/photo-rights.ts && node scripts/postbuild.ts",
+    "build": "node scripts/check-content.ts && node scripts/check-originals.ts && node scripts/photo-meta.ts && astro build && node scripts/share-images.ts && node scripts/photo-rights.ts && node scripts/postbuild.ts",
     "preview": "node scripts/preview.ts",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
