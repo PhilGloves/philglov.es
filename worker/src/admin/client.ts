@@ -90,7 +90,8 @@ export const MODERATION_SCRIPT = String.raw`"use strict";
  *  - the slug suggested from the title while the slug field is untouched;
  *  - what the slug means (new, other-language version, existing) and the
  *    reference text, from /admin/write/reference;
- *  - autosave in this browser (localStorage), restored when newer than the server copy;
+ *  - autosave in this browser (localStorage), restored when newer than the server copy; a first Save draft
+ *    removes the copy the text came from (data-moved), and Publish the draft's own (data-clear);
  *  - photo uploads one at a time, with progress and automatic retry.
  */
 export const WRITE_SCRIPT = String.raw`"use strict";
@@ -107,6 +108,13 @@ export const WRITE_SCRIPT = String.raw`"use strict";
   var hint = $("w-slug-hint"), list = $("photo-list"), status = $("upload-status");
   var csrf = form.elements.namedItem("csrf").value;
   var key = "philglov-write:" + (form.getAttribute("data-draft") || "new");
+  // A first Save draft moved the text to the server: the copy it came from would come back as the next entry (SO-03).
+  // Once only: the address loses "moved", so a reload later never removes a newer copy typed since.
+  var moved = form.getAttribute("data-moved");
+  if (moved) {
+    try { localStorage.removeItem("philglov-write:" + moved); } catch (e) {}
+    history.replaceState(null, "", location.href.replace(/&moved=[^&#]*/, ""));
+  }
   var serverTime = Number(form.getAttribute("data-updated")) || 0;
   var maxSize = Number(form.getAttribute("data-max"));
   var autoSlug = slug.value === "";

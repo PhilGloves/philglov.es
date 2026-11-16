@@ -156,18 +156,79 @@ test("a draft survives a reload, and a dropped connection while saving it", asyn
   expect(noise.filter((l) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(l))).toEqual([]);
 });
 
-// BUG-4 (backend): the title and description inputs are `required` and "Save draft" has no formnovalidate, so the
-// browser refuses to save a half-written entry until the description is filled in. Remove test.fail() when fixed.
+// BUG-4 (fixed, 0027): "Save draft" has formnovalidate, so the browser saves a half-written entry; Publish keeps the
+// browser's checks (and the server's).
 test("BUG-4: Save draft saves a half-written entry (a title and a few words, no description yet)", async ({ page }) => {
-  test.fail();
   await write(page);
   await page.fill("#w-title", "Half written");
   await page.fill("#w-body", "Only a few words so far.");
+  // Publish still needs the description: the browser stops it, nothing reaches GitHub.
+  await page.getByRole("button", { name: "Publish" }).click();
+  expect(await page.locator("#w-desc").evaluate((el) => (el as HTMLInputElement).validity.valueMissing)).toBe(true);
+  await expect(page.locator("#published")).toHaveCount(0);
+  expect(admin.github.calls.filter((c) => c.method !== "GET")).toEqual([]);
   await page.getByRole("button", { name: "Save draft" }).click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForURL(/[?&]saved=1/);
   await page.evaluate(() => localStorage.clear());
   await page.goto(`${admin.origin}/admin/write`);
   await expect(page.getByText("Half written").first()).toBeVisible({ timeout: 2_000 });
+});
+
+/** What this browser keeps for /admin/write (the autosave copies). */
+const stored = (page: Page) =>
+  page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("philglov-write:")));
+
+// SO-03: the whole cycle. A first Save draft moves the text from the form's browser copy to the server draft, so
+// after Publish, "Write another entry" opens an empty form: no stale copy of the entry just published comes back.
+test("save draft, edit, publish, write another: the next entry starts empty", async ({ page }) => {
+  await write(page);
+  await page.fill("#w-title", "Cycle entry");
+  await page.fill("#w-desc", "One sentence.");
+  await page.fill("#w-body", "Before the draft was saved.");
+  await expect.poll(() => stored(page)).toEqual(["philglov-write:new"]); // autosave ran
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await page.waitForURL(/[?&]saved=1/);
+  await expect(page.locator(".notice", { hasText: "Draft saved on the server." })).toBeVisible();
+  expect(await stored(page), "the new-entry copy is gone once the server has the text").toEqual([]);
+  expect(page.url(), "and the address no longer says so, so a reload removes nothing").not.toContain("moved=");
+
+  await page.fill("#w-body", "After the draft was saved, edited.");
+  await expect.poll(() => stored(page)).toHaveLength(1); // this draft's own copy
+  await page.getByRole("button", { name: "Publish" }).click();
+  await expect(page.locator("#published")).toBeVisible();
+  const put = admin.github.calls.find((c) => c.method === "PUT");
+  expect(Buffer.from(String(put?.body?.["content"]), "base64").toString("utf8")).toContain(
+    "After the draft was saved, edited.",
+  );
+  expect(await stored(page)).toEqual([]);
+
+  await page.getByRole("link", { name: "Write another entry" }).click();
+  await expect(page.locator("#w-title")).toHaveValue("");
+  await expect(page.locator("#w-slug")).toHaveValue("");
+  await expect(page.locator("#w-desc")).toHaveValue("");
+  await expect(page.locator("#w-body")).toHaveValue("");
+  await expect(page.locator(".notice", { hasText: "Restored what you typed" })).toHaveCount(0);
+  await expect(page.getByText("No drafts on the server.")).toBeVisible();
+  expect(noise).toEqual([]);
+});
+
+test("the same for an edit of a published entry: after its draft is published, reopening it shows the file", async ({
+  page,
+}) => {
+  const edit = `${admin.origin}/admin/write?edit=1&slug=lisbona&lang=en`;
+  await page.goto(edit);
+  const title = await page.locator("#w-title").inputValue();
+  await page.fill("#w-body", "An edit, saved as a draft first.");
+  await expect.poll(() => stored(page)).toEqual(["philglov-write:edit-en-lisbona"]);
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await page.waitForURL(/[?&]saved=1/);
+  expect(await stored(page)).toEqual([]);
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.locator("#published")).toBeVisible();
+  await page.goto(edit);
+  await expect(page.locator("#w-title")).toHaveValue(title);
+  await expect(page.locator("#w-body")).not.toHaveValue("An edit, saved as a draft first.");
+  await expect(page.locator(".notice", { hasText: "Restored what you typed" })).toHaveCount(0);
 });
 
 test("an upload that drops is retried by itself; a GIF renamed .jpg is refused with a clear message", async ({

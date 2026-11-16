@@ -149,12 +149,30 @@ describe("drafts and publishing", () => {
     });
     expect(res.status).toBe(303);
     const location = res.headers.get("Location") ?? "";
-    expect(location).toMatch(/^\/admin\/write\?draft=[A-Za-z0-9_-]{22}&saved=1$/);
+    // A first save: the text moved from the new-entry form's browser copy, which the draft page removes (SO-03).
+    expect(location).toMatch(/^\/admin\/write\?draft=[A-Za-z0-9_-]{22}&saved=1&moved=new$/);
     const row = await env.DB.prepare("SELECT slug, title, body FROM drafts").first();
     expect(row).toEqual({ slug: "alpi-d-inverno", title: "Alpi d'inverno", body: "Bozza." });
     const page = await (await adminFetch(location)).text();
     expect(page).toContain("Draft saved on the server.");
     expect(page).toContain('value="Alpi d&#39;inverno"');
+    expect(page).toContain('data-moved="new"');
+    // Saving the same draft again moves nothing; a "moved" that is not one of the form's keys is ignored.
+    const id = /draft=([^&]+)/.exec(location)?.[1] ?? "";
+    const again = await adminPost("/admin/write", { csrf: await csrf(), intent: "save", draft_id: id, title: "T" });
+    expect(again.headers.get("Location")).toBe(`/admin/write?draft=${id}&saved=1`);
+    const odd = await (await adminFetch(`/admin/write?draft=${id}&moved=..%2Fother`)).text();
+    expect(odd).toContain('data-moved=""');
+  });
+
+  test("BUG-4: Save draft skips the browser's checks (a half-written entry is a draft); Publish keeps them", async () => {
+    const page = await (await adminFetch("/admin/write")).text();
+    expect(page).toMatch(/<button type="submit" name="intent" value="save" class="btn btn--ghost" formnovalidate>/);
+    expect(page).toMatch(/<button type="submit" name="intent" value="publish" class="btn">/);
+    expect(page).toMatch(/id="w-desc"\s+name="description"\s+maxlength="200"\s+required/);
+    const res = await adminPost("/admin/write", { csrf: await csrf(), intent: "save", title: "Half", body: "A few." });
+    expect(res.status).toBe(303);
+    expect(await env.DB.prepare("SELECT description FROM drafts").first("description")).toBe("");
   });
 
   test("the file input accepts exactly image/jpeg,image/png, and the form loads the admin script", async () => {
@@ -605,7 +623,9 @@ describe("editing a published entry", () => {
     expect(res.status).toBe(303);
     const row = await env.DB.prepare("SELECT base_sha FROM drafts").first<{ base_sha: string }>();
     expect(row?.base_sha).toBe(base.base_sha);
+    expect(res.headers.get("Location")).toMatch(/&moved=edit-en-phone-edit$/);
     const html = await (await adminFetch(res.headers.get("Location") ?? "")).text();
+    expect(html).toContain('data-moved="edit-en-phone-edit"');
     expect(html).toContain("Editing <a");
     expect(html).toContain('<input id="w-slug" name="slug" readonly value="phone-edit"');
     expect(html).toContain(`name="base_sha" value="${base.base_sha}"`);

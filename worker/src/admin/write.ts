@@ -82,9 +82,16 @@ interface FormState {
   message?: Safe;
   /** The title search of the list of published entries. */
   query?: string;
+  /** After a first Save draft: the browser copy the text came from, which the page's script removes (SO-03). */
+  moved?: string;
 }
 
 const editing = (state: FormState): boolean => state.baseSha !== "";
+
+/** The browser copy (autosave key, after "philglov-write:") of an edit of a published entry not yet a draft. */
+const editKey = (lang: Lang, slug: string): string => `edit-${lang}-${slug}`;
+/** The browser copies a first Save draft can move from: the new-entry form, or an edit of a published entry. */
+const MOVED_KEY = /^(?:new|edit-(?:en|it)-[a-z0-9]+(?:-[a-z0-9]+)*)$/;
 
 const empty = (lang: Lang): EntryInput => ({
   title: "",
@@ -261,7 +268,7 @@ async function writePage(env: Env, identity: Identity, state: FormState, status 
       : Promise.resolve([]),
   ]);
   // The autosave key in this browser: per server draft, per entry being edited, or the one new entry.
-  const autosave = state.draftId || (isEdit ? `edit-${input.lang}-${input.slug}` : "");
+  const autosave = state.draftId || (isEdit ? editKey(input.lang, input.slug) : "");
 
   const errorList = errors && Object.values(errors).filter(Boolean);
   const body = html` <h2 class="admin-title">${isEdit ? "Edit" : "Write"}</h2>
@@ -284,6 +291,7 @@ async function writePage(env: Env, identity: Identity, state: FormState, status 
       class="form"
       id="write-form"
       data-draft="${autosave}"
+      data-moved="${state.moved ?? ""}"
       data-updated="${state.updated}"
       data-max="${MAX_PHOTO}"
     >
@@ -377,7 +385,7 @@ ${input.body}</textarea
       </ol>
       <div class="actions">
         <button type="submit" name="intent" value="publish" class="btn">${isEdit ? "Save changes" : "Publish"}</button>
-        <button type="submit" name="intent" value="save" class="btn btn--ghost">Save draft</button>
+        <button type="submit" name="intent" value="save" class="btn btn--ghost" formnovalidate>Save draft</button>
       </div>
       ${isEdit ? html`<p class="fine"><a href="/admin/write">Write a new entry instead</a></p>` : ""}
     </form>
@@ -458,6 +466,8 @@ export async function writeForm(env: Env, identity: Identity, url: URL): Promise
       state.draftId = d.id;
       state.baseSha = d.base_sha;
       state.updated = d.updated_at;
+      const moved = url.searchParams.get("moved") ?? "";
+      if (MOVED_KEY.test(moved)) state.moved = moved;
       const saved = url.searchParams.get("saved")
         ? html`<p class="notice" role="status">Draft saved on the server.</p>`
         : html``;
@@ -545,7 +555,11 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
   if (form.get("intent") === "save") {
     if (!input.slug && input.title) input.slug = slugFromTitle(input.title);
     const id = await saveDraft(env, input, draftId, baseSha);
-    return new Response(null, { status: 303, headers: { Location: `/admin/write?draft=${id}&saved=1` } });
+    // The first save of a new entry or of an edit moves the text from that form's browser copy to this draft, which
+    // has its own; the draft page then removes the old copy, so it never comes back after Publish (SO-03).
+    const moved = id === draftId ? "" : isEdit ? editKey(input.lang, input.slug) : "new";
+    const location = `/admin/write?draft=${id}&saved=1${moved ? `&moved=${encodeURIComponent(moved)}` : ""}`;
+    return new Response(null, { status: 303, headers: { Location: location } });
   }
 
   const site = await manifest(env);
@@ -625,7 +639,7 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
     if (draftId) await env.DB.prepare("DELETE FROM drafts WHERE id = ?1").bind(draftId).run();
     log("entry published");
     const live = pathFor(input.slug, input.lang);
-    const cleared = draftId || (isEdit ? `edit-${input.lang}-${input.slug}` : "new");
+    const cleared = draftId || (isEdit ? editKey(input.lang, input.slug) : "new");
     const body = autoMerge
       ? html`<h2 class="admin-title">Pull request opened</h2>
           <div class="alert" role="alert" id="published" data-clear="${cleared}">
