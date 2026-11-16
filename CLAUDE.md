@@ -126,6 +126,14 @@ WAY OF WORKING
   one title size on every page (titles are direct children of the grid); one intro sentence (`.lede`) on Journal, Photos,
   Now, About, Rights, Privacy; the text 52/68/80 px under it; Home loses "Photographer and developer" and keeps its
   name in a `.sr-only` span inside the h1.
+- 2026-11-16: fix round 1 of 3, backend ([0027](docs/decisions/0027-fix-round-1-backend.md), `TICKETS.md` R1): the
+  content check and `pnpm new` read front matter with Astro's own parser (`astro/markdown`); `/admin/write` keeps every
+  front matter line it does not change, old `tags:` lines included, and refuses to open what it cannot keep exactly
+  (SO-01); with JavaScript on, the form answer carries the next token, so Send works after an expired one (SO-02;
+  public JavaScript **1,535 of 1,536 bytes**); a first Save draft removes the browser copy it came from (SO-03);
+  Save draft has `formnovalidate` (BUG-4, fixed); a report from a missing address names it (SO-09); staging
+  `/_assets/` say noindex in their own rule. Rounds 2 and 3 take the other findings (SO-04 to SO-08, SO-10, BUG-1 to
+  -3, -5 to -8).
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -147,7 +155,8 @@ src/data/                     data files (e.g. ai-bots.json)
 src/.originals/               photo originals from R2 + meta.json (git-ignored; scripts/fetch-originals.ts, photo-meta.ts)
 public/_assets/               fonts (2 WOFF2 + crimson-pro-OFL.txt) and other static files, no Worker
 worker/src/                   the Worker (0017): index.ts routes; forms, page, comments, access, github, notify,
-                              scheduled, admin/; headers.ts is shared with the build; log.ts is the only logger
+                              scheduled, admin/; frontmatter.ts the phone editor's line reader (0027); headers.ts is
+                              shared with the build; log.ts is the only logger
 worker/migrations/            D1 migrations, applied by CI (migrations_dir in wrangler.jsonc)
 tests/worker/                 Vitest inside workerd (vitest.config.ts: test JWKS and a GitHub stand-in)
 scripts/lib/content-check.ts    the build check; scripts/lib/new-entry.ts the `pnpm new` template
@@ -237,6 +246,13 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
 - Publisher pull requests auto-merge, so the step "Publisher pull requests change entry files only" in `ci.yml` is a
   security boundary: keep it inline in the Test job, keep `PUBLISHER` in `worker/src/github.ts` equal to its login, and
   never give the GitHub App the Workflows permission (0021). No view transitions (`tests/unit/css.test.ts`).
+- Front matter (0027): build-side code reads it only with Astro's parser (`frontMatter()` in
+  `scripts/lib/content-check.ts`), never with a regex. `/admin/write` never rewrites a file: it replaces only the
+  title or description line whose value changed (`editedEntryMarkdown`) and refuses, with a message, a file whose
+  title or description it cannot read exactly. Keep both; `tests/unit/frontmatter.test.ts` holds the reader to
+  Astro's parser.
+- The background form answer's `k` is the next token (0027): fresh only after an expired or forged one, else the one
+  sent. `src/scripts/forms.ts` must always put it back in the form.
 - Every `/admin` path verifies the Access JWT; there is no local or test bypass. Secrets only via `wrangler secret
 put`; non-secret config as per-env vars in `wrangler.jsonc` (`secrets.required` lists the names at the top level only: in an env it makes every deploy fail until the secret is set;
   `tests/unit/wrangler-config.test.ts`).

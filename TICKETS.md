@@ -281,3 +281,21 @@ every page × en/it × light/dark × 1440/1024/768/390/320 × JS on/off in Chrom
 - [x] X8 ([0025](docs/decisions/0025-one-page-head.md)) One page head: mirror spacing under the header line (computed, 2 px,
       four widths), left column level with the title's capitals, one title size, one intro sentence, text 52/68/80 px
       under it; Home without the role line (name kept in a `.sr-only` span in the h1); prototypes and `/styleguide` updated.
+
+## 10 · Fix rounds after QA (owner request 2026-11-16)
+
+Three rounds, one pull request each, from `QA-REPORT.md`, `docs/qa/bug-reports.md` and the independent second opinion
+(SO-01 to SO-10). Each fix comes with a test that fails before it; an expected-failure marker goes when its bug is fixed.
+
+- [x] R1 Backend, round 1 ([0027](docs/decisions/0027-fix-round-1-backend.md)), done 2026-11-16:
+  - [x] SO-01 Front matter survives both publishing paths: the content check and `pnpm new` read it with Astro's own
+        parser; `/admin/write` keeps every line it does not change and refuses, with a message, what it cannot keep
+        exactly (a folded or multi-line title or description, for example).
+  - [x] SO-02 After an expired token, Send works again with JavaScript on (the answer carries the next token); public
+        JavaScript 1,535 of 1,536 bytes.
+  - [x] SO-03 After a saved draft is published, "Write another entry" opens an empty form.
+  - [x] BUG-4 "Save draft" works with the description empty; Publish still requires it.
+  - [x] SO-09 A report from a missing address names that address, in both languages.
+  - [x] Staging `/_assets/` responses say noindex in their own rule (rule 15); production unchanged.
+- [ ] R2 Round 2 (frontend and design findings; scope set by the owner).
+- [ ] R3 Round 3 (scope set by the owner).
