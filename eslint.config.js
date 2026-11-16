@@ -12,6 +12,8 @@ export default tseslint.config(
       ".lighthouseci/",
       "test-results/",
       "playwright-report/",
+      // Claude Code: local settings and other sessions' worktrees, with their own copies of the repo.
+      ".claude/",
     ],
   },
   ...tseslint.configs.strict,

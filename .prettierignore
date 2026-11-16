@@ -12,3 +12,5 @@ docs/guide.md
 docs/design/
 src/styles/photo-colours.generated.css
 src/.originals/
+# Claude Code: local settings and other sessions' worktrees
+.claude/
