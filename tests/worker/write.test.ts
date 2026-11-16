@@ -18,6 +18,7 @@ import {
   type EntryInput,
 } from "../../worker/src/entry-file.ts";
 import type { Entry } from "../../worker/src/manifest.ts";
+import { VARIANTS } from "./frontmatter-variants.ts";
 import { adminFetch, adminPost, csrf, resetDb, siteManifest, twinEntry } from "./helpers.ts";
 
 // The GitHub stand-in (vitest.config.ts) is shared by every test file, so all the tests that use it live in this
@@ -481,7 +482,7 @@ describe("editing a published entry", () => {
     expect(html).toContain("<title>Edit · philglov.es admin</title>");
     expect(html).toContain('value="Città on foot"');
     expect(html).toContain('value="A walk."');
-    // No topics (decision 0023): the file's old tags line is not shown and not kept.
+    // No topics (decision 0023): the file's old tags line is not shown (and kept in the file as it was, 0027).
     expect(html).not.toContain('name="tags"');
     expect(html).not.toContain("Topics");
     // The text keeps the inline photo; the two photos after it become photo items.
@@ -518,7 +519,8 @@ describe("editing a published entry", () => {
     const text = new TextDecoder().decode(
       Uint8Array.from(atob(String(writes[0]?.body["content"])), (c) => c.charCodeAt(0)),
     );
-    // Date, original language and the comments choice are the file's own; the photos come back after the text.
+    // Only the two changed lines are rewritten, in place; every other line is the file's own, the old tags line
+    // included (SO-01, decision 0027); the photos come back after the text.
     expect(text).toBe(
       [
         "---",
@@ -527,6 +529,7 @@ describe("editing a published entry", () => {
         "lang: en",
         "originalLang: it",
         'description: "A longer walk."',
+        "tags: [travel, photography]",
         "comments: false",
         "---",
         "",
@@ -618,9 +621,65 @@ describe("editing a published entry", () => {
   test("a file with frontmatter the page cannot read is not opened for editing", async () => {
     await gh("/__set", { files: { [PATH]: "no frontmatter here" } });
     const html = await (await adminFetch(`/admin/write?edit=1&slug=${SLUG}&lang=en`)).text();
-    expect(html).toContain("uses a form of frontmatter this page cannot read");
+    expect(html).toContain("/phone-edit cannot be edited here:</strong> its front matter is missing");
+    expect(html).toContain("Edit it on the laptop");
     expect(html).toContain('name="base_sha" value=""');
   });
+
+  // SO-01: laptop files in every valid form, opened, edited (the text only) and published from the phone.
+  const unescape = (s: string) =>
+    s
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&amp;/g, "&");
+  const frontOf = (text: string) => text.slice(0, text.search(/\r?\n---\r?\n/));
+  for (const [name, v] of Object.entries(VARIANTS)) {
+    for (const eol of ["\n", "\r\n"]) {
+      test(`front matter survives open, edit and publish: ${name}${eol === "\n" ? "" : " (CRLF)"}`, async () => {
+        const text = ["---", ...v.lines, "---", "", "The laptop's text.", ""].join(eol);
+        await gh("/__set", { files: { [PATH]: text } });
+        const html = await (await adminFetch(`/admin/write?edit=1&slug=${SLUG}&lang=en`)).text();
+        const sent = { ...fields(html), intent: "publish", slug: SLUG, lang: "en" };
+        if (!v.editable) {
+          // Not opened, nothing guessed, and a publish aimed at that version is refused too.
+          expect(html).toContain("/phone-edit cannot be edited here:");
+          expect(html).toContain("Edit it on the laptop");
+          expect(sent.base_sha).toBe("");
+          const res = await adminPost("/admin/write", {
+            ...sent,
+            base_sha: await blobSha(text),
+            title: "Guessed",
+            description: "Guessed.",
+            body: "The phone's text.",
+          });
+          expect(res.status).toBe(422);
+          expect(await res.text()).toContain("cannot be edited here");
+          expect((await calls()).some((c) => c.method === "PUT")).toBe(false);
+          return;
+        }
+        const shown = (id: string) => unescape(new RegExp(`id="${id}"[^>]*value="([^"]*)"`).exec(html)?.[1] ?? "");
+        expect(sent.base_sha).toBe(await blobSha(text));
+        const res = await adminPost("/admin/write", {
+          ...sent,
+          title: shown("w-title"),
+          description: shown("w-desc"),
+          body: "The phone's text,\r\nas a browser sends it.",
+        });
+        expect(res.status).toBe(200);
+        const writes = (await calls()).filter((c) => c.method === "PUT");
+        expect(writes).toHaveLength(1);
+        const out = new TextDecoder().decode(
+          Uint8Array.from(atob(String(writes[0]?.body["content"])), (c) => c.charCodeAt(0)),
+        );
+        // Every front matter line byte for byte (date, comments, languages, YAML comments, quotes, line ends) ...
+        expect(frontOf(out)).toBe(frontOf(text));
+        // ... and only the text changed, in the file's own line ends.
+        expect(out).toBe(text.replace("The laptop's text.", `The phone's text,${eol}as a browser sends it.`));
+      });
+    }
+  }
 });
 
 describe("reading an entry back", () => {

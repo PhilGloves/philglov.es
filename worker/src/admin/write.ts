@@ -18,6 +18,8 @@
  */
 import type { Identity } from "../access.ts";
 import {
+  editable,
+  editedEntryMarkdown,
   entryFilePath,
   entryMarkdown,
   parseEntry,
@@ -424,6 +426,12 @@ const editingNotice = (slug: string, lang: Lang): Safe => html`<p class="notice"
   itself in a few minutes.
 </p>`;
 
+/** An entry whose front matter this page cannot keep exactly (SO-01): it is not opened, and nothing is guessed. */
+const notEditable = (slug: string, lang: Lang, reason: string): Safe => html`<div class="alert" role="alert">
+  <strong>${pathFor(slug, lang)} cannot be edited here:</strong> ${reason}. Edit it on the laptop, so that nothing
+  else in it changes.
+</div>`;
+
 /** GET /admin/write: a blank form, a server draft (?draft=), or a published entry (?edit=1&slug=&lang=). */
 export async function writeForm(env: Env, identity: Identity, url: URL): Promise<Response> {
   const lang = asLang(url.searchParams.get("lang"));
@@ -457,14 +465,14 @@ export async function writeForm(env: Env, identity: Identity, url: URL): Promise
     }
   } else if (url.searchParams.get("edit") && SLUG.test(slug)) {
     const file = githubConfigured(env) ? await readFile(env, entryFilePath(lang, slug)).catch(() => null) : null;
-    const parsed = file ? parseEntry(file.text) : null;
-    if (file && parsed?.title) {
-      const { body, photos } = splitPhotos(parsed.body, slug);
+    const found = file ? editable(file.text) : null;
+    if (file && found?.ok) {
+      const { body, photos } = splitPhotos(found.body, slug);
       state.input = {
-        title: parsed.title,
+        title: found.title,
         slug,
         lang,
-        description: parsed.description,
+        description: found.description,
         body,
         photos,
       };
@@ -472,10 +480,8 @@ export async function writeForm(env: Env, identity: Identity, url: URL): Promise
       state.message = editingNotice(slug, lang);
     } else {
       state.input.slug = "";
-      state.message = file
-        ? html`<p class="alert" role="alert">
-            ${pathFor(slug, lang)} uses a form of frontmatter this page cannot read. Edit it from the laptop.
-          </p>`
+      state.message = found
+        ? notEditable(slug, lang, found.ok ? "" : found.reason)
         : html`<p class="alert" role="alert">No ${LANG_NAME[lang]} entry with the slug ${slug}.</p>`;
     }
   }
@@ -582,17 +588,23 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
         422,
       );
 
+    // An edit changes the title, description and text and keeps every other front matter line as it was (SO-01);
+    // a file it cannot keep exactly is refused, as when it was opened.
+    const edited = isEdit && same ? editedEntryMarkdown(same.text, input) : null;
+    if (isEdit && same && edited === null) {
+      const found = editable(same.text);
+      const message = notEditable(input.slug, input.lang, found.ok ? "" : found.reason);
+      return writePage(env, identity, { ...state, message }, 422);
+    }
     const current = same ? parseEntry(same.text) : null;
     const original = twin ? parseEntry(twin.text) : null;
     const from = (current ?? original)?.originalLang;
     const originalLang: Lang = from === "en" || from === "it" ? from : input.lang;
     const now = new Date();
-    const date =
-      current?.date && /^\d{4}-\d{2}-\d{2}$/.test(current.date) ? current.date : now.toISOString().slice(0, 10);
     const kind = isEdit ? "Edit" : twin ? `${LANG_NAME[input.lang]} version of` : "New entry";
     const pr = await openPullRequest(env, {
       path,
-      text: entryMarkdown(input, originalLang, date, current?.comments ?? true),
+      text: edited ?? entryMarkdown(input, originalLang, now.toISOString().slice(0, 10)),
       sha: same?.sha,
       branch: `publish/${input.lang}-${input.slug}-${stamp(now)}`,
       title: `${kind} ${input.lang}/${input.slug}: ${input.title}`,

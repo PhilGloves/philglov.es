@@ -4,6 +4,7 @@
  * build checks it again, so a malformed phone entry fails its pull request
  * instead of reaching the site.
  */
+import { frontMatterText, readFrontMatter, setField, type FrontMatter } from "./frontmatter.ts";
 import type { Lang } from "./manifest.ts";
 import { clean, length } from "./validate.ts";
 
@@ -107,14 +108,16 @@ const titleText = (text: string): string => text.replace(/[\\"]/g, "\\$&");
  */
 export const photoPath = (key: string): string => `../../../.originals/${key}`;
 
+/** One photo paragraph: ![alt](../../../.originals/<key> "caption"). */
+const photoMarkdown = (p: PhotoRef): string =>
+  `![${altText(p.alt)}](${photoPath(p.key)}${p.caption ? ` "${titleText(p.caption)}"` : ""})`;
+
 /**
- * The entry file. The caption is the image title, which the photo pipeline turns into a figcaption. `comments`
- * keeps an existing entry's choice when it is edited; new entries have comments on.
+ * A new entry file. The caption is the image title, which the photo pipeline turns into a figcaption. New entries
+ * have comments on; an edit goes through editedEntryMarkdown instead, which keeps the file's own lines.
  */
 export function entryMarkdown(input: EntryInput, originalLang: Lang, date: string, comments = true): string {
-  const photos = input.photos.map(
-    (p) => `![${altText(p.alt)}](${photoPath(p.key)}${p.caption ? ` "${titleText(p.caption)}"` : ""})`,
-  );
+  const photos = input.photos.map(photoMarkdown);
   return [
     "---",
     `title: ${yamlString(input.title)}`,
@@ -141,38 +144,79 @@ export interface ParsedEntry {
   body: string;
 }
 
-function unquote(value: string): string {
-  const v = value.trim();
-  if (v.startsWith('"')) {
-    try {
-      return JSON.parse(v) as string;
-    } catch {
-      return v.slice(1, -1);
-    }
-  }
-  if (v.startsWith("'")) return v.slice(1, -1).replace(/''/g, "'");
-  return v;
+/** The text after the closing fence, as the edit form shows it (line ends as \n; saving writes the file's own). */
+const bodyOf = (fm: FrontMatter): string => fm.body.replace(/\r\n/g, "\n").replace(/^\n+/, "").trimEnd();
+
+/** A line such as `comments: false # closed` as YAML's core schema reads it: true, false, or neither. */
+function booleanOf(fm: FrontMatter, key: string): boolean | undefined {
+  const raw = fm.fields.get(key)?.raw ?? "";
+  if (/^(?:true|True|TRUE)$/.test(raw)) return true;
+  if (/^(?:false|False|FALSE)$/.test(raw)) return false;
+  return undefined;
 }
 
-/** Reads back the frontmatter fields /admin/write needs (laptop files use the same simple form). */
+/**
+ * Reads back the frontmatter fields /admin/write needs, from a file written on the phone or the laptop. A value
+ * that cannot be read exactly (worker/src/frontmatter.ts) comes back as "".
+ */
 export function parseEntry(text: string): ParsedEntry | null {
-  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(text);
-  if (!match) return null;
-  const fields = new Map<string, string>();
-  for (const line of (match[1] ?? "").split(/\r?\n/)) {
-    const m = /^([A-Za-z]+):\s*(.*)$/.exec(line);
-    if (m?.[1]) fields.set(m[1], m[2] ?? "");
-  }
-  const comments = (fields.get("comments") ?? "").trim();
+  const fm = readFrontMatter(text);
+  if (!fm) return null;
+  const value = (key: string): string => fm.fields.get(key)?.value ?? "";
   return {
-    title: unquote(fields.get("title") ?? ""),
-    description: unquote(fields.get("description") ?? ""),
-    date: (fields.get("date") ?? "").trim(),
-    lang: (fields.get("lang") ?? "").trim(),
-    originalLang: (fields.get("originalLang") ?? "").trim(),
-    comments: comments === "true" ? true : comments === "false" ? false : undefined,
-    body: (match[2] ?? "").replace(/^\n+/, "").trimEnd(),
+    title: value("title"),
+    description: value("description"),
+    date: fm.fields.get("date")?.value ?? fm.fields.get("date")?.raw ?? "",
+    lang: value("lang"),
+    originalLang: value("originalLang"),
+    comments: booleanOf(fm, "comments"),
+    body: bodyOf(fm),
   };
+}
+
+export type Editable =
+  { ok: true; fm: FrontMatter; title: string; description: string; body: string } | { ok: false; reason: string };
+
+/**
+ * Whether /admin/write can open this file for editing and save it back with every line it does not change exactly
+ * as it was (SO-01). It shows the title and the description, so both must be values it reads exactly; everything
+ * else in the front matter is kept as text, whatever it is.
+ */
+export function editable(text: string): Editable {
+  const fm = readFrontMatter(text);
+  if (!fm)
+    return { ok: false, reason: "its front matter is missing, or written in YAML this page cannot keep exactly" };
+  const title = fm.fields.get("title");
+  if (!title?.value)
+    return {
+      ok: false,
+      reason: title
+        ? "its title is not one line this page can show exactly (over more than one line, for example)"
+        : "it has no title",
+    };
+  const description = fm.fields.get("description");
+  if (description && description.value === undefined)
+    return {
+      ok: false,
+      reason: "its description is not one line this page can show exactly (over more than one line, for example)",
+    };
+  return { ok: true, fm, title: title.value, description: description?.value ?? "", body: bodyOf(fm) };
+}
+
+/**
+ * The edited file: the title and description lines replaced only if their value changed, every other front matter
+ * line byte for byte as it was (date, comments, languages, comments in the YAML, old tags lines), and the new text
+ * with the photos after it, in the file's own line ends. null when the file cannot be edited (see editable).
+ */
+export function editedEntryMarkdown(text: string, input: EntryInput): string | null {
+  const found = editable(text);
+  if (!found.ok) return null;
+  const { fm } = found;
+  if (input.title !== clean(found.title, false)) setField(fm, "title", input.title);
+  if (input.description !== clean(found.description, false)) setField(fm, "description", input.description);
+  const lead = (/^(?:\r?\n)+/.exec(fm.body)?.[0] ?? "\n").replace(/\r/g, "");
+  const content = [input.body, ...input.photos.map(photoMarkdown)].filter(Boolean).join("\n\n");
+  return frontMatterText(fm) + `${lead}${content}\n`.replace(/\n/g, fm.eol);
 }
 
 export const entryFilePath = (lang: Lang, slug: string): string => `src/content/journal/${lang}/${slug}.md`;
