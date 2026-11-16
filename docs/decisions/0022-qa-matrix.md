@@ -35,11 +35,14 @@ The ruleset "Protect main" requires one status check, `Test` (checked with the G
 off). Publishing from the phone waits for it, so it must stay fast, and the QA matrix is about 20 minutes. Splitting into two jobs would mean changing the ruleset to require the second one as well, which is the owner's switch, so the split is **inside** `Test`, in a step that reads the diff:
 
 - **Fast scope:** the change touches only `src/content/journal/{en,it}/<slug>.md` (what the publisher writes; the same
-  pattern as the publisher guard). Runs: lint, the build with its content check, html-validate, and the Chromium core
-  suite (`E2E_SCOPE=core`: everything in `tests/e2e` except `tests/e2e/qa`, JavaScript on and off). Measured: the core
-  suite is 66 s on this laptop.
+  pattern as the publisher guard). Runs: lint, the build with its content check, html-validate, the unit tests, and the
+  Chromium core suite (`E2E_SCOPE=core`: everything in `tests/e2e` except `tests/e2e/qa`, JavaScript on and off). Measured: the core
+  suite is 66 s on this laptop. The unit tests are in it on purpose (owner request, 2026-11-16): a phone publish is when
+  new photographs arrive, and `tests/unit/qa-images.test.ts` reads every output image with exiftool (no GPS, rights
+  fields) before the entry can go live, not after. They took 2 s on the runner (run 43778652244, no photographs in R2
+  yet) and 40 s on a Windows laptop with 56 photo outputs, where starting exiftool is slow.
 - **Full scope:** any other change, and any trigger that is not a pull request or a push. Everything in the fast scope
-  plus typecheck, unit, Worker tests, the QA matrix, Firefox and WebKit, Lighthouse, and the checks on a
+  plus typecheck, Worker tests, the QA matrix, Firefox and WebKit, Lighthouse, and the checks on a
   `SITE_ENV=production` build (SEO, rights; the launch gate informs without blocking until owner question O1 is
   answered). The production build runs after the `dist` artifact is saved, so no deploy ever gets it.
 - **After a publish:** the push to `main` of an entry-only merge takes the fast scope too, so the entry goes live

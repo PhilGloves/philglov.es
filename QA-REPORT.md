@@ -7,8 +7,8 @@ run against the local Worker (`pnpm preview`) on Windows 11. How the suites are 
 ## Verdict
 
 **Not ready to launch, ready to keep building.** The matrix passes three times in a row with no flaky test, and nothing
-in it fails on the staging build. It does so with nine open findings. Those a browser can see (BUG-1 to BUG-5 and
-BUG-9) are each pinned by a test that is expected to fail until the bug is fixed, so CI stays green while one is open
+in it fails on the staging build. It does so with eight open findings (a ninth, BUG-9, was closed by an owner ruling). Those a browser can see (BUG-1 to
+BUG-5) are each pinned by a test that is expected to fail until the bug is fixed, so CI stays green while one is open
 and turns red the day it is fixed; BUG-6 to BUG-8 were found by hand or are listed as annotations:
 
 | #     | Finding                                                                      | Owner             | Severity |
@@ -18,16 +18,15 @@ and turns red the day it is fixed; BUG-6 to BUG-8 were found by hand or are list
 | BUG-1 | The language switch's accessible name does not contain its visible text      | Frontend          | medium   |
 | BUG-4 | "Save draft" is blocked until the description is filled in                   | Backend           | medium   |
 | BUG-6 | The build fails when an entry's photo is not in `src/.originals`             | Photo             | medium   |
-| BUG-9 | Every page logs a console warning in Safari/WebKit (COOP header, rule 11)    | Backend / owner   | medium   |
 | BUG-3 | Sign-off and footnote text are at 6.58:1, under the 7:1 AAA body-text target | Design            | low      |
 | BUG-7 | Three titles repeat across the two languages                                 | Content           | low      |
 | BUG-8 | `/404` answers 200; `/favicon.ico` answers 404                               | Frontend          | low      |
 
-**BUG-9 needs the owner**, because two rules meet: rule 11 says no console warnings, and the headers module (and the QA
-brief, suite 9) require `Cross-Origin-Opener-Policy`. WebKit logs "This document is not cross-origin isolated because
-the Cross-Origin-Embedder-Policy header is missing" on every page for **any** COOP value (measured: `same-origin`,
-`same-origin-allow-popups`, `unsafe-none` all warn; no header, no warning). Options: drop COOP, or rule, as O4 did for the
-404 line, that an engine's own isolation notice does not count.
+**BUG-9 is closed by an owner ruling (2026-11-16, decision [0026](docs/decisions/0026-coop-stays.md)).** Safari/WebKit
+logs "This document is not cross-origin isolated because the Cross-Origin-Embedder-Policy header is missing" on every
+page for any `Cross-Origin-Opener-Policy` value. The owner kept the header and ruled that a browser engine's own
+cross-origin-isolation notice does not count as a console warning under rule 11, as O4 ruled for the 404 line. The test
+that tracked it is now a normal test that allows exactly that one message, word for word, and nothing else.
 
 **The launch gate fails, by design, until the owner answers O1** (`pnpm test:launch`, run against a production build):
 18 pages still show `[Placeholder]`/`[Segnaposto]` text and the Person JSON-LD has no `sameAs` list. `/rights` and
@@ -35,20 +34,20 @@ the Cross-Origin-Embedder-Policy header is missing" on every page for **any** CO
 
 ## What ran, and what it found
 
-| Run                                                                   | Result                                                                                                                                                                  |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Matrix, Chromium JavaScript on and off, 3 runs in a row (final)       | **3 runs in a row: 565 passed, 0 failed, 0 flaky, 79 skipped each (6.4, 6.3 and 6.6 minutes).** The run before them had one timeout (see "Findings that are not bugs"). |
-| Unit tests (`pnpm test:unit`)                                         | 93 passed (includes the image checks with exiftool)                                                                                                                     |
-| Worker tests (`pnpm test:worker`, in the Workers runtime)             | 167 passed                                                                                                                                                              |
-| html-validate on `dist/` (`pnpm validate:html`)                       | no errors                                                                                                                                                               |
-| Lighthouse CI, 6 pages × 3 runs, mobile, simulated Slow 4G, CPU×4     | performance, accessibility, best practices 100 on every page (see below)                                                                                                |
-| Lighthouse SEO on a `SITE_ENV=production` build                       | 100 on every page (66–69 on a staging build, which says noindex by design)                                                                                              |
-| SEO and rights suites on a production build                           | 40 passed: no indexable page says noindex, sitemap, hreflang, JSON-LD, robots                                                                                           |
-| Launch gate on a production build                                     | 1 of 3 passed; fails on placeholders and `sameAs` (O1)                                                                                                                  |
-| WebKit smoke subset (7 tests incl. the BUG-9 marker)                  | 7 passed                                                                                                                                                                |
-| Firefox smoke subset                                                  | **not run here**: the operating system refuses to start `firefox.exe` ("Permission denied", also run by hand). The tests exist and run in CI on Linux.                  |
-| Visual regression (`pnpm test:visual`, 8 pages × 2 themes × 4 widths) | 16 passed against the baselines in this pull request (Windows-made)                                                                                                     |
-| Live-site check (`pnpm test:live`)                                    | 16 passed against the local Worker (proves the suite); **not run against staging**: needs the owner's Access token, see below                                           |
+| Run                                                                                      | Result                                                                                                                                                                                                         |
+| ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Matrix, Chromium JavaScript on and off, 3 runs in a row (final)                          | **3 runs in a row: 565 passed, 0 failed, 0 flaky, 79 skipped each (6.4, 6.3 and 6.6 minutes).** The run before them had one timeout (see "Findings that are not bugs").                                        |
+| Unit tests (`pnpm test:unit`)                                                            | 93 passed (includes the image checks with exiftool)                                                                                                                                                            |
+| Worker tests (`pnpm test:worker`, in the Workers runtime)                                | 167 passed                                                                                                                                                                                                     |
+| html-validate on `dist/` (`pnpm validate:html`)                                          | no errors                                                                                                                                                                                                      |
+| Lighthouse CI, 6 pages × 3 runs, mobile, simulated Slow 4G, CPU×4                        | performance, accessibility, best practices 100 on every page (see below)                                                                                                                                       |
+| Lighthouse SEO on a `SITE_ENV=production` build                                          | 100 on every page (66–69 on a staging build, which says noindex by design)                                                                                                                                     |
+| SEO and rights suites on a production build                                              | 40 passed: no indexable page says noindex, sitemap, hreflang, JSON-LD, robots                                                                                                                                  |
+| Launch gate on a production build                                                        | 1 of 3 passed; fails on placeholders and `sameAs` (O1)                                                                                                                                                         |
+| WebKit smoke subset (8 tests, incl. the rule-11 test that allows only the engine notice) | 8 passed locally; passed on the CI runner too (24 s with Firefox)                                                                                                                                              |
+| Firefox smoke subset                                                                     | **not runnable on this machine** (the operating system refuses to start `firefox.exe`: "Permission denied", also run by hand). **Passed on the CI runner (Linux)** in the full-scope run of this pull request. |
+| Visual regression (`pnpm test:visual`, 8 pages × 2 themes × 4 widths)                    | 16 passed against the baselines in this pull request (Windows-made)                                                                                                                                            |
+| Live-site check (`pnpm test:live`)                                                       | 16 passed against the local Worker (proves the suite); **not run against staging**: needs the owner's Access token, see below                                                                                  |
 
 Lighthouse medians (three runs each; budgets in `lighthouserc.json`: ≥ 95, LCP < 2 s, CLS < 0.05, 180 KB):
 
@@ -122,13 +121,17 @@ a test are a key pair made for that run. CI's `Test` job has no GitHub App secre
 GitHub values, so `pnpm preview` says "Publishing is not set up".
 
 **Speed of the Test check.** One required check, `Test` (read from the ruleset), so the split is inside it, in a step that
-reads the diff. Entry-only changes (what the phone publishes) run lint, the build with its content check, html-validate
-and the Chromium core suite: **about 4 to 6 minutes** (the core suite is 66 s here). Any other change runs everything:
-the QA matrix (6.3 to 6.6 minutes here, on 4 workers), Firefox and WebKit, Lighthouse, a production-mode build with
-the SEO and rights suites, the launch gate (informational): **about 20 to 30 minutes on a runner**. These are estimates:
-the matrix is mostly waiting (pauses a person takes, network quiet), so it should scale with workers, and CI uses four.
-They will be replaced by the first real CI run. A publish merged to `main` is not held back by the matrix: a separate,
-non-required job runs it afterwards. Details and the reasons: decision 0022.
+reads the diff. **Measured on the runner** (run 43778652244 of this pull request, full scope): **12 minutes 14 seconds**
+for the whole job: the QA matrix and core suite 378 s, Lighthouse 209 s, Firefox and WebKit 26 s to install and 24 s to
+run, everything else a few seconds each. (The first full-scope run failed after 7.5 minutes on three assumptions of my
+own tests that a Linux runner does not share; fixed in `cdf3e14`.) **Entry-only changes** (what the phone publishes) run
+lint, the build with its content check, html-validate, the **unit tests** and the Chromium core suite: not yet measured
+on a runner, estimated at **3 to 4 minutes** from the steps above (about 1 minute of fixed steps and the core suite,
+66 s on this laptop). The unit tests are in the fast scope because a phone publish is when new photographs arrive and
+they read every output image with exiftool (no GPS, rights fields) before the entry can go live: they took **2 seconds**
+on the runner, which has no photographs in R2 yet, and 40 seconds on this Windows laptop with 56 photo outputs, where
+starting exiftool is slow; expect a few seconds on Linux once photographs arrive. A publish merged to `main` is not held
+back by the matrix: a separate, non-required job runs it afterwards. Details and the reasons: decision 0022.
 
 ## For the owner: what only a real device can show
 
@@ -169,7 +172,7 @@ data-saver on, or stand somewhere with one bar of signal. Open `/`, then an entr
 
 ## What was not done, and why
 
-- **Firefox, locally:** blocked by the operating system on this machine; CI runs it (Linux).
+- **Firefox, locally:** blocked by the operating system on this machine; it ran in CI (Linux) and passed.
 - **Live-site check on staging:** needs a Cloudflare Access service token that only the owner can make. Steps are in
   [docs/setup.md](docs/setup.md) step 8b; the CI job `live-check-staging` says "skipped" in the run summary until the
   secrets exist. The same suite was run here against the local Worker to prove it works (see the table).

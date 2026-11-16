@@ -5,19 +5,19 @@ severity. Severity: **high** blocks the launch, **medium** should be fixed befor
 
 Each open bug that a test can see has a test named `BUG-n` marked `test.fail()`: CI stays green while it is open and
 goes red ("expected to fail, but passed") the moment it is fixed, which is the cue to delete the marker and close the bug.
-Found on the build of `main` at the merge of #24 (decisions 0023 to 0025), 2026-11-15, local Worker (`pnpm preview`).
+Eight bugs are open and one (BUG-9) is closed. Found on the build of `main` at the merge of #24 (decisions 0023 to 0025), 2026-11-15, local Worker (`pnpm preview`).
 
-| #     | Title                                                                   | Owner             | Severity | Test                                                      |
-| ----- | ----------------------------------------------------------------------- | ----------------- | -------- | --------------------------------------------------------- |
-| BUG-1 | The language switch's accessible name does not contain its visible text | Frontend          | medium   | `qa/a11y.spec.ts` "BUG-1"                                 |
-| BUG-2 | No visible keyboard focus ring on the photos of a series grid           | Design            | high     | `qa/a11y.spec.ts` keyboard `/photos/lisbon` (`test.fail`) |
-| BUG-3 | Sign-off and footnote text are under AAA contrast (6.58:1)              | Design            | low      | `qa/a11y.spec.ts` "BUG-3"                                 |
-| BUG-4 | "Save draft" is blocked until the description is filled in              | Backend           | medium   | `qa/phone.spec.ts` "BUG-4"                                |
-| BUG-5 | A long URL or name in a comment widens the page at every phone width    | Design / Frontend | high     | `qa/comments-layout.spec.ts` "BUG-5"                      |
-| BUG-6 | The build fails when an entry's photo is not in `src/.originals`        | Photo             | medium   | found by hand (below); not a browser test                 |
-| BUG-7 | Three titles repeat across the two languages                            | Content           | low      | annotation on `qa/seo.spec.ts` (first test)               |
-| BUG-8 | `/404` answers 200, and `/favicon.ico` answers 404                      | Frontend          | low      | found by hand (below)                                     |
-| BUG-9 | Every page logs a console warning in Safari/WebKit (COOP header)        | Backend / owner   | medium   | `qa/cross-browser.spec.ts` "BUG-9" (WebKit)               |
+| #     | Title                                                                   | Owner             | Severity | Test                                                                         |
+| ----- | ----------------------------------------------------------------------- | ----------------- | -------- | ---------------------------------------------------------------------------- |
+| BUG-1 | The language switch's accessible name does not contain its visible text | Frontend          | medium   | `qa/a11y.spec.ts` "BUG-1"                                                    |
+| BUG-2 | No visible keyboard focus ring on the photos of a series grid           | Design            | high     | `qa/a11y.spec.ts` keyboard `/photos/lisbon` (`test.fail`)                    |
+| BUG-3 | Sign-off and footnote text are under AAA contrast (6.58:1)              | Design            | low      | `qa/a11y.spec.ts` "BUG-3"                                                    |
+| BUG-4 | "Save draft" is blocked until the description is filled in              | Backend           | medium   | `qa/phone.spec.ts` "BUG-4"                                                   |
+| BUG-5 | A long URL or name in a comment widens the page at every phone width    | Design / Frontend | high     | `qa/comments-layout.spec.ts` "BUG-5"                                         |
+| BUG-6 | The build fails when an entry's photo is not in `src/.originals`        | Photo             | medium   | found by hand (below); not a browser test                                    |
+| BUG-7 | Three titles repeat across the two languages                            | Content           | low      | annotation on `qa/seo.spec.ts` (first test)                                  |
+| BUG-8 | `/404` answers 200, and `/favicon.ico` answers 404                      | Frontend          | low      | found by hand (below)                                                        |
+| BUG-9 | Every page logs a console warning in Safari/WebKit (COOP header)        | Backend / owner   | medium   | **Closed 2026-11-16**: owner ruling, [0026](../decisions/0026-coop-stays.md) |
 
 Not bugs, but open and listed so nothing is lost: the **launch gate** (`pnpm test:launch`, `qa/launch.spec.ts`) fails
 until the owner answers O1 (visible `[placeholder]` text on the pages, `sameAs` empty); Lighthouse on Windows is Q17.
@@ -114,7 +114,7 @@ until the owner answers O1 (visible `[placeholder]` text on the pages, `sameAs` 
 - `GET /favicon.ico` answers 404 with the HTML 404 page. Every page declares its icons, so browsers do not ask; crawlers
   and some feed readers do.
 
-## BUG-9 · Every page logs a console warning in Safari/WebKit
+## BUG-9 · Every page logs a console warning in Safari/WebKit — CLOSED by owner ruling, 2026-11-16
 
 - **Owner:** Backend (`worker/src/headers.ts`) and the owner, because two rules meet · **Severity:** medium · **Where:** every
   page and the 404, both languages, both themes, WebKit (Playwright WebKit 27.2; the message is Safari's).
@@ -128,9 +128,11 @@ until the owner answers O1 (visible `[placeholder]` text on the pages, `sameAs` 
 - **The conflict:** the header module sends COOP on every response and the QA brief (suite 9) says to assert it. Adding
   `Cross-Origin-Embedder-Policy: require-corp` would silence the first message but breaks nothing only if every
   subresource is the site's own, which it is; it was not tried, it is a security-header decision.
-- **Needs the owner:** (a) drop COOP, or (b) keep it and rule, as O4 did for the 404 line, that an engine's own isolation notice does
-  not count against rule 11.
-- **Test:** `qa/cross-browser.spec.ts` "BUG-9" is `test.fail()` for WebKit; the other WebKit smoke tests leave that one
-  line out (`ignoreConsole` in `qa/lib.ts`), so nothing else is hidden.
+- **Closed:** the owner kept the header and ruled that a browser engine's own notice about cross-origin isolation does not
+  count as a console warning under rule 11, as O4 ruled for the 404 line (decision
+  [0026](../decisions/0026-coop-stays.md); CLAUDE.md rule 11; TICKETS.md).
+- **Test:** `qa/cross-browser.spec.ts` now has a normal rule-11 test for Firefox and WebKit that allows exactly that one
+  message, word for word and at level `warning`, and nothing else, and a second test proving that a different level,
+  wording or message still fails. The WebKit smoke tests leave out only that message (`ignoreConsole` in `qa/lib.ts`).
 - **Related, not a bug:** WebKit upgrades subresources of an `http` page to `https` even on `127.0.0.1` (CSP
   `upgrade-insecure-requests`), so `pnpm preview` shows no styles in Safari; production is `https`.

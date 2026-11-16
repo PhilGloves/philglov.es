@@ -23,6 +23,10 @@ Settled by the owner on 2026-11-13: O4, rule 11 means no errors from the site's 
 to load resource" line for a page served with a 4xx status (404, and the 422/429 answer to a failed plain form post) is
 expected and does not count; the 422 stays (CLAUDE.md rule 11, decision 0018).
 
+Settled by the owner on 2026-11-16 (QA, BUG-9): `Cross-Origin-Opener-Policy` stays, and a browser engine's own notice
+about cross-origin isolation (WebKit prints one on every page) does not count as a console warning under rule 11, as O4
+ruled for the 404 line ([0026](docs/decisions/0026-coop-stays.md)).
+
 Settled by the owner on 2026-11-12 (backend): O2, the notification address is only ever the `NOTIFY_TO` Worker secret,
 never in `wrangler.jsonc`; O3, every error report is deleted 12 months after it arrived, open or done, as the privacy
 notice says (decision 0017).

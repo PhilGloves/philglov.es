@@ -66,7 +66,7 @@ jobs:
           exit "$bad"
       # One required check, "Test" (ruleset "Protect main"), so the split lives inside this job. A change that only
       # adds or edits journal entries (what the phone publishes, and a laptop entry too) runs lint, the build with
-      # its content check, html-validate and the Chromium core suite. Anything else, and every other trigger, runs
+      # its content check, html-validate, the unit tests (the photo checks) and the Chromium core suite. Anything else, and every other trigger, runs
       # everything: typecheck, unit, Worker, the QA matrix, Firefox and WebKit, Lighthouse, the production-mode checks.
       - name: How much to test
         id: scope
@@ -80,7 +80,7 @@ jobs:
           fi
           echo "scope=$scope" >> "$GITHUB_OUTPUT"
           if [ "$scope" = content ]; then
-            echo "Scope: entries only, so the fast scope (lint, build and content check, html-validate, Chromium core suite)." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "Scope: entries only, so the fast scope (lint, build and content check, html-validate, unit tests, Chromium core suite)." | tee -a "$GITHUB_STEP_SUMMARY"
           else
             echo "Scope: full (typecheck, unit, Worker, QA matrix, Firefox and WebKit, Lighthouse, production-mode checks)." | tee -a "$GITHUB_STEP_SUMMARY"
           fi
@@ -135,8 +135,9 @@ jobs:
         run: pnpm build
       - name: Validate HTML
         run: pnpm validate:html
+      # Also in the fast scope: a phone publish is when new photographs arrive, and these tests read every output image
+      # with exiftool (no GPS, rights fields) before the entry can go live (tests/unit/qa-images.test.ts).
       - name: Unit tests
-        if: steps.scope.outputs.scope == 'full'
         run: pnpm test:unit
       # The Worker inside the Workers runtime (Vitest + Miniflare), against the built dist/.
       - name: Worker tests

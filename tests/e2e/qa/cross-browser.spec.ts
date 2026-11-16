@@ -22,19 +22,22 @@ test.beforeEach(async ({ page }) => {
 });
 
 /**
- * BUG-9: any Cross-Origin-Opener-Policy header makes WebKit log "This document is not cross-origin isolated because
- * the Cross-Origin-Embedder-Policy (or -Opener-Policy) header ..." as a console warning, on every page. Rule 11 says
- * no warnings; the QA brief (suite 9) and the headers module require COOP. Owner ruling needed (docs/qa/bug-reports.md).
- * The smoke tests leave that one line out; the BUG-9 test below keeps it visible.
+ * Owner ruling 2026-11-16, decision 0026 (closes BUG-9): the site keeps `Cross-Origin-Opener-Policy`, and a browser
+ * engine's own notice about cross-origin isolation does not count as a console warning under rule 11, as O4 ruled for
+ * the 404 line. WebKit prints it on every page that has a COOP header. This is the one message allowed, word for word
+ * (the second test below proves nothing else matches); the rule-11 test and the smoke tests leave out only this.
  */
-const BUG9 = /not cross-origin isolated because the Cross-Origin-(Embedder|Opener)-Policy/;
+const ENGINE_NOTICE_TEXT =
+  "This document is not cross-origin isolated because the Cross-Origin-Embedder-Policy header is missing (it must be 'require-corp'). window.crossOriginIsolated is false and SharedArrayBuffer is unavailable.";
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const ENGINE_NOTICE = new RegExp(`^warning: ${escapeRegExp(ENGINE_NOTICE_TEXT)}$`);
 
 const PAGES = ["/", "/it", "/lisbona", "/photos/lisbon", "/photos/lisbon/tram-28"];
 
 for (const width of [1440, 390]) {
   test(`smoke at ${width}px: pages load clean, nothing overflows, nothing third-party`, async ({ page, baseURL }) => {
     test.setTimeout(90_000);
-    const seen = watch(page, baseURL ?? "", undefined, BUG9);
+    const seen = watch(page, baseURL ?? "", undefined, ENGINE_NOTICE);
     await page.setViewportSize({ width, height: 900 });
     const problems: string[] = [];
     for (const path of PAGES) {
@@ -110,13 +113,30 @@ test("report form: refused when empty, accepted when good", async ({ page }) => 
   await expect(page.locator('#report-status .notice[role="status"]')).toBeVisible();
 });
 
-test("BUG-9: no console warning on the home page in this browser", async ({ page, browserName }) => {
-  test.fail(browserName === "webkit", "WebKit warns about cross-origin isolation whenever COOP is set");
+test("rule 11 in this browser: no console error or warning but the engine's cross-origin isolation notice", async ({
+  page,
+}) => {
   const lines: string[] = [];
   page.on("console", (m) => {
     if (m.type() === "error" || m.type() === "warning") lines.push(`${m.type()}: ${m.text()}`);
   });
-  await page.goto("/");
-  await page.waitForLoadState("networkidle");
-  expect(lines).toEqual([]);
+  for (const path of ["/", "/it", "/lisbona", "/photos/lisbon"]) {
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+  }
+  // The notice may appear (WebKit) or not (Chromium, Firefox); anything else may not.
+  expect(lines.filter((line) => !ENGINE_NOTICE.test(line))).toEqual([]);
+});
+
+test("the allowance is exactly one message: a different line, level or wording is still a problem", () => {
+  expect(ENGINE_NOTICE.test(`warning: ${ENGINE_NOTICE_TEXT}`)).toBe(true);
+  for (const line of [
+    `error: ${ENGINE_NOTICE_TEXT}`,
+    `warning: ${ENGINE_NOTICE_TEXT} More.`,
+    `warning: Note: ${ENGINE_NOTICE_TEXT}`,
+    "warning: This document is not cross-origin isolated because the Cross-Origin-Opener-Policy header is wrong.",
+    "warning: Something else entirely.",
+    "error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+  ])
+    expect(ENGINE_NOTICE.test(line), line).toBe(false);
 });

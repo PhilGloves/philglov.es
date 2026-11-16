@@ -43,6 +43,9 @@ NON-NEGOTIABLES
     _Owner ruling 2026-11-13 (O4): this means errors from the site's own code. The browser's own "Failed to load
     resource" line for a page served with a 4xx status (the 404 page, the 422/429 answer to a failed form post) is
     expected and does not count; keep those statuses._
+    _Owner ruling 2026-11-16 (BUG-9): the same for a browser engine's own notice about cross-origin isolation, which
+    WebKit prints on every page that sends `Cross-Origin-Opener-Policy`. The header stays
+    ([0026](docs/decisions/0026-coop-stays.md))._
 12. Domain is philglov.es; the person is Filippo Guanti. SEO goal: rank first for "Filippo Guanti". Follow the SEO
     section of docs/guide.md: titles, Person and BlogPosting JSON-LD with sameAs, hreflang, canonical, sitemap, Open
     Graph.
