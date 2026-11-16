@@ -69,6 +69,11 @@ that language is still refused, now with a link to edit it. A draft saved while 
 (migration `0002_draft_base_sha.sql`) and reopens in edit mode. The autosave in the browser uses its own key per
 entry being edited.
 
+_Amended by [0029](0029-write-the-other-language.md):_ the list has one row per entry with both languages, a missing
+one being a link to write it; the edit form's language is a choice between the entry's two versions (with Switch
+without JavaScript) instead of text; and the entry's address opens the newest server draft of that version when there
+is one.
+
 **O5.** `/admin/moderation.js` treats an `opaqueredirect` answer as the expired login (the Worker never redirects a
 JSON request) and calls `location.reload()`. That is a plain GET, so Access's redirect to its sign-in page is allowed.
 Without JavaScript, the post is still blocked by `form-action 'self'` (the CSP stays as it is), and a reload signs in.

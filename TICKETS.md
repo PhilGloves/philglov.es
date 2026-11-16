@@ -319,3 +319,16 @@ Three rounds, one pull request each, from `QA-REPORT.md`, `docs/qa/bug-reports.m
   - [ ] TO-03 `site.json` `portrait` (owner: the real portrait); the Person data carries it as its image and the launch
         gate fails until it is set. Code done; waits for the photograph (with O1).
 - [ ] R3 Round 3 (scope set by the owner).
+
+## 11 · The other language from the phone (owner request 2026-11-16, [0029](docs/decisions/0029-write-the-other-language.md))
+
+- [x] W1 The list of published entries has one row per entry with both languages; a missing one is the link "Write
+      the English version" / "Write the Italian version".
+- [x] W2 On an entry's form the language is a choice between its two versions, each with its state; it switches on
+      change with JavaScript and with Switch without it, and the typed text is kept (browser copy / server draft).
+- [x] W3 The form for a version not written yet: slug fixed, fields empty, the existing version for reference, the
+      same photos by the same keys (nothing uploaded again), alt text and captions empty with the existing ones as
+      hints; alt text required before Publish.
+- [x] W4 After Publish the confirmation links to the other language (edit it, or write it).
+- [x] W5 A version written while the other is still on its way: the form works from its pull request; Publish waits
+      until it is on `main`.

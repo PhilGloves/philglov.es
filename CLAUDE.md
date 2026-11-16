@@ -152,6 +152,12 @@ WAY OF WORKING
   Lighthouse SEO ≥ 95 on the production build (`pnpm test:lighthouse:seo`) are asserted; AAA on all of `<main>`; 44 px
   navigation, focus at 390/1024/1440, `prefers-contrast` are tested; visual baselines regenerated and compared **exactly**;
   no expected-failure marker remains; `/404` answering 200 is accepted (BUG-8). Matrix: 761 passed, 3 runs in a row.
+- 2026-11-16: the other language from the phone ([0029](docs/decisions/0029-write-the-other-language.md), `TICKETS.md`
+  W1–W5): `/admin/write` lists one row per entry, a missing language being "Write the Italian version"; that form has
+  the slug fixed, the same photos by the same keys (alt text and captions empty, the other version's as hints) and the
+  other version for reference; an entry's form switches language with a dropdown (Switch without JavaScript), keeping
+  the typed text; `?edit=1&slug=&lang=` opens the newest server draft of that version when there is one; drafts have a
+  `twin` column (migration 0003). The owner's how-to is `docs/publishing-from-the-phone.md`.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -187,6 +193,7 @@ docs/qa/                      bug-reports.md, manual-checklist.md; QA-REPORT.md 
 docs/guide.md docs/design/    owner's guide and prototypes — never edit
 docs/decisions/               one record per architectural decision
 docs/setup.md                 steps only the owner can do
+docs/publishing-from-the-phone.md  the owner's how-to for /admin/write (0029)
 docs/handover.md              state, open items and lessons, one section per finished agent
 ```
 
@@ -279,6 +286,10 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
   title or description line whose value changed (`editedEntryMarkdown`) and refuses, with a message, a file whose
   title or description it cannot read exactly. Keep both; `tests/unit/frontmatter.test.ts` holds the reader to
   Astro's parser.
+- One entry, two languages on the phone (0029): `/admin/write?edit=1&slug=&lang=` is the entry in that language (its
+  edit form, or the form that writes it from the other); photos of a version are the other's stored keys, never a
+  second upload; a version's Publish waits until the other is on `main` (the content check refuses a translation
+  without its original). A language switch saves a server draft only when something was typed (`opened` hash).
 - The background form answer's `k` is the next token (0027): fresh only after an expired or forged one, else the one
   sent. `src/scripts/forms.ts` must always put it back in the form.
 - Every `/admin` path verifies the Access JWT; there is no local or test bypass. Secrets only via `wrangler secret
