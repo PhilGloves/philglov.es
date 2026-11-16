@@ -1,8 +1,8 @@
 /**
  * `pnpm qa [runs]`        the whole local QA run (docs/qa/README.md): build, html-validate, unit, Worker, then the e2e
  *                         matrix in Chromium (JavaScript on and off) `runs` times (default 3), then Firefox and WebKit.
- * `pnpm qa:production`    builds with SITE_ENV=production and runs the SEO, rights and launch-gate suites against it,
- *                         then rebuilds the normal build, so dist/ is never left in production mode.
+ * `pnpm qa:production`    builds with SITE_ENV=production and runs the SEO, rights and launch-gate suites and the
+ *                         Lighthouse SEO floor against it, then rebuilds the normal build, so dist/ is never left in production mode.
  *
  * It refuses to start while something already answers on 127.0.0.1:8787: Playwright would reuse that server, and a
  * stale one (an older build, another checkout) gives failures that are not the site's.
@@ -50,6 +50,8 @@ if (mode === "production") {
       ],
       { QA_PROD: "1" },
     );
+    // Lighthouse SEO needs the production build (staging says noindex): the floor is 95 on the worst of 3 runs per page.
+    step("lighthouse seo floor on the production build", "pnpm", ["test:lighthouse:seo"]);
   }
   step("rebuild the normal build", "pnpm", ["build"]);
 } else {

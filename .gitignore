@@ -16,6 +16,7 @@ src/.originals/
 test-results/
 playwright-report/
 .lighthouseci/
+.lighthouseci-seo/
 
 # local secrets
 .env

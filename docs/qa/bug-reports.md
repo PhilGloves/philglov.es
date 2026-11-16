@@ -5,7 +5,7 @@ severity. Severity: **high** blocks the launch, **medium** should be fixed befor
 
 Each open bug that a test can see has a test named `BUG-n` marked `test.fail()`: CI stays green while it is open and
 goes red ("expected to fail, but passed") the moment it is fixed, which is the cue to delete the marker and close the bug.
-Two bugs are open (BUG-7, and the `/404` half of BUG-8); BUG-9 is closed (owner ruling), BUG-4 is fixed (fix round 1, [0027](../decisions/0027-fix-round-1-backend.md)) and BUG-1, -2, -3, -5, -6 and the favicon half of BUG-8 are fixed (fix round 2, [0028](../decisions/0028-fix-round-2-frontend.md)). Found on the build of `main` at the merge of #24 (decisions 0023 to 0025), 2026-11-15, local Worker (`pnpm preview`).
+One bug is open (BUG-7); the `/404` half of BUG-8 is closed as accepted (owner, 2026-11-16); BUG-9 is closed (owner ruling), BUG-4 is fixed (fix round 1, [0027](../decisions/0027-fix-round-1-backend.md)) and BUG-1, -2, -3, -5, -6 and the favicon half of BUG-8 are fixed (fix round 2, [0028](../decisions/0028-fix-round-2-frontend.md)). Found on the build of `main` at the merge of #24 (decisions 0023 to 0025), 2026-11-15, local Worker (`pnpm preview`).
 
 | #     | Title                                                                   | Owner             | Severity | Test                                                                                 |
 | ----- | ----------------------------------------------------------------------- | ----------------- | -------- | ------------------------------------------------------------------------------------ |
@@ -16,7 +16,7 @@ Two bugs are open (BUG-7, and the `/404` half of BUG-8); BUG-9 is closed (owner 
 | BUG-5 | A long URL or name in a comment widens the page at every phone width    | Design / Frontend | high     | **Fixed 2026-11-16** (0028): `qa/comments-layout.spec.ts`, `qa/long-content.spec.ts` |
 | BUG-6 | The build fails when an entry's photo is not in `src/.originals`        | Photo             | medium   | **Fixed 2026-11-16** (0028): `unit/standins.test.ts`; opt-in in `docs/setup.md`      |
 | BUG-7 | Three titles repeat across the two languages                            | Content           | low      | annotation on `qa/seo.spec.ts` (first test)                                          |
-| BUG-8 | `/404` answers 200, and `/favicon.ico` answers 404                      | Frontend          | low      | favicon **fixed 2026-11-16** (0028, `qa/print-cookies.spec.ts`); `/404` 200 open     |
+| BUG-8 | `/404` answers 200, and `/favicon.ico` answers 404                      | Frontend          | low      | favicon **fixed 2026-11-16** (0028); `/404` 200 **accepted** 2026-11-16 (0022)       |
 | BUG-9 | Every page logs a console warning in Safari/WebKit (COOP header)        | Backend / owner   | medium   | **Closed 2026-11-16**: owner ruling, [0026](../decisions/0026-coop-stays.md)         |
 
 Found by the independent second opinion (2026-11-16, SO-01 to SO-10, kept outside the repository) and **fixed in fix
@@ -137,7 +137,9 @@ until the owner answers O1 (visible `[placeholder]` text on the pages, `sameAs` 
   languages. Search engines tell them apart by `hreflang`, so the harm is small; the test fails only for a repeat inside
   one language and lists these as annotations.
 
-## BUG-8 · `/404` answers 200, and `/favicon.ico` answers 404
+## BUG-8 · `/404` answers 200, and `/favicon.ico` answers 404 — favicon fixed, `/404` ACCEPTED (owner, 2026-11-16)
+
+- **Closed.** `GET /404` answering 200 is accepted: the page is noindex in its markup and its header, nothing links to it and the sitemap omits it. `qa/requirements.spec.ts` pins those conditions (a link to `/404`, or a lost noindex, fails it). Decision [0022](../decisions/0022-qa-matrix.md), round 3.
 
 - **Owner:** Frontend · **Severity:** low
 - `GET /404` serves the not-found page with status **200** (it carries `<meta name="robots" content="noindex">` and a

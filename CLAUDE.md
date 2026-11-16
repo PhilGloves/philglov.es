@@ -146,6 +146,12 @@ WAY OF WORKING
   main navigation links are 44 × 44 px on phones (TO-02); the Person data takes `site.json` `portrait` as its image
   once there is a real one, and the launch gate fails until then (TO-03). Public JavaScript **1,410 of 1,536 bytes**.
   Round 3: scope set by the owner.
+- 2026-11-16: fix round 3, the tests themselves ([0022](docs/decisions/0022-qa-matrix.md) "Round 3"): tests that could
+  not fail now can (origins not paths, exactly one theme script per page, no zero for a missing measurement, tokens by
+  name); HTML ≤ 30 KB, one stylesheet, whole photo first screen ≤ 400 KB, INP < 100 ms (best of three rounds, lab) and
+  Lighthouse SEO ≥ 95 on the production build (`pnpm test:lighthouse:seo`) are asserted; AAA on all of `<main>`; 44 px
+  navigation, focus at 390/1024/1440, `prefers-contrast` are tested; visual baselines regenerated and compared **exactly**;
+  no expected-failure marker remains; `/404` answering 200 is accepted (BUG-8). Matrix: 761 passed, 3 runs in a row.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -201,13 +207,14 @@ pnpm typecheck                   wrangler types + astro check + worker tsc + tes
 pnpm validate:html               html-validate on dist/
 pnpm test:unit | test:e2e        node:test | Playwright, Chromium with JavaScript on and off (needs a build)
 E2E_SCOPE=core pnpm test:e2e       only the core suite (no tests/e2e/qa): what CI runs for entry-only changes (0022)
-pnpm test:cross | test:visual     Firefox + WebKit smoke | full-page screenshots against local baselines (0022)
+pnpm test:cross | test:visual     Firefox + WebKit smoke | full-page screenshots, exact pixels, against local baselines (0022)
 pnpm test:launch                 the launch gate: fails until the owner answers O1 (placeholders, sameAs)
 pnpm test:live                   suite 15 against LIVE_URL (CF_ACCESS_CLIENT_ID/_SECRET while staging is behind Access)
 pnpm qa | qa:production          the whole QA run (3 e2e repeats, Firefox, WebKit) | SEO, rights and launch gate on a
                                  SITE_ENV=production build; both refuse to start while port 8787 is taken
 pnpm test:worker                 Vitest in the Workers runtime, against dist/ (needs a build)
 pnpm test:lighthouse             Lighthouse CI against pnpm preview; 3 runs per page, judged on the median (0013)
+pnpm test:lighthouse:seo         Lighthouse SEO ≥ 95 (worst of 3 runs) against a SITE_ENV=production build; qa:production runs it (0022)
 pnpm new <slug> --lang it|en     new entry, or the other-language version of one (ticket C4)
 pnpm check:content               cross-file content check (twins, slugs, folders, alt); runs first in pnpm build (C2)
 node scripts/contrast.ts         every colour pair with its measured contrast (unit tests enforce the floors)

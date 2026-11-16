@@ -197,6 +197,11 @@ jobs:
         env:
           QA_PROD: "1"
         run: pnpm exec playwright test --project=chromium tests/e2e/qa/seo.spec.ts tests/e2e/qa/rights.spec.ts
+      # Lighthouse SEO needs the production-mode build too: staging says noindex, which Lighthouse rightly scores down.
+      # The floor is 95 on the WORST of three runs per page (lighthouserc.seo.json), the guide's "all four categories".
+      - name: Lighthouse SEO floor on the production-mode build
+        if: steps.scope.outputs.scope == 'full'
+        run: pnpm test:lighthouse:seo
       # The launch gate fails until the owner has answered O1 (placeholder text, sameAs), so it informs and does not
       # block. When O1 is answered, delete continue-on-error and this check blocks as it should.
       - name: Launch gate (informational until O1 is answered)
@@ -220,6 +225,7 @@ jobs:
             test-results/
             playwright-report/
             .lighthouseci/
+            .lighthouseci-seo/
           # .lighthouseci/ is a hidden folder, which upload-artifact skips by default.
           include-hidden-files: true
           if-no-files-found: ignore

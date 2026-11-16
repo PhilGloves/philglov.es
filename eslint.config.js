@@ -10,6 +10,7 @@ export default tseslint.config(
       "node_modules/",
       "worker/worker-configuration.d.ts",
       ".lighthouseci/",
+      ".lighthouseci-seo/",
       "test-results/",
       "playwright-report/",
       // Claude Code: local settings and other sessions' worktrees, with their own copies of the repo.

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { checkTheme } from "../../scripts/contrast.ts";
+import { checkTheme, readTheme } from "../../scripts/contrast.ts";
 
 const css = readFileSync(new URL("../../src/styles/tokens.css", import.meta.url), "utf8");
 
@@ -34,9 +34,34 @@ test("the measured ratios in the tokens.css comment match the real ones", () => 
   }
 });
 
-test("both themes define the same colour tokens", () => {
-  const light = Object.keys(checkTheme(css, "light"));
-  assert.equal(light.length, Object.keys(checkTheme(css, "dark")).length);
+// W-07: this used to compare the length of two arrays of row numbers, which says nothing about the tokens. It compares
+// the token NAMES now: what the light block defines is exactly what each of the two dark blocks defines (the
+// data-theme="dark" block and the prefers-color-scheme one repeat each other by hand, so they may not drift either).
+test("both themes define the same colour tokens, and the two dark blocks agree", () => {
+  const light = Object.keys(readTheme(css, "light")).sort();
+  const dark = Object.keys(readTheme(css, "dark")).sort();
+  assert.ok(light.length >= 12, `the colour tokens were found (${light.join(", ")})`);
+  assert.deepEqual(
+    light.filter((name) => !dark.includes(name)),
+    [],
+    "defined in the light theme only",
+  );
+  assert.deepEqual(
+    dark.filter((name) => !light.includes(name)),
+    [],
+    "defined in the dark theme only",
+  );
+
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const body = (selector: string): Record<string, string> => {
+    const block =
+      new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^{}]*)\\}`).exec(bare)?.[1] ?? "";
+    return Object.fromEntries([...block.matchAll(/--([a-z-]+):\s*(#[0-9a-f]{6})\s*;/g)].map((m) => [m[1], m[2]]));
+  };
+  const media = body(':root:not([data-theme="light"])');
+  const chosen = body('[data-theme="dark"]');
+  assert.deepEqual(Object.keys(media).sort(), light, "the system-dark block defines every token");
+  assert.deepEqual(chosen, media, "the two dark blocks hold the same values");
 });
 
 test("motion tokens are 150 / 250 ms ease-out and switch off for reduced motion", () => {

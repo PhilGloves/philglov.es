@@ -142,6 +142,75 @@ test("with no choice made, the system preference decides, and the page follows w
   if (javaScriptEnabled) await expect(page.locator("[data-theme-toggle]")).toHaveAccessibleName("Switch to dark theme");
 });
 
+// W-05 (round 3): the earlier check changed the system theme once, in one direction, with no stored choice. The button
+// has no aria-pressed (decision 0028): its NAME says what it will do, and the name is chosen by CSS from the theme in
+// force. So it must follow every change of the system theme, in both directions, and must not follow it once the
+// visitor has chosen.
+test.describe("the theme button's name after a change of the system theme", () => {
+  test.skip(({ javaScriptEnabled }) => !javaScriptEnabled, "the button exists with JavaScript only");
+  const TO_LIGHT = "Switch to light theme";
+  const TO_DARK = "Switch to dark theme";
+
+  test("with no stored choice it follows the system, dark to light to dark", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto("/lisbona");
+    const button = page.locator("[data-theme-toggle]");
+    await expect(button).toHaveAccessibleName(TO_LIGHT);
+    for (const [scheme, name, bg] of [
+      ["light", TO_DARK, BG.light],
+      ["dark", TO_LIGHT, BG.dark],
+      ["light", TO_DARK, BG.light],
+    ] as const) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await expect(button, `system ${scheme}`).toHaveAccessibleName(name);
+      await expect.poll(() => background(page), { message: `system ${scheme}: background` }).toBe(bg);
+    }
+  });
+
+  test("with a stored choice the page and the name stay as chosen when the system changes", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.goto("/lisbona");
+    const button = page.locator("[data-theme-toggle]");
+    await button.click(); // chooses dark; stored
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(button).toHaveAccessibleName(TO_LIGHT);
+    for (const scheme of ["dark", "light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await expect(button, `system ${scheme}, chosen dark`).toHaveAccessibleName(TO_LIGHT);
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+      await expect
+        .poll(() => background(page), { message: `system ${scheme}: background (colours ease over 250 ms)` })
+        .toBe(BG.dark);
+    }
+    // Choosing again gives light, and the name follows that, whatever the system says.
+    await button.click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await page.emulateMedia({ colorScheme: "dark" });
+    await expect(button).toHaveAccessibleName(TO_DARK);
+    await expect.poll(() => background(page)).toBe(BG.light);
+  });
+
+  test("exactly one of the two labels is in the accessibility tree at any time", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.goto("/");
+    for (const scheme of ["light", "dark", "light"] as const) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await expect
+        .poll(() =>
+          page
+            .locator("[data-theme-toggle]")
+            .evaluate(
+              (button) =>
+                [...button.querySelectorAll(".to-dark, .to-light")].filter(
+                  (label) => getComputedStyle(label).display !== "none",
+                ).length,
+            ),
+        )
+        .toBe(1);
+    }
+  });
+});
+
 test("without JavaScript the toggle is not shown (it could do nothing)", async ({ page, javaScriptEnabled }) => {
   test.skip(javaScriptEnabled, "the no-JavaScript project only");
   await page.goto("/");

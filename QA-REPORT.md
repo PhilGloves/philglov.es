@@ -4,6 +4,51 @@ Written 2026-11-15 by the QA agent, on the build of `main` at the merge of pull 
 run against the local Worker (`pnpm preview`) on Windows 11. How the suites are built and run: decision
 [0022](docs/decisions/0022-qa-matrix.md). The bugs, in the brief's format: [docs/qa/bug-reports.md](docs/qa/bug-reports.md).
 
+## Update, 2026-11-16 (round 3: the tests themselves)
+
+An independent review found tests that could not fail, budgets with no assertion and requirements with no test
+(SECOND-OPINION.md, W-01 to W-11, and THIRD-OPINION.md). Round 3 changes tests only, never the site. What changed and
+why is in decision [0022](docs/decisions/0022-qa-matrix.md), "Round 3". The totals:
+
+- **Matrix, Chromium JavaScript on and off, three runs in a row on the final code: 761 passed, 0 failed, 0 flaky, 93 skipped
+  by design each (7.9, 7.4 and 7.4 minutes).** Before: 565 passed, 79 skipped. The 196 new passes are the requirements
+  below, the budget and INP tests, the keyboard tests at two more widths, the controls and the accepted-case test.
+- Unit 149 passed (was 93, most added by rounds 1 and 2; round 3 adds the built-output and token tests), Worker 190 passed,
+  html-validate clean, lint, format and typecheck clean. `pnpm test:visual` 16 passed, **exact pixels**, and 128 runs in a
+  row before that; WebKit 8 passed locally; Firefox runs in CI only (the operating system refuses it here).
+- **Lighthouse SEO ≥ 95 on the production-mode build: passed on 6 pages × 3 runs** (judged on the worst run); the same
+  command fails (0.69) against the staging build, which says noindex, so the floor can fail.
+- **Expected failures: none remain.** Every `BUG-n` test is an ordinary test.
+- **Each fix was proved by breaking the thing on purpose** (scripts kept outside the repository; each puts everything back):
+  theme script removed from one page, a second inline script, an entry's share image removed, an outbound link added (must
+  pass), a third-party stylesheet and image added, 40 KB of random text added to a page, a second stylesheet, a photo page of
+  520 KB, a 150 ms handler on every click (INP reads 248 to 352 ms and fails), the theme label swap broken (the SO-05 bug
+  again), the Now paragraph's colour lightened, `prefers-contrast` rules removed, the navigation links' 44 px removed, a
+  500 px scroll on focus (the old 900 px allowance would have passed it), the italic font answering 404, an extra colour
+  token in one theme only, and a dark block that differs from the other. Each made the intended test fail.
+- **The aborted image request** (`ERR_ABORTED`, also on unchanged main) was in the test, twice over, and is fixed
+  (decision 0022). **Round 2's two colour changes** had not regenerated the baselines (the shift was under the old
+  tolerance): all 64 were regenerated first, every page looked at (contact sheets, both themes, four widths), and committed
+  before the tolerance was tightened.
+- `/404` asked for directly answering 200 is **closed as accepted**, and a test pins the conditions (noindex, no link, not in
+  the sitemap).
+
+**Two findings of my own tests, from the first full run:** the existing test "a font that really fails is still reported"
+caught my first, too broad W-09 rule (an `optional` face is excused only when its file answered 200), and emulated
+"offline" does not cut an upload already on the wire, so the phone test now cuts the request itself. A later run read INP
+at 104 ms on a busy machine (24 to 32 ms otherwise), so INP is the best of three rounds. Two longer runs earlier the same day
+hit timeouts when the machine stalled (a 120 s keyboard test; one test that reported 29 minutes); they were not retried and
+were replaced by the three clean runs above, but the machine's stalls are the one thing I cannot rule out.
+
+**Chose not to do, and why:**
+
+- **Real 200 % browser zoom** (W-08): Playwright cannot set the browser's zoom, only the viewport; the review's own native
+  Chrome probe passed on 42 visits. The test keeps its 640 px reading, and the name says what it is.
+- **Exact legal copy, alt-text quality, foreign-phrase `lang`, live Cloudflare checks** (the review's other uncovered list):
+  not in the list this round gave, and each needs the owner's text, real photographs or the live site.
+- **Focus rings at all five widths:** at 390, 1024 and 1440 px; 768 and 320 add runtime for the same code paths.
+- **Visual baselines in CI:** fonts differ per operating system (as before).
+
 ## Update, 2026-11-16 (fix round 2)
 
 Fix round 2 ([0028](docs/decisions/0028-fix-round-2-frontend.md)) fixed BUG-1, BUG-2, BUG-3, BUG-5, BUG-6 and the
@@ -45,8 +90,8 @@ that tracked it is now a normal test that allows exactly that one message, word 
 | Run                                                                                      | Result                                                                                                                                                                                                         |
 | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Matrix, Chromium JavaScript on and off, 3 runs in a row (final)                          | **3 runs in a row: 565 passed, 0 failed, 0 flaky, 79 skipped each (6.4, 6.3 and 6.6 minutes).** The run before them had one timeout (see "Findings that are not bugs").                                        |
-| Unit tests (`pnpm test:unit`)                                                            | 93 passed (includes the image checks with exiftool)                                                                                                                                                            |
-| Worker tests (`pnpm test:worker`, in the Workers runtime)                                | 167 passed                                                                                                                                                                                                     |
+| Unit tests (`pnpm test:unit`)                                                            | 149 passed (includes the image checks with exiftool)                                                                                                                                                           |
+| Worker tests (`pnpm test:worker`, in the Workers runtime)                                | 190 passed                                                                                                                                                                                                     |
 | html-validate on `dist/` (`pnpm validate:html`)                                          | no errors                                                                                                                                                                                                      |
 | Lighthouse CI, 6 pages × 3 runs, mobile, simulated Slow 4G, CPU×4                        | performance, accessibility, best practices 100 on every page (see below)                                                                                                                                       |
 | Lighthouse SEO on a `SITE_ENV=production` build                                          | 100 on every page (66–69 on a staging build, which says noindex by design)                                                                                                                                     |

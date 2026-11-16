@@ -68,7 +68,18 @@ test.describe("JavaScript on: sent in the background", () => {
     // Focus moves the view only as far as needed to show the message: never back to the top.
     const after = await page.evaluate(() => scrollY);
     expect(after).toBeGreaterThan(0);
-    expect(Math.abs(after - before)).toBeLessThan(900);
+    // W-08 (round 3): this allowed 900 px, a whole screen, against decision 0018's "no scroll jump". The view may move
+    // for the focus only as far as it takes to bring the message into view: how far the slot was outside the screen,
+    // plus the slot's own height. Where the slot was before the move follows from where it is now and how far the page moved.
+    const slot = await page.evaluate(() => {
+      const box = (document.querySelector("#comment-status") as HTMLElement).getBoundingClientRect();
+      return { top: box.top, height: box.height, view: innerHeight };
+    });
+    const topBefore = slot.top + (after - before); // the slot's top edge on screen before the focus moved the page
+    const outside = Math.max(0, -topBefore, topBefore + slot.height - slot.view);
+    expect(Math.abs(after - before), "the view moved more than the focus needs").toBeLessThanOrEqual(
+      outside + slot.height + 2,
+    );
     await expect(page.locator("#c-comment")).toHaveValue("");
   });
 

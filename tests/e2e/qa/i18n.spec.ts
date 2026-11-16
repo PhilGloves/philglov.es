@@ -28,6 +28,20 @@ interface Version {
   label: boolean;
 }
 
+/** The text between the two `---` fences, with LF or CRLF line ends and an optional byte-order mark. */
+export const frontMatterBlock = (text: string): string => /^﻿?---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1] ?? "";
+const frontValue = (front: string, key: string): string | undefined =>
+  new RegExp(`^${key}:\\s*"?([a-z]+)"?\\s*$`, "m").exec(front)?.[1];
+
+test("front matter is read the same with LF, CRLF and a byte-order mark (W-10)", () => {
+  const lf = "---\nlang: en\noriginalLang: it\n---\nBody\n";
+  for (const text of [lf, lf.replace(/\n/g, "\r\n"), `﻿${lf}`, `﻿${lf.replace(/\n/g, "\r\n")}`]) {
+    const front = frontMatterBlock(text);
+    expect([frontValue(front, "lang"), frontValue(front, "originalLang")]).toEqual(["en", "it"]);
+  }
+  expect(frontMatterBlock("no fences here")).toBe("");
+});
+
 /** slug → versions found in src/content/{journal,pages}/{en,it}/<slug>.md, by language. */
 function contentVersions(): Map<string, Partial<Record<Lang, Version>>> {
   const map = new Map<string, Partial<Record<Lang, Version>>>();
@@ -42,8 +56,10 @@ function contentVersions(): Map<string, Partial<Record<Lang, Version>>> {
       }
       for (const file of files) {
         const text = readFileSync(new URL(file, dir), "utf8");
-        const front = /^---\n([\s\S]*?)\n---/.exec(text)?.[1] ?? "";
-        const get = (key: string) => new RegExp(`^${key}:\\s*"?([a-z]+)"?\\s*$`, "m").exec(front)?.[1];
+        // W-10 (round 3): a checkout with CRLF line ends (Windows, core.autocrlf) or a byte-order mark reads the same as
+        // LF; the product's own parser accepts both. `frontMatterLanguages` below is proved on all three.
+        const front = frontMatterBlock(text);
+        const get = (key: string) => frontValue(front, key);
         const slug = file.replace(/\.md$/, "");
         const lang = get("lang") as Lang | undefined;
         const originalLang = get("originalLang") as Lang | undefined;

@@ -132,7 +132,12 @@ test("a draft survives a reload, and a dropped connection while saving it", asyn
   await page.keyboard.type("One sentence.");
   await page.tap("#w-body");
   await page.keyboard.type("Half a thought, typed on a train.");
-  await page.waitForTimeout(700); // autosave in this browser runs 400 ms after the last key
+  // Autosave runs a moment after the last key: wait for the draft to be in storage, not for a time.
+  await page.waitForFunction(() =>
+    Object.keys(localStorage).some(
+      (key) => key.startsWith("philglov-write:") && (localStorage.getItem(key) ?? "").includes("Half a thought"),
+    ),
+  );
   await page.reload();
   await expect(page.locator("#w-title")).toHaveValue("Draft that must survive");
   await expect(page.locator("#w-body")).toHaveValue("Half a thought, typed on a train.");
@@ -140,8 +145,9 @@ test("a draft survives a reload, and a dropped connection while saving it", asyn
 
   // The connection drops while saving: the browser cannot send the form, the text is still in storage.
   await context.setOffline(true);
+  const refused = page.waitForEvent("requestfailed", (request) => request.method() === "POST");
   await page.getByRole("button", { name: "Save draft" }).click({ noWaitAfter: true });
-  await page.waitForTimeout(800);
+  await refused; // the browser tried to send the form and could not
   await context.setOffline(false);
   await page.goto(`${admin.origin}/admin/write`);
   await expect(page.locator("#w-title")).toHaveValue("Draft that must survive");
