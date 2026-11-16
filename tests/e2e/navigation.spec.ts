@@ -27,8 +27,10 @@ test("clicking through the site logs nothing in the console", async ({ page }) =
     await page.locator(`a[href="${href}"]`).first().click();
     await page.waitForURL(url);
     await page.waitForLoadState("load");
-    // Long enough for a transition (250 ms) to have run or failed.
-    await page.waitForTimeout(400);
+    // (There are no view transitions any more, decision 0021: nothing to wait out. The page is there when it has its
+    // main content and its fonts.)
+    await expect(page.locator("main#main")).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
   }
   await page.evaluate(() => document.fonts.ready);
   expect(noise).toEqual([]);

@@ -158,7 +158,10 @@ test.describe("the browser enforces the CSP", () => {
       } catch {
         fetchBlocked = true;
       }
-      await new Promise((r) => setTimeout(r, 300));
+      // The browser reports each blocked load as an event: wait until all four have been (or 5 s), not 300 ms.
+      const wanted = ["script-src-elem", "img-src", "connect-src", "style-src-elem"];
+      for (let waited = 0; waited < 5000 && !wanted.every((d) => violations.some((v) => v.startsWith(d))); waited += 50)
+        await new Promise((r) => setTimeout(r, 50));
       return { ran: w.__ran === true, violations, fetchBlocked, outline: getComputedStyle(document.body).outlineStyle };
     });
     expect(result.ran, "an injected inline script did not run").toBe(false);
@@ -167,7 +170,9 @@ test.describe("the browser enforces the CSP", () => {
     const directives = result.violations.map((v) => v.split(":")[0]);
     for (const d of ["script-src-elem", "img-src", "connect-src", "style-src-elem"])
       expect(directives, `a ${d} violation was raised (${result.violations.join(" | ")})`).toContain(d);
-    await page.waitForTimeout(300);
-    expect([...elsewhere, ...left], "every request to another host was blocked by the CSP").toEqual([]);
+    // A blocked request is reported as failed a moment after the event above: poll for it instead of sleeping.
+    await expect
+      .poll(() => [...elsewhere, ...left], { message: "every request to another host was blocked by the CSP" })
+      .toEqual([]);
   });
 });

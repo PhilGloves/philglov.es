@@ -58,7 +58,9 @@ async function fitViewportToPage(page: Page, width: number): Promise<void> {
     height = wanted;
     await page.setViewportSize({ width, height });
     // One frame after a resize, so the page has chosen its sources for the new size; then wait for them.
-    await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+    await page.evaluate(
+      () => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))),
+    );
     await loadEveryImage(page);
   }
 }
@@ -74,7 +76,9 @@ for (const [name, path] of PAGES) {
       // depending on how busy the machine was (one baseline had the one, a later run the other). Every screenshot here
       // is of a returning visitor: the faces are loaded once first, and the browser then has them for the first paint.
       await page.goto(path);
-      await page.evaluate(() => Promise.allSettled([...document.fonts].map((face) => face.load())).then(() => undefined));
+      await page.evaluate(() =>
+        Promise.allSettled([...document.fonts].map((face) => face.load())).then(() => undefined),
+      );
       await loadEveryImage(page); // nothing of the warm-up visit is still in flight when the page is left
       expect(await settle(page, seen)).toEqual([]);
       for (const width of [1440, 1024, 768, 390]) {

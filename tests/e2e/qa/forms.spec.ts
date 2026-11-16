@@ -374,7 +374,6 @@ test("a good comment is accepted, in both languages: the thank-you shows and the
     if (!javaScriptEnabled) await page.waitForURL(/\?sent=comment#comment-status$/);
     await expect(page.locator('#comment-status .notice[role="status"]')).toHaveText(ui(lang)["w_sentComment"] ?? "");
     if (javaScriptEnabled) await expect(page.locator("#c-comment")).toHaveValue("");
-    await page.waitForTimeout(100);
   }
 });
 

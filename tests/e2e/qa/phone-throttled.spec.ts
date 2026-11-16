@@ -72,14 +72,17 @@ test("publish with a photo on Slow 4G, with the connection dropping for a few se
   expect(jpeg.length).toBeGreaterThan(1_000_000);
   testInfo.annotations.push({ type: "photo", description: `${(jpeg.length / 1048576).toFixed(1)} MB` });
 
+  // The connection drops: the first two sends of the photo are cut at the network, the third goes through. (Emulated
+  // "offline" does not cut an upload that is already on the wire: it went on to 100 %, so the cut is made on the request.)
+  let dropUploads = true;
+  await page.route("**/admin/upload*", (route) => (dropUploads ? route.abort("connectionfailed") : route.continue()));
   await page.setInputFiles("#w-photos", { name: "IMG_0042.JPG", mimeType: "image/jpeg", buffer: jpeg });
   const progress = page.locator(".upload progress");
   await expect(progress).toBeVisible({ timeout: 20_000 });
-  // Some progress is shown, then the connection drops for 4 s.
-  await expect.poll(async () => Number(await progress.getAttribute("value")), { timeout: 30_000 }).toBeGreaterThan(5);
-  await context.setOffline(true);
-  await page.waitForTimeout(4_000);
-  await context.setOffline(false);
+  // Wait for what the page says, not for a time: it lost the connection twice (the first retry comes at once, the second
+  // after a growing pause). Then the connection is back.
+  await expect(page.locator(".upload")).toContainText("connection lost, retrying (2 of 5)", { timeout: 60_000 });
+  dropUploads = false;
   await cdp.send("Network.emulateNetworkConditions", {
     offline: false,
     latency: 150,

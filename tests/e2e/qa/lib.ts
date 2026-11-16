@@ -140,10 +140,25 @@ export async function settle(page: Page, seen: Watch): Promise<string[]> {
   await seen.idle();
   return page.evaluate(() => {
     const out: string[] = [];
+    const files = performance
+      .getEntriesByType("resource")
+      .filter((e) => /\.woff2(\?|$)/.test(e.name)) as PerformanceResourceTiming[];
+    const answeredOk = (face: FontFace) => {
+      const mine = files.filter((e) => (face.style === "italic") === /italic/.test(e.name));
+      return mine.length > 0 && mine.every((e) => e.responseStatus === 200);
+    };
     for (const face of document.fonts)
       // The "Crimson Pro Fallback" faces are local() fonts (Palatino, Georgia) that tune the text while the real font
       // loads; a machine without them (a Linux runner) reports them as "error". Not a broken font (as in fonts.ts).
-      if (face.status === "error" && !face.family.replace(/"/g, "").startsWith("Crimson Pro Fallback"))
+      // W-09 (round 3): the italic face is `font-display: optional`. Firefox reads one it chose not to use as "error" although the
+      // file came with a 200 and nothing was logged. That is not a failure. A face is excused ONLY when it is optional and every
+      // font file it could have come from was answered 200; a 404 or a failed request is still a problem here, and `watch`
+      // records the request, the status and any decode error in the console as well.
+      if (
+        face.status === "error" &&
+        !face.family.replace(/"/g, "").startsWith("Crimson Pro Fallback") &&
+        !(face.display === "optional" && answeredOk(face))
+      )
         out.push(`font failed: ${face.family} ${face.style} ${face.weight}`);
     for (const img of document.images)
       if (img.currentSrc !== "" && img.complete && img.naturalWidth === 0) out.push(`image broken: ${img.currentSrc}`);

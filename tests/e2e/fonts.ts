@@ -17,8 +17,23 @@ export async function fontsSettled(page: Page): Promise<string[]> {
     // The two "Crimson Pro Fallback" faces are local() fonts (Palatino, Georgia) that tune the fallback text while
     // the real font loads. A machine that has none of them, such as a Linux CI runner, reports them as "error"
     // whenever a page paints before Crimson Pro is ready. That is by design, not a broken font.
+    // W-09 (round 3): the italic face is `font-display: optional`. Firefox reads one it chose not to use as "error" although the
+    // file came with a 200 and nothing was logged. That is not a failure. A face is excused ONLY when it is optional and every font
+    // file it could have come from was answered 200; a 404 or a failed request on the file is still reported.
+    const files = performance
+      .getEntriesByType("resource")
+      .filter((e) => /\.woff2(\?|$)/.test(e.name)) as PerformanceResourceTiming[];
+    const answeredOk = (face: FontFace) => {
+      const mine = files.filter((e) => (face.style === "italic") === /italic/.test(e.name));
+      return mine.length > 0 && mine.every((e) => e.responseStatus === 200);
+    };
     return [...document.fonts]
-      .filter((face) => face.status === "error" && !face.family.replace(/"/g, "").startsWith("Crimson Pro Fallback"))
+      .filter(
+        (face) =>
+          face.status === "error" &&
+          !face.family.replace(/"/g, "").startsWith("Crimson Pro Fallback") &&
+          !(face.display === "optional" && answeredOk(face)),
+      )
       .map((face) => `font failed: ${face.family} ${face.style} ${face.weight}`);
   });
 }
