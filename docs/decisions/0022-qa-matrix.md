@@ -57,3 +57,59 @@ Every test that publishes talks to a GitHub stand-in: `tests/e2e/admin-worker.ts
 `close()` fails the test that caused it; `qa/phone.spec.ts` proves it). The App credentials in a test are a key pair
 made for that run. CI's `Test` job has no GitHub App secret, and the local `.dev.vars` has empty GitHub values, so
 `pnpm preview` answers "Publishing is not set up".
+
+## Round 3 (2026-11-16): the tests themselves
+
+An independent review (SECOND-OPINION.md, THIRD-OPINION.md) listed tests that could not fail, budgets with no assertion and
+requirements with no test. Round 3 changes tests only, never the site. Each fix below was proved by breaking the thing on
+purpose and seeing the test fail (the break-and-restore scripts are listed in `QA-REPORT.md`).
+
+- **Tests that could not fail.** W-01: the budget suite's "own origin only" compares origins, not paths (a stylesheet from
+  another host has a path that starts with `/` too); a control test serves one from `third-party.test` and expects it to be
+  found. W-02: every built page has exactly one inline script, the theme script, with the hash the Worker's CSP names (it was
+  "at most one", and compared only the set of hashes); the share images are the set the content folders require, not whatever
+  files exist. W-03: a missing LCP, a browser without the observers, a response body that cannot be read, or a status of 400
+  or more is a problem, never a zero (`measurementProblems`, with control tests). W-07: the two themes are compared by token
+  name (and the two dark blocks by value), not by the length of an array of row numbers.
+- **Budgets with no assertion** (W-04). HTML ≤ 30 KB compressed on every built page (gzip level 9, the stricter reading of
+  Cloudflare's Brotli); exactly one stylesheet per page, in the browser and in the build; the whole first screen of a photo
+  page at 390 px, HTML, CSS, fonts, script and images together, ≤ 400 KB; Lighthouse SEO ≥ 95 on a production-mode build
+  (`lighthouserc.seo.json`, `pnpm test:lighthouse:seo`, in CI and in `pnpm qa:production`), judged on the worst of three runs,
+  because a median can hide one bad run and the staging build says noindex, which scores SEO down by design.
+  **INP < 100 ms is measured**: Lighthouse measures a page load and cannot report it, so `qa/budgets.spec.ts` drives real input
+  (clicks on the theme button and the report disclosure, typing in the comment form) on the 390 px, CPU ×4 phone and reads the
+  browser's own Event Timing. Event Timing lists only events over 16 ms, and the test also checks the browser counted the
+  interactions, so "nothing listed" cannot pass for "nothing measured". Today: 24 to 32 ms. This is a lab figure; INP of real
+  visitors needs real traffic (Chrome UX Report) and cannot be measured before launch.
+- **Narrow checks** (W-05). AAA contrast (7:1) is checked on all text in `<main>` (the Now paragraph included) on every page,
+  both themes, at 1440 and 390 px; left out and held to AA: `.fine` (dates, sizes, the Now label) and `/styleguide`. The theme
+  button's name is checked after a system theme change in both directions, with and without a stored choice.
+- **Expected failures** (W-06): none remain; every `BUG-n` test is an ordinary test.
+- **Tolerances** (W-08). The background form may move the view only as far as the focus needs (how far the message was off
+  screen plus its own height), not 900 px. The visual comparison is exact (`threshold: 0`, `maxDiffPixels: 0`): the 1%
+  allowance was a block 200 px square on a 1440 px page, and Playwright's colour `threshold` (0.2) ignored a colour that moved a
+  few steps, which is what round 2's two colour changes were; they passed against the old baselines. Baselines were regenerated
+  with `--update-snapshots=all`, every page looked at, and committed before the tolerance was tightened. **The aborted image
+  request** (`net::ERR_ABORTED`, also on unchanged main) had two causes, both in the test: a full-page screenshot makes Chromium
+  enlarge the viewport, and `<picture>` then picks another source mid-capture; and the italic face is `font-display: optional`,
+  so a first visit drew upright "italics" or real ones depending on how busy the machine was. The test now makes the viewport as
+  tall as the page first, loads and waits for every image, and takes its screenshots as a returning visitor (fonts loaded once
+  before). `pnpm test:visual` needs no tolerance and passed 128 times in a row.
+- **W-09**: a font face that is `optional` and in error state is not a failure by itself (Firefox says "error" for one it chose
+  not to use, with a 200 and nothing logged). A face that really fails still fails the test, through the failed request, the
+  answer of 400 or more, or the decode error in the console that `watch` records; a test deletes the file to prove it.
+- **W-10**: front matter is read with LF, CRLF and a byte-order mark. Fixed waits replaced by waits on the thing awaited: the
+  autosave (waits for the draft in storage), the offline save (waits for the failed request), the upload retry (waits for the
+  page to say "retrying (2 of 5)"), the security probe (waits for the four violation events), navigation (the leftover
+  transition wait is gone). **Kept, with the reason:** the 3.2 to 3.3 s pauses before a form is sent (the Worker refuses a
+  form sent in under 3 s: the wait is the protocol); `settle()`'s 100 ms and `fonts.ts`' 100 ms polling (with JavaScript off
+  nothing inside the page runs timers, so quiet is judged from outside); the 600 ms in the no-JavaScript form test (it asserts
+  that the view does NOT move afterwards, which needs a quiet period).
+- **W-11**: an ordinary outbound `<a href>` no longer fails the build-output test; what fails is anything the browser would
+  fetch, connect to or post to on another host (`src`, `srcset`, `poster`, `data`, a form `action`, and a `<link>` that
+  loads), with a test of both sides.
+- **Requirements added:** main navigation and header controls at least 44 × 44 px at 390 and 320 px on every page; visible
+  focus at 390, 1024 and 1440 px in both themes; `prefers-contrast: more` rendered (the tokens change, muted text takes the text
+  colour, all text in `<main>` reaches 7:1 in both themes at both widths).
+- **`/404` asked for directly answers 200: accepted** (BUG-8, owner, 2026-11-16). The page is noindex in its markup and its
+  header, nothing links to it and the sitemap omits it; a test pins exactly those conditions.
