@@ -106,3 +106,18 @@ test("sitemap carries hreflang alternates only where given", () => {
   assert.equal(xml.split('rel="alternate"').length, 3);
   assert.match(xml, /<loc>https:\/\/philglov\.es\/only<\/loc>\n {2}<\/url>/);
 });
+
+// TO-03: the Person on Home and About names the portrait as its image once the owner has one (site.json "portrait"),
+// as an absolute URL; until then there is no image, and the launch gate fails on it. The placeholder frame is never used.
+test("Person JSON-LD carries the portrait as an absolute image URL once site.json names one", () => {
+  const data = {
+    name: "Filippo Guanti",
+    alternateName: [],
+    jobTitle: { en: "x", it: "y" },
+    sameAs: [],
+    portrait: "/_assets/portrait.jpg",
+  };
+  assert.equal(personJsonLd("en", data)["image"], "https://philglov.es/_assets/portrait.jpg");
+  assert.equal("image" in personJsonLd("en", { ...data, portrait: null }), false);
+  assert.equal(personJsonLd("en", data, "/other.jpg")["image"], "https://philglov.es/other.jpg");
+});

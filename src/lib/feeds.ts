@@ -1,9 +1,10 @@
 /** Feeds, sitemap and the share-image manifest, built from the collections. */
 import { getPages, getSeries, getSlots } from "./collections.ts";
-import { isoDate, pathFor, slugOf, type Locale } from "./entries.ts";
+import { pathFor, type Locale } from "./entries.ts";
 import { t } from "../i18n";
 import { absolute } from "./seo.ts";
-import { rssFeed, sitemapXml, type SitemapUrl } from "./xml.ts";
+import { sitemapUrls } from "./sitemap-urls.ts";
+import { rssFeed, sitemapXml } from "./xml.ts";
 
 /** One feed per language; an entry appears only in the feed of each language it exists in. */
 export async function feedFor(locale: Locale): Promise<string> {
@@ -30,49 +31,9 @@ export async function feedFor(locale: Locale): Promise<string> {
   });
 }
 
-/** Every public page; hreflang alternates only where both language versions exist. */
+/** Every public page; hreflang alternates only where both language versions exist (sitemap-urls.ts). */
 export async function sitemapFor(): Promise<string> {
-  const urls: SitemapUrl[] = [];
-  const pair = (enPath: string, itPath: string, lastmod?: string): SitemapUrl[] => [
-    {
-      loc: absolute(enPath),
-      lastmod,
-      alternates: { en: absolute(enPath), it: absolute(itPath), "x-default": absolute(enPath) },
-    },
-    {
-      loc: absolute(itPath),
-      lastmod,
-      alternates: { en: absolute(enPath), it: absolute(itPath), "x-default": absolute(enPath) },
-    },
-  ];
-  const both = (rest: string, lastmod?: string) => pair(pathFor("en", rest), pathFor("it", rest), lastmod);
-
-  urls.push(...pair("/", "/it"));
-  for (const rest of ["/journal", "/photos"]) urls.push(...both(rest));
-
-  const slots = await getSlots();
-  for (const slot of slots) {
-    const en = slot.versions.en;
-    const it = slot.versions.it;
-    const lastmod = isoDate(slot.date);
-    if (en && it) urls.push(...both(`/${slot.slug}`, lastmod));
-    else if (en) urls.push({ loc: absolute(pathFor("en", `/${slot.slug}`)), lastmod });
-    else if (it) urls.push({ loc: absolute(pathFor("it", `/${slot.slug}`)), lastmod });
-  }
-
-  const pages = await getPages();
-  const bySlug = new Map<string, Set<Locale>>();
-  for (const p of pages) bySlug.set(slugOf(p.id), (bySlug.get(slugOf(p.id)) ?? new Set()).add(p.data.lang));
-  for (const [slug, langs] of bySlug) {
-    if (langs.has("en") && langs.has("it")) urls.push(...both(`/${slug}`));
-    else for (const lang of langs) urls.push({ loc: absolute(pathFor(lang, `/${slug}`)) });
-  }
-
-  for (const s of await getSeries()) {
-    urls.push(...both(`/photos/${s.slug}`));
-    for (const p of s.photos) urls.push(...both(`/photos/${s.slug}/${p.id}`));
-  }
-  return sitemapXml(urls);
+  return sitemapXml(sitemapUrls({ slots: await getSlots(), pages: await getPages(), series: await getSeries() }));
 }
 
 export interface ShareItem {

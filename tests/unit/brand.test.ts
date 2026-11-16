@@ -42,3 +42,18 @@ test("a title is written into the template as escaped text, never as markup", ()
   assert.match(svg, /Fish &amp; chips/);
   assert.doesNotMatch(svg, /<!--TITLE-->/);
 });
+
+// BUG-8: /favicon.ico is the site icon in the .ico container, built by scripts/postbuild.ts.
+test("pngToIco wraps the site icon, unchanged, in a one-image .ico", async () => {
+  const { pngToIco } = await import("../../scripts/lib/ico.ts");
+  const png = readFileSync(new URL("favicon-32.png", brandDir));
+  const ico = pngToIco(png);
+  assert.deepEqual([...ico.subarray(0, 6)], [0, 0, 1, 0, 1, 0]); // reserved, type 1 (icon), one image
+  assert.equal(ico[6], 32); // width
+  assert.equal(ico[7], 32); // height
+  assert.equal(ico.readUInt32LE(14), png.length);
+  const start = ico.readUInt32LE(18);
+  assert.equal(start, 22);
+  assert.ok(ico.subarray(start).equals(png), "the image inside is the site icon byte for byte");
+  assert.throws(() => pngToIco(Buffer.from("not a png at all, no")), /not a PNG/);
+});

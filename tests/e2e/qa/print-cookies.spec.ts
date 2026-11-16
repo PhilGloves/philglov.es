@@ -5,7 +5,7 @@
  *  - No page and no API answer sets a cookie, and the browser holds none after a visit and a form post.
  *  - Every entry has a favicon (SVG and PNG), an apple-touch-icon and a 1200×630 share image that exist.
  */
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { builtPages, readBuilt } from "./lib.ts";
 
@@ -106,4 +106,16 @@ test("every entry has its icons and a 1200×630 share image that exist", async (
     if (og.includes("/default.png")) problems.push(`${path}: uses the default share image, not its own`);
   }
   expect(problems).toEqual([]);
+});
+
+// BUG-8 (fixed in fix round 2): crawlers and feed readers ask for /favicon.ico whatever the pages declare. It is the
+// site icon in the .ico container (scripts/postbuild.ts), served by the static assets, so the Worker never runs for it.
+test("/favicon.ico answers 200 with the site icon as an .ico file", async ({ request }) => {
+  const res = await request.get("/favicon.ico");
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toMatch(/^image\/(x-icon|vnd\.microsoft\.icon)/);
+  const body = await res.body();
+  expect([...body.subarray(0, 6)], "an icon header: type 1, one image").toEqual([0, 0, 1, 0, 1, 0]);
+  const png = readFileSync(new URL("../../../src/assets/brand/favicon-32.png", import.meta.url));
+  expect(body.subarray(22).equals(png), "the image inside is the site's own icon").toBe(true);
 });

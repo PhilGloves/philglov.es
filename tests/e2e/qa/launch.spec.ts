@@ -34,6 +34,22 @@ test("Person JSON-LD has a sameAs list of https profiles (home and About, both l
   expect(problems).toEqual([]);
 });
 
+// TO-03: the guide's SEO checklist wants an image in the Person data. It is the real portrait (site.json "portrait"),
+// never the placeholder frame, so this fails until the owner has one, like the placeholders and sameAs above.
+test("Person JSON-LD has the portrait as its image (home and About, both languages)", () => {
+  const problems: string[] = [];
+  for (const file of ["index.html", "it.html", "about.html", "it/about.html"]) {
+    const html = readBuilt(file);
+    const person = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
+      .map((m) => JSON.parse(m[1] ?? "") as Record<string, unknown>)
+      .find((b) => b["@type"] === "Person");
+    const image = person?.["image"];
+    if (typeof image !== "string" || !/^https:\/\/philglov\.es\//.test(image))
+      problems.push(`${file}: image is ${JSON.stringify(image)}`);
+  }
+  expect(problems).toEqual([]);
+});
+
 test("production: no page or image says noindex", async ({ request }) => {
   const problems: string[] = [];
   for (const p of builtPages().filter((x) => x.indexable)) {

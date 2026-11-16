@@ -11,13 +11,18 @@
  *    the Worker (/_assets/*, robots.txt, feeds, …). The headers come from the
  *    same module the Worker uses. /_assets/* adds X-Robots-Tag: noai, noimageai
  *    (with noindex outside production, assetHeaderLines).
- * 3. Moves the content manifest to dist/_assets/entries.json for the Worker
+ * 3. Writes dist/favicon.ico from the site icon (src/assets/brand/favicon-32.png): crawlers and feed readers ask for it
+ *    at the root, whatever the pages declare (BUG-8). The Worker never runs for it (wrangler.jsonc).
+ * 4. Moves the content manifest to dist/_assets/entries.json for the Worker
  *    (entry paths, taken slugs, the stylesheet the admin pages link; 0017).
  *
  * SITE_ENV=production only in the production deploy; anything else (the
  * default) adds X-Robots-Tag: noindex, so a stray build is never indexable.
  */
 import { readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { pngToIco } from "./lib/ico.ts";
+import { removeStandIns } from "./lib/standins.ts";
 import { assetHeaderLines, baseHeaders } from "../worker/src/headers.ts";
 import { localiseFootnotes } from "./lib/footnotes.ts";
 import { inlineScripts, sha256 } from "./lib/inline-scripts.ts";
@@ -48,7 +53,13 @@ writeFileSync(
   `${JSON.stringify(scriptHashes, null, 2)}\n`,
 );
 
-// 3. The content manifest for the Worker (B3, B8): dist/entries.json from the
+// 3. /favicon.ico, made from the one site icon.
+writeFileSync(
+  new URL("favicon.ico", dist),
+  pngToIco(readFileSync(new URL("../src/assets/brand/favicon-32.png", import.meta.url))),
+);
+
+// 4. The content manifest for the Worker (B3, B8): dist/entries.json from the
 //    Astro endpoint, plus the stylesheet the admin pages link, moved under
 //    /_assets/ (the Worker never runs there) and removed from the root.
 const manifestSource = new URL("entries.json", dist);
@@ -67,3 +78,7 @@ for (const line of assetHeaderLines(env)) lines.push(`  ${line}`);
 
 writeFileSync(new URL("_headers", dist), `${lines.join("\n")}\n`);
 console.log(`postbuild: wrote dist/_headers and script-hashes.json (${scriptHashes.join(", ")}) for SITE_ENV=${env}`);
+
+// 5. The grey stand-ins of an ALLOW_MISSING_ORIGINALS=1 build have served their purpose (scripts/lib/standins.ts).
+const removed = removeStandIns(fileURLToPath(new URL("../src/.originals/", import.meta.url)));
+if (removed.length) console.warn(`postbuild: removed ${removed.length} stand-in photograph(s) from src/.originals`);
