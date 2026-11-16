@@ -7,7 +7,8 @@ list (`docs/qa/bug-reports.md`) found six backend problems the owner put in this
 by the content check or silently changed by `/admin/write`), SO-02 (with JavaScript on, a form refused for an expired
 token can never be sent), SO-03 (after a saved draft is published, "Write another entry" brings back an old copy of
 it), BUG-4 ("Save draft" needs the description), SO-09 (a report sent from a missing address says `/404`) and the
-`/_assets/` responses on staging, which rule 15 wants noindex like every other one. SO-04 to SO-08, SO-10 and BUG-1,
+`/_assets/` responses on staging, which rule 15 wants noindex like every other one. Before merging, the owner added
+TO-01 from a third review (Publish during an upload leaves the photo out) and a clean local lint. SO-04 to SO-08, SO-10 and BUG-1,
 -2, -3, -5 to -8 are for rounds 2 and 3.
 
 ## Decisions
@@ -77,6 +78,19 @@ joins two matching rules, so these files were already served with `noindex, noai
 header record shows it. The rule no longer depends on that joining or on the order of the rules. Production is
 unchanged: `noai, noimageai`, no noindex.
 
+**7. No photo dropped by an early Publish (TO-01, added from the third review).** With JavaScript on, a photo the
+writer picked now has its row (name, progress, Remove) from the moment it is picked, not only once its upload starts.
+While any photo is waiting, uploading or waiting to retry, Publish and Save draft are held: the form is not sent, and
+an alert above the buttons says "Not yet: 1 photo is still uploading. Publish and Save draft work as soon as it has
+finished, or remove it." The alert goes, and both buttons work again, when the last upload finishes or is removed
+(Remove aborts the request or the pending retry). A photo that failed after five tries or was refused keeps its row and
+its message, so it is never left out without a word. Without JavaScript there are no uploads, so nothing changes.
+_Rejected:_ sending the form by itself once the uploads finish (the writer may have moved on, and a photo still needs
+its alt text before Publish passes); disabling the buttons (a disabled button explains nothing and leaves the keyboard).
+
+**8. Local lint.** `.claude/` (Claude Code's local settings and other sessions' worktrees, each a copy of the repo) is
+in `.gitignore`, `.prettierignore` and the ESLint ignores, so `pnpm lint` is clean on a machine that has them.
+
 ## How it is tested
 
 Each fix has tests that failed before it and pass after (checked by running them on the old code):
@@ -85,5 +99,7 @@ reader against Astro's parser, edit round trips, LF and CRLF) and the same varia
 against the GitHub stand-in in `tests/worker/write.test.ts`; the token answers in `tests/worker/forms.test.ts` and the
 whole expired, refused, resend, sent cycle for both forms, JavaScript on and off, in `tests/e2e/qa/forms.spec.ts`; the
 save draft, edit, publish, write another cycle (and the same for an edit) and BUG-4 in `tests/e2e/qa/phone.spec.ts`,
-whose `test.fail()` marker is removed; the missing-address reports in `tests/worker/forms.test.ts`; the asset rule in
+whose `test.fail()` marker is removed; TO-01 there too, with the upload request held as in the third review's probe
+(Publish and Save draft held with the message, then the entry sent with its photo; or the photo removed and the entry
+sent without it); the missing-address reports in `tests/worker/forms.test.ts`; the asset rule in
 `tests/unit/headers.test.ts`, `tests/unit/build-output.test.ts` and `tests/e2e/qa/rights.spec.ts`.

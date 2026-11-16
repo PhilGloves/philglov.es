@@ -297,5 +297,8 @@ Three rounds, one pull request each, from `QA-REPORT.md`, `docs/qa/bug-reports.m
   - [x] BUG-4 "Save draft" works with the description empty; Publish still requires it.
   - [x] SO-09 A report from a missing address names that address, in both languages.
   - [x] Staging `/_assets/` responses say noindex in their own rule (rule 15); production unchanged.
+  - [x] TO-01 (third review) A photo still uploading holds Publish and Save draft with a message; they work again
+        once it has finished or been removed.
+  - [x] `.claude/` ignored by git, Prettier and ESLint, so `pnpm lint` is clean next to other sessions' worktrees.
 - [ ] R2 Round 2 (frontend and design findings; scope set by the owner).
 - [ ] R3 Round 3 (scope set by the owner).

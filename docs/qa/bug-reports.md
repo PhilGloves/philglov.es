@@ -22,13 +22,14 @@ Seven bugs are open; BUG-9 is closed (owner ruling) and BUG-4 is fixed (fix roun
 Found by the independent second opinion (2026-11-16, SO-01 to SO-10, kept outside the repository) and **fixed in fix
 round 1** ([0027](../decisions/0027-fix-round-1-backend.md)), each with a test that failed before the fix:
 
-| #     | Title                                                                                 | Test                                                                       |
-| ----- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| SO-01 | Valid front matter rejected by the content check, or silently changed by /admin/write | `unit/frontmatter.test.ts`; `worker/write.test.ts` "front matter survives" |
-| SO-02 | With JavaScript on, a form refused for an expired token could never be sent again     | `qa/forms.spec.ts` "after an expired token"; `worker/forms.test.ts`        |
-| SO-03 | After a saved draft was published, "Write another entry" restored its old copy        | `qa/phone.spec.ts` "save draft, edit, publish, write another"              |
-| SO-09 | A report sent from a missing address said `/404`                                      | `worker/forms.test.ts` "a report sent from a missing address"              |
-| —     | Staging `/_assets/` responses: noindex now in their own rule (rule 15)                | `unit/headers.test.ts`, `unit/build-output.test.ts`, `qa/rights.spec.ts`   |
+| #     | Title                                                                                         | Test                                                                       |
+| ----- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| SO-01 | Valid front matter rejected by the content check, or silently changed by /admin/write         | `unit/frontmatter.test.ts`; `worker/write.test.ts` "front matter survives" |
+| SO-02 | With JavaScript on, a form refused for an expired token could never be sent again             | `qa/forms.spec.ts` "after an expired token"; `worker/forms.test.ts`        |
+| SO-03 | After a saved draft was published, "Write another entry" restored its old copy                | `qa/phone.spec.ts` "save draft, edit, publish, write another"              |
+| SO-09 | A report sent from a missing address said `/404`                                              | `worker/forms.test.ts` "a report sent from a missing address"              |
+| TO-01 | Publishing while a photo was still uploading left the photo out without a word (third review) | `qa/phone.spec.ts` "TO-01"                                                 |
+| —     | Staging `/_assets/` responses: noindex now in their own rule (rule 15)                        | `unit/headers.test.ts`, `unit/build-output.test.ts`, `qa/rights.spec.ts`   |
 
 The other second-opinion findings (SO-04 to SO-08, SO-10) and the open bugs above are for rounds 2 and 3.
 

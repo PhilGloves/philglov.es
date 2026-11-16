@@ -132,7 +132,8 @@ WAY OF WORKING
   (SO-01); with JavaScript on, the form answer carries the next token, so Send works after an expired one (SO-02;
   public JavaScript **1,535 of 1,536 bytes**); a first Save draft removes the browser copy it came from (SO-03);
   Save draft has `formnovalidate` (BUG-4, fixed); a report from a missing address names it (SO-09); staging
-  `/_assets/` say noindex in their own rule. Rounds 2 and 3 take the other findings (SO-04 to SO-08, SO-10, BUG-1 to
+  `/_assets/` say noindex in their own rule; a photo still uploading holds Publish and Save draft with a message
+  (TO-01); `.claude/` is ignored by git, Prettier and ESLint. Rounds 2 and 3 take the other findings (SO-04 to SO-08, SO-10, BUG-1 to
   -3, -5 to -8).
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
