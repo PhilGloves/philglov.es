@@ -8,7 +8,7 @@
  * not JSON, an expired Access session redirecting elsewhere) falls back to the normal post.
  * Counted in the 1.5 KB public JavaScript budget with the theme script (tests/unit/build-output.test.ts).
  */
-type Reply = { ok: boolean; s: string; t: string; m: string; e: [string, string][] };
+type Reply = { ok: boolean; s: string; t: string; m: string; e: [string, string][]; k: string };
 
 // The ids the Worker names always exist: they are the form contract (decision 0016), checked by tests/worker.
 const doc = document;
@@ -17,8 +17,8 @@ const make = (tag: string) => doc.createElement(tag);
 
 addEventListener("submit", async (event) => {
   const form = event.target as HTMLFormElement;
-  // A relative /api/ action is always this origin.
-  if (!form.getAttribute("action")?.startsWith("/api/")) return;
+  // A relative /api/ action is always this origin (a form without one tests "null", which does not match).
+  if (!/^\/api\//.test(form.getAttribute("action") as string)) return;
   event.preventDefault();
   let reply: Reply;
   try {
@@ -33,6 +33,8 @@ addEventListener("submit", async (event) => {
   } catch {
     return form.submit();
   }
+  // The token for the next send: fresh after an expired one, so Send works again (SO-02).
+  (form["token"] as HTMLInputElement).value = reply.k;
   for (const [id, message] of reply.e) {
     byId(id).setAttribute("aria-invalid", `${!!message}`);
     byId(`${id}-err`).textContent = message;
@@ -43,7 +45,7 @@ addEventListener("submit", async (event) => {
   const title = make("strong");
   box.className = reply.ok ? "notice" : "alert";
   box.setAttribute("role", reply.ok ? "status" : "alert");
-  title.textContent = reply.t;
+  title.append(reply.t); // a new, empty element: the same as setting its text, in fewer bytes
   box.append(title, reply.m);
   if (reply.ok) form.reset();
   const status = byId(reply.s);

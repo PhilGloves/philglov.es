@@ -5,6 +5,9 @@
  */
 import { env, SELF } from "cloudflare:test";
 import { beforeEach, describe, expect, test } from "vitest";
+import type { FormReply } from "../../worker/src/page.ts";
+import { required } from "../../worker/src/secrets.ts";
+import { checkFormToken } from "../../worker/src/tokens.ts";
 import { agedToken, commentFields, ORIGIN, post, resetDb, twinEntry } from "./helpers.ts";
 
 beforeEach(resetDb);
@@ -226,7 +229,8 @@ describe("sent in the background by the page's script (Accept: application/json)
 
   test("success: 200 JSON with the thank-you for the status slot, and every field cleared; no redirect", async () => {
     const { slug } = await twinEntry();
-    const res = await post("/api/comment", await commentFields(slug, "it"), json);
+    const fields = await commentFields(slug, "it");
+    const res = await post("/api/comment", fields, json);
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("application/json");
     expect(res.headers.get("Cache-Control")).toBe("no-store");
@@ -242,13 +246,15 @@ describe("sent in the background by the page's script (Accept: application/json)
         ["c-email", ""],
         ["c-comment", ""],
       ],
+      k: fields.token, // the token sent, unchanged
     });
     expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM comments WHERE status = 'pending'").first("n")).toBe(1);
   });
 
   test("field errors: JSON (200, ok false: a 4xx would log a console error) with each field's message, nothing stored", async () => {
     const { slug } = await twinEntry();
-    const res = await post("/api/comment", await commentFields(slug, "en", { email: "a@b.c", comment: "" }), json);
+    const fields = await commentFields(slug, "en", { email: "a@b.c", comment: "" });
+    const res = await post("/api/comment", fields, json);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       ok: false,
@@ -260,8 +266,32 @@ describe("sent in the background by the page's script (Accept: application/json)
         ["c-email", "Enter an address like name@example.com"],
         ["c-comment", "Write at least a few words"],
       ],
+      k: fields.token,
     });
     expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM comments").first("n")).toBe(0);
+  });
+
+  // SO-02: the script puts `k` in the form, so after an expired token pressing Send again works, as after a plain post.
+  test("an expired or forged token gets a fresh one back; a too-fast one is kept, as it will pass", async () => {
+    const { slug } = await twinEntry();
+    for (const [path, base] of [
+      ["/api/comment", await commentFields(slug, "en")],
+      ["/api/report", { message: "A typo.", email: "", url: "/about", lang: "en", website: "" }],
+    ] as const) {
+      for (const stale of [await agedToken(25 * 3600_000), "v1.abc.forged", ""]) {
+        const refused = await (await post(path, { ...base, token: stale }, json)).json<FormReply>();
+        expect(refused.ok).toBe(false);
+        expect(refused.m).toContain("open for too long");
+        expect(refused.k).not.toBe(stale);
+        // A real token of this moment: too fast now, accepted once a person's three seconds have passed.
+        expect(await checkFormToken(required(env.FORM_HMAC_KEY), refused.k)).toBe("fast");
+        expect(await checkFormToken(required(env.FORM_HMAC_KEY), refused.k, Date.now() + 3_500)).toBe("ok");
+      }
+      const fast = await agedToken(500);
+      const tooFast = await (await post(path, { ...base, token: fast }, json)).json<FormReply>();
+      expect(tooFast.m).toContain("faster than anyone can type");
+      expect(tooFast.k).toBe(fast);
+    }
   });
 
   test("spam and rate limit answer JSON too, with the same clear messages", async () => {
@@ -306,5 +336,44 @@ describe("sent in the background by the page's script (Accept: application/json)
     const { slug } = await twinEntry();
     const res = await post("/api/comment", await commentFields(slug, "en"), { Accept: "text/html,*/*" });
     expect(res.status).toBe(303);
+  });
+});
+
+// SO-09: a missing address is answered with the one built 404 page, whose report form said "/404".
+describe("a report sent from a missing address", () => {
+  const report = async (url: string, message = "The link I followed is broken.") =>
+    post("/api/report", { message, email: "", url, lang: "en", website: "", token: await agedToken() });
+
+  test("names the address the visitor asked for, in both languages", async () => {
+    for (const [path, home] of [
+      ["/a-missing-review-address", "/"],
+      ["/it/a-missing-review-address", "/it"],
+    ] as const) {
+      const page = await SELF.fetch(`${ORIGIN}${path}?from=somewhere`);
+      expect(page.status).toBe(404);
+      const html = await page.text();
+      expect(html).toContain(`name="url" value="${path}"`);
+      expect(html).not.toContain('name="url" value="/404"');
+      const res = await report(path);
+      expect(res.status).toBe(303);
+      // The thank-you is on that language's home: the missing address has no page of its own to come back to.
+      expect(res.headers.get("Location")).toBe(`${home}?sent=report#report-status`);
+      const row = await env.DB.prepare("SELECT page_url FROM reports ORDER BY id DESC").first("page_url");
+      expect(row).toBe(path);
+    }
+  });
+
+  test("a refused report keeps the address in the form it is shown again in", async () => {
+    const res = await report("/a-missing-review-address", "");
+    expect(res.status).toBe(422);
+    const html = await res.text();
+    expect(html).toContain('name="url" value="/a-missing-review-address"');
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM reports").first("n")).toBe(0);
+  });
+
+  test("the real /404 page, and an address too long to report, keep the page's own address", async () => {
+    expect(await (await SELF.fetch(`${ORIGIN}/404`)).text()).toContain('name="url" value="/404"');
+    const long = `/${"x".repeat(400)}`;
+    expect(await (await SELF.fetch(`${ORIGIN}${long}`)).text()).toContain('name="url" value="/404"');
   });
 });

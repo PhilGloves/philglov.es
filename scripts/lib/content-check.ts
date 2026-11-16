@@ -6,6 +6,8 @@
  * Pure: takes file contents, returns problems. scripts/check-content.ts reads
  * the disk; tests/unit/content-check.test.ts feeds it deliberately broken sets.
  */
+import { parseFrontmatter } from "astro/markdown";
+
 export interface ContentFile {
   /** "journal/it/alps.md" or "pages/en/about.md", relative to src/content. */
   path: string;
@@ -44,23 +46,40 @@ interface Parsed {
   body: string;
 }
 
-/** Frontmatter keys we need, read without a YAML dependency. */
-export function parseFile(file: ContentFile): Parsed | undefined {
+/**
+ * The front matter as Astro reads it when it builds the site: its own parser (`astro/markdown`, the one the content
+ * collections use), so a file passes here exactly when its YAML means the same thing to the build (SO-01). Throws
+ * on YAML the build would refuse too.
+ */
+export function frontMatter(text: string): { data: Record<string, unknown>; body: string } {
+  const { frontmatter, content } = parseFrontmatter(text);
+  return { data: frontmatter, body: content };
+}
+
+/** The frontmatter keys this check needs, and the text. A YAML error is returned as `error`. */
+export function parseFile(file: ContentFile): (Parsed & { error?: string }) | undefined {
   const parts = file.path.split("/");
   const [collection, folder, name] = parts;
   if ((collection !== "journal" && collection !== "pages") || !folder || !name || parts.length !== 3) return undefined;
-  const fm = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(file.text);
-  const field = (key: string): string | undefined =>
-    new RegExp(String.raw`^${key}:\s*"?([^"\r\n]*?)"?\s*$`, "m").exec(fm?.[1] ?? "")?.[1];
-  const parsed: Parsed = {
+  const parsed: Parsed & { error?: string } = {
     path: file.path,
     collection,
     folder,
     slug: name.replace(/\.md$/, ""),
-    body: fm?.[2] ?? file.text,
+    body: file.text,
   };
-  const lang = field("lang");
-  const originalLang = field("originalLang");
+  let data: Record<string, unknown> = {};
+  try {
+    ({ data, body: parsed.body } = frontMatter(file.text));
+  } catch (error) {
+    parsed.error = (error instanceof Error ? error.message : String(error)).split("\n")[0] ?? "";
+  }
+  const text = (key: string): string | undefined => {
+    const value = data[key];
+    return typeof value === "string" ? value : value === undefined || value === null ? undefined : String(value);
+  };
+  const lang = text("lang");
+  const originalLang = text("originalLang");
   if (lang) parsed.lang = lang;
   if (originalLang) parsed.originalLang = originalLang;
   return parsed;
@@ -88,7 +107,8 @@ export function checkContent(files: readonly ContentFile[]): string[] {
       problems.push(`${here}: folder "${p.folder}" is not en or it`);
       continue;
     }
-    if (!p.lang || !p.originalLang) problems.push(`${here}: lang and originalLang are both required`);
+    if (p.error) problems.push(`${here}: the front matter is not valid YAML (${p.error})`);
+    else if (!p.lang || !p.originalLang) problems.push(`${here}: lang and originalLang are both required`);
     if (p.lang && p.lang !== p.folder)
       problems.push(`${here}: lang "${p.lang}" does not match its folder "${p.folder}"`);
     if (!SLUG.test(p.slug)) problems.push(`${here}: slug "${p.slug}" must be lowercase ASCII with hyphens`);

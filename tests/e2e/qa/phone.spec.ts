@@ -156,18 +156,79 @@ test("a draft survives a reload, and a dropped connection while saving it", asyn
   expect(noise.filter((l) => !/ERR_INTERNET_DISCONNECTED|Failed to load resource/.test(l))).toEqual([]);
 });
 
-// BUG-4 (backend): the title and description inputs are `required` and "Save draft" has no formnovalidate, so the
-// browser refuses to save a half-written entry until the description is filled in. Remove test.fail() when fixed.
+// BUG-4 (fixed, 0027): "Save draft" has formnovalidate, so the browser saves a half-written entry; Publish keeps the
+// browser's checks (and the server's).
 test("BUG-4: Save draft saves a half-written entry (a title and a few words, no description yet)", async ({ page }) => {
-  test.fail();
   await write(page);
   await page.fill("#w-title", "Half written");
   await page.fill("#w-body", "Only a few words so far.");
+  // Publish still needs the description: the browser stops it, nothing reaches GitHub.
+  await page.getByRole("button", { name: "Publish" }).click();
+  expect(await page.locator("#w-desc").evaluate((el) => (el as HTMLInputElement).validity.valueMissing)).toBe(true);
+  await expect(page.locator("#published")).toHaveCount(0);
+  expect(admin.github.calls.filter((c) => c.method === "PUT" || /\/(pulls|git\/refs)$/.test(c.path))).toEqual([]);
   await page.getByRole("button", { name: "Save draft" }).click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForURL(/[?&]saved=1/);
   await page.evaluate(() => localStorage.clear());
   await page.goto(`${admin.origin}/admin/write`);
   await expect(page.getByText("Half written").first()).toBeVisible({ timeout: 2_000 });
+});
+
+/** What this browser keeps for /admin/write (the autosave copies). */
+const stored = (page: Page) =>
+  page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("philglov-write:")));
+
+// SO-03: the whole cycle. A first Save draft moves the text from the form's browser copy to the server draft, so
+// after Publish, "Write another entry" opens an empty form: no stale copy of the entry just published comes back.
+test("save draft, edit, publish, write another: the next entry starts empty", async ({ page }) => {
+  await write(page);
+  await page.fill("#w-title", "Cycle entry");
+  await page.fill("#w-desc", "One sentence.");
+  await page.fill("#w-body", "Before the draft was saved.");
+  await expect.poll(() => stored(page)).toEqual(["philglov-write:new"]); // autosave ran
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await page.waitForURL(/[?&]saved=1/);
+  await expect(page.locator(".notice", { hasText: "Draft saved on the server." })).toBeVisible();
+  expect(await stored(page), "the new-entry copy is gone once the server has the text").toEqual([]);
+  expect(page.url(), "and the address no longer says so, so a reload removes nothing").not.toContain("moved=");
+
+  await page.fill("#w-body", "After the draft was saved, edited.");
+  await expect.poll(() => stored(page)).toHaveLength(1); // this draft's own copy
+  await page.getByRole("button", { name: "Publish" }).click();
+  await expect(page.locator("#published")).toBeVisible();
+  const put = admin.github.calls.find((c) => c.method === "PUT");
+  expect(Buffer.from(String(put?.body?.["content"]), "base64").toString("utf8")).toContain(
+    "After the draft was saved, edited.",
+  );
+  expect(await stored(page)).toEqual([]);
+
+  await page.getByRole("link", { name: "Write another entry" }).click();
+  await expect(page.locator("#w-title")).toHaveValue("");
+  await expect(page.locator("#w-slug")).toHaveValue("");
+  await expect(page.locator("#w-desc")).toHaveValue("");
+  await expect(page.locator("#w-body")).toHaveValue("");
+  await expect(page.locator(".notice", { hasText: "Restored what you typed" })).toHaveCount(0);
+  await expect(page.getByText("No drafts on the server.")).toBeVisible();
+  expect(noise).toEqual([]);
+});
+
+test("the same for an edit of a published entry: after its draft is published, reopening it shows the file", async ({
+  page,
+}) => {
+  const edit = `${admin.origin}/admin/write?edit=1&slug=lisbona&lang=en`;
+  await page.goto(edit);
+  const title = await page.locator("#w-title").inputValue();
+  await page.fill("#w-body", "An edit, saved as a draft first.");
+  await expect.poll(() => stored(page)).toEqual(["philglov-write:edit-en-lisbona"]);
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await page.waitForURL(/[?&]saved=1/);
+  expect(await stored(page)).toEqual([]);
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.locator("#published")).toBeVisible();
+  await page.goto(edit);
+  await expect(page.locator("#w-title")).toHaveValue(title);
+  await expect(page.locator("#w-body")).not.toHaveValue("An edit, saved as a draft first.");
+  await expect(page.locator(".notice", { hasText: "Restored what you typed" })).toHaveCount(0);
 });
 
 test("an upload that drops is retried by itself; a GIF renamed .jpg is refused with a clear message", async ({
@@ -199,6 +260,82 @@ test("an upload that drops is retried by itself; a GIF renamed .jpg is refused w
   );
   await page.setInputFiles("#w-photos", { name: "fake.jpg", mimeType: "image/jpeg", buffer: gif });
   await expect(page.locator(".upload .fine").last()).toContainText("Only JPEG and PNG photos.");
+});
+
+// TO-01 (0027): a photo still uploading (or waiting, or about to retry) holds Publish and Save draft, with a message
+// that says why; they work again once it has finished, or once it is removed. Nothing selected is dropped silently.
+// The upload request is held, as in the third review's probe, so the order is certain.
+const JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(64, 1)]);
+async function holdUploads(page: Page) {
+  let release: () => void = () => {};
+  let started: () => void = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  const start = new Promise<void>((resolve) => (started = resolve));
+  await page.route("**/admin/upload?*", async (route) => {
+    started();
+    await held;
+    await route.continue().catch(() => {}); // the page may have removed it meanwhile
+  });
+  return { start, release: () => release() };
+}
+const WAITING = "Not yet: 1 photo is still uploading.";
+
+test("TO-01: Publish and Save draft wait for a photo still uploading, then send it with the entry", async ({
+  page,
+}) => {
+  await write(page);
+  await page.fill("#w-title", "With a photo on its way");
+  await page.fill("#w-slug", "photo-on-its-way");
+  await page.fill("#w-desc", "One sentence.");
+  await page.fill("#w-body", "An entry with a selected photo.");
+  const upload = await holdUploads(page);
+  await page.setInputFiles("#w-photos", { name: "Harbour.jpg", mimeType: "image/jpeg", buffer: JPEG });
+  await upload.start;
+  await expect(page.locator(".upload progress")).toBeVisible();
+
+  for (const name of ["Publish", "Save draft"]) {
+    await page.getByRole("button", { name, exact: true }).click();
+    await expect(page.locator('[role="alert"]', { hasText: WAITING })).toBeVisible();
+    await expect(page.locator("#published")).toHaveCount(0);
+  }
+  const writes = admin.github.calls.filter((c) => c.method === "PUT" || /\/(pulls|git\/refs)$/.test(c.path));
+  expect(writes, "nothing was written to GitHub").toEqual([]);
+  expect(page.url()).toBe(`${admin.origin}/admin/write`);
+
+  upload.release();
+  await expect(page.locator('#photo-list input[name="photo_key"]')).toHaveCount(1);
+  await expect(page.locator('[role="alert"]', { hasText: WAITING })).toHaveCount(0);
+  await page.fill("#photo-list input[name='photo_alt']", "The harbour at dawn");
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
+  await expect(page.locator("#published")).toBeVisible();
+  const put = admin.github.calls.find((c) => c.method === "PUT");
+  const text = Buffer.from(String(put?.body?.["content"]), "base64").toString("utf8");
+  expect(text).toContain("An entry with a selected photo.");
+  expect(text).toMatch(
+    /!\[The harbour at dawn\]\(\.\.\/\.\.\/\.\.\/\.originals\/photo-on-its-way\/harbour-[a-z0-9]+\.jpg\)/,
+  );
+  expect(noise).toEqual([]);
+});
+
+test("TO-01: removing the photo still uploading lets Publish go, without it, as the writer chose", async ({ page }) => {
+  await write(page);
+  await page.fill("#w-title", "Changed my mind");
+  await page.fill("#w-slug", "changed-my-mind");
+  await page.fill("#w-desc", "One sentence.");
+  await page.fill("#w-body", "Text only, in the end.");
+  const upload = await holdUploads(page);
+  await page.setInputFiles("#w-photos", { name: "Blurry.jpg", mimeType: "image/jpeg", buffer: JPEG });
+  await upload.start;
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
+  await expect(page.locator('[role="alert"]', { hasText: WAITING })).toBeVisible();
+  await page.locator(".upload").getByRole("button", { name: "Remove" }).click();
+  await expect(page.locator(".upload")).toHaveCount(0);
+  await expect(page.locator('[role="alert"]', { hasText: WAITING })).toHaveCount(0);
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
+  await expect(page.locator("#published")).toBeVisible();
+  upload.release();
+  const put = admin.github.calls.find((c) => c.method === "PUT");
+  expect(Buffer.from(String(put?.body?.["content"]), "base64").toString("utf8")).not.toContain("![");
 });
 
 test("Publish opens a pull request on its own branch and never writes to main", async ({ page }) => {

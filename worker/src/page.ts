@@ -27,7 +27,13 @@ export interface Failure {
   errors: Errors;
   formError?: FormError | undefined;
   values: Partial<Record<Field, string>>;
+  /** A report: the page it is about, kept in the form when the answer is another page (a missing address). */
+  url?: string | undefined;
 }
+
+/** The report form's hidden address (src/components/SiteFooter.astro); sitePath() takes at most 300 characters. */
+const REPORT_URL = 'form[action^="/api/report"] input[name="url"]';
+const MAX_REPORT_URL = 300;
 
 export interface PageOptions {
   /** Serve this path instead of the request's (a 422 answers with the form's page). */
@@ -59,7 +65,10 @@ export const pageHeaders = (env: Env): Record<string, string> => baseHeaders(env
  * (and stays small enough for the 1.5 KB budget).
  * s: id of the status slot; t: the alert's title ("" on success); m: the
  * thank-you, or the form-level message, or the field problems in one line;
- * e: every field of the form as [field id, message next to it, "" if valid].
+ * e: every field of the form as [field id, message next to it, "" if valid];
+ * k: the token for the next send, which the script puts in the form: a fresh one when the one sent can never pass
+ * again (older than 24 h, or not ours), so pressing Send again works as it does after a plain post (SO-02); else
+ * the one sent, unchanged.
  */
 export interface FormReply {
   ok: boolean;
@@ -67,21 +76,23 @@ export interface FormReply {
   t: string;
   m: string;
   e: [string, string][];
+  k: string;
 }
 
 const fieldsOf = (form: FormName): [Field, string][] => Object.entries(FIELD_IDS[form]) as [Field, string][];
 
 const statusId = (form: FormName): string => (form === "comment" ? "comment-status" : "report-status");
 
-export const sentReply = (lang: Lang, form: FormName): FormReply => ({
+export const sentReply = (lang: Lang, form: FormName, token: string): FormReply => ({
   ok: true,
   s: statusId(form),
   t: "",
   m: t(lang, form === "comment" ? "w_sentComment" : "w_sentReport"),
   e: fieldsOf(form).map(([, id]) => [id, ""]),
+  k: token,
 });
 
-export function failureReply(lang: Lang, failure: Failure): FormReply {
+export function failureReply(lang: Lang, failure: Failure, token: string): FormReply {
   const { form, errors, formError } = failure;
   const lines: string[] = [];
   const e = fieldsOf(form).map(([field, id]): [string, string] => {
@@ -98,6 +109,7 @@ export function failureReply(lang: Lang, failure: Failure): FormReply {
     // The leading space separates it from the bold title.
     m: ` ${formError ? formMessage(lang, formError) : lines.join(" ")}`,
     e,
+    k: token,
   };
 }
 
@@ -133,7 +145,10 @@ export async function servePage(
   const original = await asset.text();
   let body = original;
   try {
-    const rewriter = await buildRewriter(env, ctx, path, url, options);
+    // A missing address is answered with the one built 404 page, whose report form says "/404": it should say the
+    // address the visitor asked for, so the report names it (SO-09).
+    const missing = !options.path && asset.status === 404 ? url.pathname : undefined;
+    const rewriter = await buildRewriter(env, ctx, path, url, options, missing);
     body = await rewriter.transform(new Response(original, { headers: { "Content-Type": "text/html" } })).text();
   } catch (error) {
     log("rewrite failed", error);
@@ -148,9 +163,14 @@ async function buildRewriter(
   path: string,
   url: URL,
   options: PageOptions,
+  missing?: string,
 ): Promise<HTMLRewriter> {
   const rewriter = new HTMLRewriter();
   const lang = langOfPath(path);
+
+  const reported = options.failure?.url ?? missing;
+  if (reported && reported.length <= MAX_REPORT_URL)
+    rewriter.on(REPORT_URL, { element: (el) => void el.setAttribute("value", reported) });
 
   if (env.FORM_HMAC_KEY) {
     const token = await formToken(env.FORM_HMAC_KEY);

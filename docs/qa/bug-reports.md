@@ -5,19 +5,33 @@ severity. Severity: **high** blocks the launch, **medium** should be fixed befor
 
 Each open bug that a test can see has a test named `BUG-n` marked `test.fail()`: CI stays green while it is open and
 goes red ("expected to fail, but passed") the moment it is fixed, which is the cue to delete the marker and close the bug.
-Eight bugs are open and one (BUG-9) is closed. Found on the build of `main` at the merge of #24 (decisions 0023 to 0025), 2026-11-15, local Worker (`pnpm preview`).
+Seven bugs are open; BUG-9 is closed (owner ruling) and BUG-4 is fixed (fix round 1, [0027](../decisions/0027-fix-round-1-backend.md)). Found on the build of `main` at the merge of #24 (decisions 0023 to 0025), 2026-11-15, local Worker (`pnpm preview`).
 
-| #     | Title                                                                   | Owner             | Severity | Test                                                                         |
-| ----- | ----------------------------------------------------------------------- | ----------------- | -------- | ---------------------------------------------------------------------------- |
-| BUG-1 | The language switch's accessible name does not contain its visible text | Frontend          | medium   | `qa/a11y.spec.ts` "BUG-1"                                                    |
-| BUG-2 | No visible keyboard focus ring on the photos of a series grid           | Design            | high     | `qa/a11y.spec.ts` keyboard `/photos/lisbon` (`test.fail`)                    |
-| BUG-3 | Sign-off and footnote text are under AAA contrast (6.58:1)              | Design            | low      | `qa/a11y.spec.ts` "BUG-3"                                                    |
-| BUG-4 | "Save draft" is blocked until the description is filled in              | Backend           | medium   | `qa/phone.spec.ts` "BUG-4"                                                   |
-| BUG-5 | A long URL or name in a comment widens the page at every phone width    | Design / Frontend | high     | `qa/comments-layout.spec.ts` "BUG-5"                                         |
-| BUG-6 | The build fails when an entry's photo is not in `src/.originals`        | Photo             | medium   | found by hand (below); not a browser test                                    |
-| BUG-7 | Three titles repeat across the two languages                            | Content           | low      | annotation on `qa/seo.spec.ts` (first test)                                  |
-| BUG-8 | `/404` answers 200, and `/favicon.ico` answers 404                      | Frontend          | low      | found by hand (below)                                                        |
-| BUG-9 | Every page logs a console warning in Safari/WebKit (COOP header)        | Backend / owner   | medium   | **Closed 2026-11-16**: owner ruling, [0026](../decisions/0026-coop-stays.md) |
+| #     | Title                                                                   | Owner             | Severity | Test                                                                          |
+| ----- | ----------------------------------------------------------------------- | ----------------- | -------- | ----------------------------------------------------------------------------- |
+| BUG-1 | The language switch's accessible name does not contain its visible text | Frontend          | medium   | `qa/a11y.spec.ts` "BUG-1"                                                     |
+| BUG-2 | No visible keyboard focus ring on the photos of a series grid           | Design            | high     | `qa/a11y.spec.ts` keyboard `/photos/lisbon` (`test.fail`)                     |
+| BUG-3 | Sign-off and footnote text are under AAA contrast (6.58:1)              | Design            | low      | `qa/a11y.spec.ts` "BUG-3"                                                     |
+| BUG-4 | "Save draft" is blocked until the description is filled in              | Backend           | medium   | **Fixed 2026-11-16**: `qa/phone.spec.ts` "BUG-4", an ordinary test now (0027) |
+| BUG-5 | A long URL or name in a comment widens the page at every phone width    | Design / Frontend | high     | `qa/comments-layout.spec.ts` "BUG-5"                                          |
+| BUG-6 | The build fails when an entry's photo is not in `src/.originals`        | Photo             | medium   | found by hand (below); not a browser test                                     |
+| BUG-7 | Three titles repeat across the two languages                            | Content           | low      | annotation on `qa/seo.spec.ts` (first test)                                   |
+| BUG-8 | `/404` answers 200, and `/favicon.ico` answers 404                      | Frontend          | low      | found by hand (below)                                                         |
+| BUG-9 | Every page logs a console warning in Safari/WebKit (COOP header)        | Backend / owner   | medium   | **Closed 2026-11-16**: owner ruling, [0026](../decisions/0026-coop-stays.md)  |
+
+Found by the independent second opinion (2026-11-16, SO-01 to SO-10, kept outside the repository) and **fixed in fix
+round 1** ([0027](../decisions/0027-fix-round-1-backend.md)), each with a test that failed before the fix:
+
+| #     | Title                                                                                         | Test                                                                       |
+| ----- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| SO-01 | Valid front matter rejected by the content check, or silently changed by /admin/write         | `unit/frontmatter.test.ts`; `worker/write.test.ts` "front matter survives" |
+| SO-02 | With JavaScript on, a form refused for an expired token could never be sent again             | `qa/forms.spec.ts` "after an expired token"; `worker/forms.test.ts`        |
+| SO-03 | After a saved draft was published, "Write another entry" restored its old copy                | `qa/phone.spec.ts` "save draft, edit, publish, write another"              |
+| SO-09 | A report sent from a missing address said `/404`                                              | `worker/forms.test.ts` "a report sent from a missing address"              |
+| TO-01 | Publishing while a photo was still uploading left the photo out without a word (third review) | `qa/phone.spec.ts` "TO-01"                                                 |
+| —     | Staging `/_assets/` responses: noindex now in their own rule (rule 15)                        | `unit/headers.test.ts`, `unit/build-output.test.ts`, `qa/rights.spec.ts`   |
+
+The other second-opinion findings (SO-04 to SO-08, SO-10) and the open bugs above are for rounds 2 and 3.
 
 Not bugs, but open and listed so nothing is lost: the **launch gate** (`pnpm test:launch`, `qa/launch.spec.ts`) fails
 until the owner answers O1 (visible `[placeholder]` text on the pages, `sameAs` empty); Lighthouse on Windows is Q17.
@@ -71,6 +85,9 @@ until the owner answers O1 (visible `[placeholder]` text on the pages, `sameAs` 
   does not see it.
 - **Fix suggestion:** `formnovalidate` on the Save draft button (Publish keeps the checks).
 - **Test:** `qa/phone.spec.ts` "BUG-4".
+- **Fixed 2026-11-16** (fix round 1, [0027](../decisions/0027-fix-round-1-backend.md)): "Save draft" has
+  `formnovalidate`; Publish keeps the browser's checks and the server's. The test is an ordinary one now and also checks
+  that Publish is still stopped without a description.
 
 ## BUG-5 · A long URL or name in a comment widens the page at every phone width
 

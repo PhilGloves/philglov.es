@@ -32,3 +32,6 @@ Thumbs.db
 
 # generated from the originals by scripts/photo-meta.ts
 src/styles/photo-colours.generated.css
+
+# Claude Code: local settings and other sessions' worktrees (never part of the site)
+.claude/

@@ -18,6 +18,8 @@
  */
 import type { Identity } from "../access.ts";
 import {
+  editable,
+  editedEntryMarkdown,
   entryFilePath,
   entryMarkdown,
   parseEntry,
@@ -80,9 +82,16 @@ interface FormState {
   message?: Safe;
   /** The title search of the list of published entries. */
   query?: string;
+  /** After a first Save draft: the browser copy the text came from, which the page's script removes (SO-03). */
+  moved?: string;
 }
 
 const editing = (state: FormState): boolean => state.baseSha !== "";
+
+/** The browser copy (autosave key, after "philglov-write:") of an edit of a published entry not yet a draft. */
+const editKey = (lang: Lang, slug: string): string => `edit-${lang}-${slug}`;
+/** The browser copies a first Save draft can move from: the new-entry form, or an edit of a published entry. */
+const MOVED_KEY = /^(?:new|edit-(?:en|it)-[a-z0-9]+(?:-[a-z0-9]+)*)$/;
 
 const empty = (lang: Lang): EntryInput => ({
   title: "",
@@ -259,7 +268,7 @@ async function writePage(env: Env, identity: Identity, state: FormState, status 
       : Promise.resolve([]),
   ]);
   // The autosave key in this browser: per server draft, per entry being edited, or the one new entry.
-  const autosave = state.draftId || (isEdit ? `edit-${input.lang}-${input.slug}` : "");
+  const autosave = state.draftId || (isEdit ? editKey(input.lang, input.slug) : "");
 
   const errorList = errors && Object.values(errors).filter(Boolean);
   const body = html` <h2 class="admin-title">${isEdit ? "Edit" : "Write"}</h2>
@@ -282,6 +291,7 @@ async function writePage(env: Env, identity: Identity, state: FormState, status 
       class="form"
       id="write-form"
       data-draft="${autosave}"
+      data-moved="${state.moved ?? ""}"
       data-updated="${state.updated}"
       data-max="${MAX_PHOTO}"
     >
@@ -375,7 +385,7 @@ ${input.body}</textarea
       </ol>
       <div class="actions">
         <button type="submit" name="intent" value="publish" class="btn">${isEdit ? "Save changes" : "Publish"}</button>
-        <button type="submit" name="intent" value="save" class="btn btn--ghost">Save draft</button>
+        <button type="submit" name="intent" value="save" class="btn btn--ghost" formnovalidate>Save draft</button>
       </div>
       ${isEdit ? html`<p class="fine"><a href="/admin/write">Write a new entry instead</a></p>` : ""}
     </form>
@@ -424,6 +434,12 @@ const editingNotice = (slug: string, lang: Lang): Safe => html`<p class="notice"
   itself in a few minutes.
 </p>`;
 
+/** An entry whose front matter this page cannot keep exactly (SO-01): it is not opened, and nothing is guessed. */
+const notEditable = (slug: string, lang: Lang, reason: string): Safe => html`<div class="alert" role="alert">
+  <strong>${pathFor(slug, lang)} cannot be edited here:</strong> ${reason}. Edit it on the laptop, so that nothing
+  else in it changes.
+</div>`;
+
 /** GET /admin/write: a blank form, a server draft (?draft=), or a published entry (?edit=1&slug=&lang=). */
 export async function writeForm(env: Env, identity: Identity, url: URL): Promise<Response> {
   const lang = asLang(url.searchParams.get("lang"));
@@ -450,6 +466,8 @@ export async function writeForm(env: Env, identity: Identity, url: URL): Promise
       state.draftId = d.id;
       state.baseSha = d.base_sha;
       state.updated = d.updated_at;
+      const moved = url.searchParams.get("moved") ?? "";
+      if (MOVED_KEY.test(moved)) state.moved = moved;
       const saved = url.searchParams.get("saved")
         ? html`<p class="notice" role="status">Draft saved on the server.</p>`
         : html``;
@@ -457,14 +475,14 @@ export async function writeForm(env: Env, identity: Identity, url: URL): Promise
     }
   } else if (url.searchParams.get("edit") && SLUG.test(slug)) {
     const file = githubConfigured(env) ? await readFile(env, entryFilePath(lang, slug)).catch(() => null) : null;
-    const parsed = file ? parseEntry(file.text) : null;
-    if (file && parsed?.title) {
-      const { body, photos } = splitPhotos(parsed.body, slug);
+    const found = file ? editable(file.text) : null;
+    if (file && found?.ok) {
+      const { body, photos } = splitPhotos(found.body, slug);
       state.input = {
-        title: parsed.title,
+        title: found.title,
         slug,
         lang,
-        description: parsed.description,
+        description: found.description,
         body,
         photos,
       };
@@ -472,10 +490,8 @@ export async function writeForm(env: Env, identity: Identity, url: URL): Promise
       state.message = editingNotice(slug, lang);
     } else {
       state.input.slug = "";
-      state.message = file
-        ? html`<p class="alert" role="alert">
-            ${pathFor(slug, lang)} uses a form of frontmatter this page cannot read. Edit it from the laptop.
-          </p>`
+      state.message = found
+        ? notEditable(slug, lang, found.ok ? "" : found.reason)
         : html`<p class="alert" role="alert">No ${LANG_NAME[lang]} entry with the slug ${slug}.</p>`;
     }
   }
@@ -539,7 +555,11 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
   if (form.get("intent") === "save") {
     if (!input.slug && input.title) input.slug = slugFromTitle(input.title);
     const id = await saveDraft(env, input, draftId, baseSha);
-    return new Response(null, { status: 303, headers: { Location: `/admin/write?draft=${id}&saved=1` } });
+    // The first save of a new entry or of an edit moves the text from that form's browser copy to this draft, which
+    // has its own; the draft page then removes the old copy, so it never comes back after Publish (SO-03).
+    const moved = id === draftId ? "" : isEdit ? editKey(input.lang, input.slug) : "new";
+    const location = `/admin/write?draft=${id}&saved=1${moved ? `&moved=${encodeURIComponent(moved)}` : ""}`;
+    return new Response(null, { status: 303, headers: { Location: location } });
   }
 
   const site = await manifest(env);
@@ -582,17 +602,23 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
         422,
       );
 
+    // An edit changes the title, description and text and keeps every other front matter line as it was (SO-01);
+    // a file it cannot keep exactly is refused, as when it was opened.
+    const edited = isEdit && same ? editedEntryMarkdown(same.text, input) : null;
+    if (isEdit && same && edited === null) {
+      const found = editable(same.text);
+      const message = notEditable(input.slug, input.lang, found.ok ? "" : found.reason);
+      return writePage(env, identity, { ...state, message }, 422);
+    }
     const current = same ? parseEntry(same.text) : null;
     const original = twin ? parseEntry(twin.text) : null;
     const from = (current ?? original)?.originalLang;
     const originalLang: Lang = from === "en" || from === "it" ? from : input.lang;
     const now = new Date();
-    const date =
-      current?.date && /^\d{4}-\d{2}-\d{2}$/.test(current.date) ? current.date : now.toISOString().slice(0, 10);
     const kind = isEdit ? "Edit" : twin ? `${LANG_NAME[input.lang]} version of` : "New entry";
     const pr = await openPullRequest(env, {
       path,
-      text: entryMarkdown(input, originalLang, date, current?.comments ?? true),
+      text: edited ?? entryMarkdown(input, originalLang, now.toISOString().slice(0, 10)),
       sha: same?.sha,
       branch: `publish/${input.lang}-${input.slug}-${stamp(now)}`,
       title: `${kind} ${input.lang}/${input.slug}: ${input.title}`,
@@ -613,7 +639,7 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
     if (draftId) await env.DB.prepare("DELETE FROM drafts WHERE id = ?1").bind(draftId).run();
     log("entry published");
     const live = pathFor(input.slug, input.lang);
-    const cleared = draftId || (isEdit ? `edit-${input.lang}-${input.slug}` : "new");
+    const cleared = draftId || (isEdit ? editKey(input.lang, input.slug) : "new");
     const body = autoMerge
       ? html`<h2 class="admin-title">Pull request opened</h2>
           <div class="alert" role="alert" id="published" data-clear="${cleared}">

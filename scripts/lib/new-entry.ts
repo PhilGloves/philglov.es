@@ -1,5 +1,5 @@
 /** `pnpm new <slug> --lang it|en` (ticket C4): the text of a new entry file. Pure, tested. */
-import { RESERVED_SLUGS } from "./content-check.ts";
+import { frontMatter, RESERVED_SLUGS } from "./content-check.ts";
 
 export type Lang = "en" | "it";
 
@@ -13,8 +13,14 @@ export interface NewEntryInput {
   pageSlugs?: readonly string[];
 }
 
-const field = (text: string, key: string): string | undefined =>
-  new RegExp(`^${key}:\\s*(.*?)\\s*$`, "m").exec(text)?.[1];
+/** A front matter value as the build reads it (Astro's parser), so `originalLang: it # note` is "it" (SO-01). */
+function field(text: string, key: string): unknown {
+  try {
+    return frontMatter(text.startsWith("---") ? text : `---\n${text}\n---\n`).data[key];
+  } catch {
+    return undefined;
+  }
+}
 
 export function newEntry(input: NewEntryInput): string {
   const { slug, lang, today, twinText } = input;

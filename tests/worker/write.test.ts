@@ -18,6 +18,7 @@ import {
   type EntryInput,
 } from "../../worker/src/entry-file.ts";
 import type { Entry } from "../../worker/src/manifest.ts";
+import { VARIANTS } from "./frontmatter-variants.ts";
 import { adminFetch, adminPost, csrf, resetDb, siteManifest, twinEntry } from "./helpers.ts";
 
 // The GitHub stand-in (vitest.config.ts) is shared by every test file, so all the tests that use it live in this
@@ -148,12 +149,30 @@ describe("drafts and publishing", () => {
     });
     expect(res.status).toBe(303);
     const location = res.headers.get("Location") ?? "";
-    expect(location).toMatch(/^\/admin\/write\?draft=[A-Za-z0-9_-]{22}&saved=1$/);
+    // A first save: the text moved from the new-entry form's browser copy, which the draft page removes (SO-03).
+    expect(location).toMatch(/^\/admin\/write\?draft=[A-Za-z0-9_-]{22}&saved=1&moved=new$/);
     const row = await env.DB.prepare("SELECT slug, title, body FROM drafts").first();
     expect(row).toEqual({ slug: "alpi-d-inverno", title: "Alpi d'inverno", body: "Bozza." });
     const page = await (await adminFetch(location)).text();
     expect(page).toContain("Draft saved on the server.");
     expect(page).toContain('value="Alpi d&#39;inverno"');
+    expect(page).toContain('data-moved="new"');
+    // Saving the same draft again moves nothing; a "moved" that is not one of the form's keys is ignored.
+    const id = /draft=([^&]+)/.exec(location)?.[1] ?? "";
+    const again = await adminPost("/admin/write", { csrf: await csrf(), intent: "save", draft_id: id, title: "T" });
+    expect(again.headers.get("Location")).toBe(`/admin/write?draft=${id}&saved=1`);
+    const odd = await (await adminFetch(`/admin/write?draft=${id}&moved=..%2Fother`)).text();
+    expect(odd).toContain('data-moved=""');
+  });
+
+  test("BUG-4: Save draft skips the browser's checks (a half-written entry is a draft); Publish keeps them", async () => {
+    const page = await (await adminFetch("/admin/write")).text();
+    expect(page).toMatch(/<button type="submit" name="intent" value="save" class="btn btn--ghost" formnovalidate>/);
+    expect(page).toMatch(/<button type="submit" name="intent" value="publish" class="btn">/);
+    expect(page).toMatch(/id="w-desc"\s+name="description"\s+maxlength="200"\s+required/);
+    const res = await adminPost("/admin/write", { csrf: await csrf(), intent: "save", title: "Half", body: "A few." });
+    expect(res.status).toBe(303);
+    expect(await env.DB.prepare("SELECT description FROM drafts").first("description")).toBe("");
   });
 
   test("the file input accepts exactly image/jpeg,image/png, and the form loads the admin script", async () => {
@@ -481,7 +500,7 @@ describe("editing a published entry", () => {
     expect(html).toContain("<title>Edit · philglov.es admin</title>");
     expect(html).toContain('value="Città on foot"');
     expect(html).toContain('value="A walk."');
-    // No topics (decision 0023): the file's old tags line is not shown and not kept.
+    // No topics (decision 0023): the file's old tags line is not shown (and kept in the file as it was, 0027).
     expect(html).not.toContain('name="tags"');
     expect(html).not.toContain("Topics");
     // The text keeps the inline photo; the two photos after it become photo items.
@@ -518,7 +537,8 @@ describe("editing a published entry", () => {
     const text = new TextDecoder().decode(
       Uint8Array.from(atob(String(writes[0]?.body["content"])), (c) => c.charCodeAt(0)),
     );
-    // Date, original language and the comments choice are the file's own; the photos come back after the text.
+    // Only the two changed lines are rewritten, in place; every other line is the file's own, the old tags line
+    // included (SO-01, decision 0027); the photos come back after the text.
     expect(text).toBe(
       [
         "---",
@@ -527,6 +547,7 @@ describe("editing a published entry", () => {
         "lang: en",
         "originalLang: it",
         'description: "A longer walk."',
+        "tags: [travel, photography]",
         "comments: false",
         "---",
         "",
@@ -602,7 +623,9 @@ describe("editing a published entry", () => {
     expect(res.status).toBe(303);
     const row = await env.DB.prepare("SELECT base_sha FROM drafts").first<{ base_sha: string }>();
     expect(row?.base_sha).toBe(base.base_sha);
+    expect(res.headers.get("Location")).toMatch(/&moved=edit-en-phone-edit$/);
     const html = await (await adminFetch(res.headers.get("Location") ?? "")).text();
+    expect(html).toContain('data-moved="edit-en-phone-edit"');
     expect(html).toContain("Editing <a");
     expect(html).toContain('<input id="w-slug" name="slug" readonly value="phone-edit"');
     expect(html).toContain(`name="base_sha" value="${base.base_sha}"`);
@@ -618,9 +641,65 @@ describe("editing a published entry", () => {
   test("a file with frontmatter the page cannot read is not opened for editing", async () => {
     await gh("/__set", { files: { [PATH]: "no frontmatter here" } });
     const html = await (await adminFetch(`/admin/write?edit=1&slug=${SLUG}&lang=en`)).text();
-    expect(html).toContain("uses a form of frontmatter this page cannot read");
+    expect(html).toContain("/phone-edit cannot be edited here:</strong> its front matter is missing");
+    expect(html).toContain("Edit it on the laptop");
     expect(html).toContain('name="base_sha" value=""');
   });
+
+  // SO-01: laptop files in every valid form, opened, edited (the text only) and published from the phone.
+  const unescape = (s: string) =>
+    s
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&amp;/g, "&");
+  const frontOf = (text: string) => text.slice(0, text.search(/\r?\n---\r?\n/));
+  for (const [name, v] of Object.entries(VARIANTS)) {
+    for (const eol of ["\n", "\r\n"]) {
+      test(`front matter survives open, edit and publish: ${name}${eol === "\n" ? "" : " (CRLF)"}`, async () => {
+        const text = ["---", ...v.lines, "---", "", "The laptop's text.", ""].join(eol);
+        await gh("/__set", { files: { [PATH]: text } });
+        const html = await (await adminFetch(`/admin/write?edit=1&slug=${SLUG}&lang=en`)).text();
+        const sent = { ...fields(html), intent: "publish", slug: SLUG, lang: "en" };
+        if (!v.editable) {
+          // Not opened, nothing guessed, and a publish aimed at that version is refused too.
+          expect(html).toContain("/phone-edit cannot be edited here:");
+          expect(html).toContain("Edit it on the laptop");
+          expect(sent.base_sha).toBe("");
+          const res = await adminPost("/admin/write", {
+            ...sent,
+            base_sha: await blobSha(text),
+            title: "Guessed",
+            description: "Guessed.",
+            body: "The phone's text.",
+          });
+          expect(res.status).toBe(422);
+          expect(await res.text()).toContain("cannot be edited here");
+          expect((await calls()).some((c) => c.method === "PUT")).toBe(false);
+          return;
+        }
+        const shown = (id: string) => unescape(new RegExp(`id="${id}"[^>]*value="([^"]*)"`).exec(html)?.[1] ?? "");
+        expect(sent.base_sha).toBe(await blobSha(text));
+        const res = await adminPost("/admin/write", {
+          ...sent,
+          title: shown("w-title"),
+          description: shown("w-desc"),
+          body: "The phone's text,\r\nas a browser sends it.",
+        });
+        expect(res.status).toBe(200);
+        const writes = (await calls()).filter((c) => c.method === "PUT");
+        expect(writes).toHaveLength(1);
+        const out = new TextDecoder().decode(
+          Uint8Array.from(atob(String(writes[0]?.body["content"])), (c) => c.charCodeAt(0)),
+        );
+        // Every front matter line byte for byte (date, comments, languages, YAML comments, quotes, line ends) ...
+        expect(frontOf(out)).toBe(frontOf(text));
+        // ... and only the text changed, in the file's own line ends.
+        expect(out).toBe(text.replace("The laptop's text.", `The phone's text,${eol}as a browser sends it.`));
+      });
+    }
+  }
 });
 
 describe("reading an entry back", () => {

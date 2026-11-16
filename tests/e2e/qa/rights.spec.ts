@@ -138,6 +138,9 @@ test("X-Robots-Tag: noai, noimageai is on images, and not on pages or the API", 
   for (const image of images) {
     const tag = (await request.get(image)).headers()["x-robots-tag"] ?? "";
     if (!/noai/.test(tag) || !/noimageai/.test(tag)) problems.push(`${image}: X-Robots-Tag is "${tag}"`);
+    // Staging: every response is noindex, these files too (rule 15); production: not (QA_PROD, pnpm qa:production).
+    const want = process.env["QA_PROD"] === "1" ? "noai, noimageai" : "noindex, noai, noimageai";
+    if (tag !== want) problems.push(`${image}: X-Robots-Tag is "${tag}", not "${want}"`);
   }
   for (const path of [
     "/",

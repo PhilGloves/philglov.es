@@ -288,6 +288,32 @@ for (const lang of ["en", "it"] as const) {
   }
 }
 
+// SO-02: the message after an expired token says "send it again"; doing so must work, the text kept. Without
+// JavaScript the page that answers has a fresh token; with it, the answer carries one and the script puts it in.
+for (const [label, form, good, sent] of [
+  ["comment", comment, GOOD_COMMENT, "w_sentComment"],
+  ["report", report, GOOD_REPORT, "w_sentReport"],
+] as const) {
+  test(`${label} form: after an expired token, pressing Send again sends it, the text kept until then`, async ({
+    page,
+    javaScriptEnabled,
+  }) => {
+    test.setTimeout(60_000);
+    await form.open(page, "en");
+    await human(page);
+    await form.fill(page, good);
+    await setHidden(form, "token", tokenAt(Date.now() - 25 * 3600_000))(page);
+    await form.submit(page);
+    const keep = Object.keys(good).filter((k) => good[k as keyof typeof good] !== "");
+    const expired = { name: "expired", values: () => good, message: "w_err_expired", keep };
+    await expectRefused(page, form, "en", expired, good, javaScriptEnabled);
+    await human(page);
+    await form.submit(page);
+    if (!javaScriptEnabled) await page.waitForURL(new RegExp(`\\?sent=${label}#${label}-status$`));
+    await expect(page.locator(`${form.status} .notice[role="status"]`)).toHaveText(ui("en")[sent] ?? "");
+  });
+}
+
 for (const [label, form, good, lang] of [
   ["comment", comment, GOOD_COMMENT, "en"],
   ["comment", comment, GOOD_COMMENT, "it"],
