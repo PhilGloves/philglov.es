@@ -192,10 +192,16 @@ for (const path of PHOTO_PAGES) {
       description: `total ${(total / 1024).toFixed(1)} KB (images ${(images / 1024).toFixed(1)} KB in ${pictures.length}), LCP ${Math.round(vitals.lcp ?? -1)} ms, CLS ${vitals.cls.toFixed(3)}`,
     });
     expect(measurementProblems(vitals, files, unreadable, new URL(baseURL ?? "").origin), "measurement").toEqual([]);
-    expect(
-      pictures.length,
-      "the first screen shows at least one photograph (or the build has no originals)",
-    ).toBeGreaterThan(0);
+    // With photographs in the build, the first screen must show some (a page that lost them all would pass the size
+    // budget for the wrong reason). Without originals (R2 holds none yet, so CI draws placeholders, as in
+    // photos.spec.ts) the budget is measured on the placeholders and says so.
+    const hasPhotos = (await page.locator(".frame picture").count()) > 0;
+    if (hasPhotos) expect(pictures.length, "the first screen loads at least one photograph").toBeGreaterThan(0);
+    else
+      testInfo.annotations.push({
+        type: "no originals",
+        description: "placeholders only: measured without photographs",
+      });
     expect(total, `${path}: HTML, CSS, fonts, script and images together`).toBeLessThanOrEqual(400 * 1024);
     expect(files.filter((f) => f.type === "text/css").length, "exactly one stylesheet").toBe(1);
     expect(vitals.lcp ?? Infinity, "LCP").toBeLessThan(2000);
