@@ -4,6 +4,14 @@ Written 2026-11-15 by the QA agent, on the build of `main` at the merge of pull 
 run against the local Worker (`pnpm preview`) on Windows 11. How the suites are built and run: decision
 [0022](docs/decisions/0022-qa-matrix.md). The bugs, in the brief's format: [docs/qa/bug-reports.md](docs/qa/bug-reports.md).
 
+## Update, 2026-11-16 (fix round 2)
+
+Fix round 2 ([0028](docs/decisions/0028-fix-round-2-frontend.md)) fixed BUG-1, BUG-2, BUG-3, BUG-5, BUG-6 and the
+favicon half of BUG-8, and the second and third reviews' SO-04 to SO-08, SO-10, TO-02 and TO-03 (the last waits for a
+real portrait). The expected-failure markers of BUG-1, -2, -3 and -5 are gone, so those are ordinary tests now, and the
+colour of the muted text and the Now paragraph changed (7:1). The table below is the report as written on 2026-11-15;
+the current state of each finding is in [docs/qa/bug-reports.md](docs/qa/bug-reports.md).
+
 ## Verdict
 
 **Not ready to launch, ready to keep building.** The matrix passes three times in a row with no flaky test, and nothing

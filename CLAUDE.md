@@ -133,8 +133,19 @@ WAY OF WORKING
   public JavaScript **1,535 of 1,536 bytes**); a first Save draft removes the browser copy it came from (SO-03);
   Save draft has `formnovalidate` (BUG-4, fixed); a report from a missing address names it (SO-09); staging
   `/_assets/` say noindex in their own rule; a photo still uploading holds Publish and Save draft with a message
-  (TO-01); `.claude/` is ignored by git, Prettier and ESLint. Rounds 2 and 3 take the other findings (SO-04 to SO-08, SO-10, BUG-1 to
-  -3, -5 to -8).
+  (TO-01); `.claude/` is ignored by git, Prettier and ESLint.
+- 2026-11-16: fix round 2 of 3, frontend and design ([0028](docs/decisions/0028-fix-round-2-frontend.md), `TICKETS.md`
+  R2): `main` breaks any string at the line end (`overflow-wrap: anywhere`), so no title, word, link, caption or comment
+  widens the page (BUG-5, SO-04); a link around a photo is a block, so its focus ring shows (BUG-2); the language
+  switch is named "IT, Italiano" (BUG-1); `--muted` is #565652 and `--band-text` #FAFCF4, both 7:1 (BUG-3, SO-08);
+  only an entry's title carries the other language's `lang` in previous/next (SO-06); the sitemap lists
+  `/journal/page/2` and on (SO-07); one stylesheet per page (SO-10); **the theme button has no `aria-pressed`: two
+  visually hidden labels, one shown by CSS, name it "Switch to dark theme" / "Switch to light theme"** (SO-05, owner
+  decision, amends the guide's checklist); `/favicon.ico` is built from the site icon (BUG-8); a missing entry photo
+  fails the build naming the files, unless `ALLOW_MISSING_ORIGINALS=1` on a local machine (BUG-6, `docs/setup.md`);
+  main navigation links are 44 × 44 px on phones (TO-02); the Person data takes `site.json` `portrait` as its image
+  once there is a real one, and the launch gate fails until then (TO-03). Public JavaScript **1,410 of 1,536 bytes**.
+  Round 3: scope set by the owner.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -160,6 +171,7 @@ worker/src/                   the Worker (0017): index.ts routes; forms, page, c
                               shared with the build; log.ts is the only logger
 worker/migrations/            D1 migrations, applied by CI (migrations_dir in wrangler.jsonc)
 tests/worker/                 Vitest inside workerd (vitest.config.ts: test JWKS and a GitHub stand-in)
+scripts/check-originals.ts      before the build: entry photos present, or the opt-in's grey stand-ins (lib/standins.ts)
 scripts/lib/content-check.ts    the build check; scripts/lib/new-entry.ts the `pnpm new` template
 scripts/                      build helpers, run with plain `node` (type stripping); build-fonts.py by hand
 tests/unit/ tests/e2e/        node:test unit tests; Playwright e2e (admin-worker.ts: the real Worker behind a test
@@ -178,7 +190,8 @@ docs/handover.md              state, open items and lessons, one section per fin
 pnpm install --frozen-lockfile   install (pnpm 12; builds allowed only for esbuild, workerd)
 pnpm dev                         Astro dev server (no Worker)
 pnpm photos:fetch                download the photo originals from R2 (R2_* env vars; no-op without them)
-pnpm build                       photo-meta + astro build + share-image PNGs (needs Chromium) + photo rights
+pnpm build                       check-originals (a missing entry photo stops the build; ALLOW_MISSING_ORIGINALS=1
+                                 draws a grey stand-in locally, never on CI) + photo-meta + astro build + share-image PNGs (needs Chromium) + photo rights
                                  (needs exiftool when photos exist) + CSP hash + dist/_headers
                                  (SITE_ENV=production only at launch)
 pnpm preview                     serve dist/ through the real Worker on http://127.0.0.1:8787 (writes a local
@@ -231,9 +244,16 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
   inside a `.con` (its `cqi` would measure the column and the title would shrink); the intro sentence is `.lede`; the
   text starts `--head-end` (52/68/80 px) under it. Do not add a role line, a standfirst or another intro style.
 - Header controls: `.rbtn` (no visible ring: a transparent 1px border that forced-colours mode still draws; 44 px on phones, 40 px from tablet up; no gap between the two; the group is pulled out so the icon ends at the header line). The theme toggle holds both inline SVG icons
-  and keeps a fixed `aria-label`; never change its text or the theme script to show the state. The language link
-  shows the code and carries the language name as `aria-label`. There are no topics: do not add a `tags` field, a
+  and two visually hidden labels (`.to-dark`, `.to-light`); the same CSS that swaps the moon and the sun shows one, so
+  the button's name says what it will do and follows a change of the system theme with no script. It has no
+  `aria-pressed`, and the theme script never writes the state (0028). The language link shows the code, and its
+  `aria-label` starts with it ("IT, Italiano"), so the name contains the visible text. Main navigation links are
+  44 × 44 px on phones: padding with a negative margin, so the words do not move. There are no topics: do not add a `tags` field, a
   topic list or per-topic pages without a new decision. There is no breadcrumb: do not add one, or an empty `.lab`.
+- Text a person writes must never widen the page (0028): `main` has `overflow-wrap: anywhere`; a fixed numeral or
+  figure that must stay whole (the 404 code, the index table's columns) sets `overflow-wrap: normal`.
+  `tests/e2e/qa/long-content.spec.ts` puts a 120-letter title, a 300-letter word and a long link into every page type
+  at all five widths. A link that wraps a `.frame` is a block (`a:has(> .frame)`), or its focus ring has no box.
 - Photos: draw them only with `<Photo>` (never a bare `<img>`); alt text in the page language, hand-written. Pass
   `sizes` from `src/lib/photo-sizes.ts` and `priority` on the first image of a page only. Per-photo colours are
   generated classes (`.c-<hex>`), never inline styles. Every output image gets rights metadata and must carry no GPS:
