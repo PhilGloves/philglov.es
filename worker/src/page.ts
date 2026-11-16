@@ -59,7 +59,10 @@ export const pageHeaders = (env: Env): Record<string, string> => baseHeaders(env
  * (and stays small enough for the 1.5 KB budget).
  * s: id of the status slot; t: the alert's title ("" on success); m: the
  * thank-you, or the form-level message, or the field problems in one line;
- * e: every field of the form as [field id, message next to it, "" if valid].
+ * e: every field of the form as [field id, message next to it, "" if valid];
+ * k: the token for the next send, which the script puts in the form: a fresh one when the one sent can never pass
+ * again (older than 24 h, or not ours), so pressing Send again works as it does after a plain post (SO-02); else
+ * the one sent, unchanged.
  */
 export interface FormReply {
   ok: boolean;
@@ -67,21 +70,23 @@ export interface FormReply {
   t: string;
   m: string;
   e: [string, string][];
+  k: string;
 }
 
 const fieldsOf = (form: FormName): [Field, string][] => Object.entries(FIELD_IDS[form]) as [Field, string][];
 
 const statusId = (form: FormName): string => (form === "comment" ? "comment-status" : "report-status");
 
-export const sentReply = (lang: Lang, form: FormName): FormReply => ({
+export const sentReply = (lang: Lang, form: FormName, token: string): FormReply => ({
   ok: true,
   s: statusId(form),
   t: "",
   m: t(lang, form === "comment" ? "w_sentComment" : "w_sentReport"),
   e: fieldsOf(form).map(([, id]) => [id, ""]),
+  k: token,
 });
 
-export function failureReply(lang: Lang, failure: Failure): FormReply {
+export function failureReply(lang: Lang, failure: Failure, token: string): FormReply {
   const { form, errors, formError } = failure;
   const lines: string[] = [];
   const e = fieldsOf(form).map(([field, id]): [string, string] => {
@@ -98,6 +103,7 @@ export function failureReply(lang: Lang, failure: Failure): FormReply {
     // The leading space separates it from the bold title.
     m: ` ${formError ? formMessage(lang, formError) : lines.join(" ")}`,
     e,
+    k: token,
   };
 }
 

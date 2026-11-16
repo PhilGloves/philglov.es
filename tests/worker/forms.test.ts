@@ -5,6 +5,9 @@
  */
 import { env, SELF } from "cloudflare:test";
 import { beforeEach, describe, expect, test } from "vitest";
+import type { FormReply } from "../../worker/src/page.ts";
+import { required } from "../../worker/src/secrets.ts";
+import { checkFormToken } from "../../worker/src/tokens.ts";
 import { agedToken, commentFields, ORIGIN, post, resetDb, twinEntry } from "./helpers.ts";
 
 beforeEach(resetDb);
@@ -226,7 +229,8 @@ describe("sent in the background by the page's script (Accept: application/json)
 
   test("success: 200 JSON with the thank-you for the status slot, and every field cleared; no redirect", async () => {
     const { slug } = await twinEntry();
-    const res = await post("/api/comment", await commentFields(slug, "it"), json);
+    const fields = await commentFields(slug, "it");
+    const res = await post("/api/comment", fields, json);
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("application/json");
     expect(res.headers.get("Cache-Control")).toBe("no-store");
@@ -242,13 +246,15 @@ describe("sent in the background by the page's script (Accept: application/json)
         ["c-email", ""],
         ["c-comment", ""],
       ],
+      k: fields.token, // the token sent, unchanged
     });
     expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM comments WHERE status = 'pending'").first("n")).toBe(1);
   });
 
   test("field errors: JSON (200, ok false: a 4xx would log a console error) with each field's message, nothing stored", async () => {
     const { slug } = await twinEntry();
-    const res = await post("/api/comment", await commentFields(slug, "en", { email: "a@b.c", comment: "" }), json);
+    const fields = await commentFields(slug, "en", { email: "a@b.c", comment: "" });
+    const res = await post("/api/comment", fields, json);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       ok: false,
@@ -260,8 +266,32 @@ describe("sent in the background by the page's script (Accept: application/json)
         ["c-email", "Enter an address like name@example.com"],
         ["c-comment", "Write at least a few words"],
       ],
+      k: fields.token,
     });
     expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM comments").first("n")).toBe(0);
+  });
+
+  // SO-02: the script puts `k` in the form, so after an expired token pressing Send again works, as after a plain post.
+  test("an expired or forged token gets a fresh one back; a too-fast one is kept, as it will pass", async () => {
+    const { slug } = await twinEntry();
+    for (const [path, base] of [
+      ["/api/comment", await commentFields(slug, "en")],
+      ["/api/report", { message: "A typo.", email: "", url: "/about", lang: "en", website: "" }],
+    ] as const) {
+      for (const stale of [await agedToken(25 * 3600_000), "v1.abc.forged", ""]) {
+        const refused = await (await post(path, { ...base, token: stale }, json)).json<FormReply>();
+        expect(refused.ok).toBe(false);
+        expect(refused.m).toContain("open for too long");
+        expect(refused.k).not.toBe(stale);
+        // A real token of this moment: too fast now, accepted once a person's three seconds have passed.
+        expect(await checkFormToken(required(env.FORM_HMAC_KEY), refused.k)).toBe("fast");
+        expect(await checkFormToken(required(env.FORM_HMAC_KEY), refused.k, Date.now() + 3_500)).toBe("ok");
+      }
+      const fast = await agedToken(500);
+      const tooFast = await (await post(path, { ...base, token: fast }, json)).json<FormReply>();
+      expect(tooFast.m).toContain("faster than anyone can type");
+      expect(tooFast.k).toBe(fast);
+    }
   });
 
   test("spam and rate limit answer JSON too, with the same clear messages", async () => {

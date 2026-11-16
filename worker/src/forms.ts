@@ -23,7 +23,7 @@ import {
 import { allow } from "./ratelimit.ts";
 import { required } from "./secrets.ts";
 import type { FormError } from "./strings.ts";
-import { checkFormToken } from "./tokens.ts";
+import { checkFormToken, formToken } from "./tokens.ts";
 import { readComment, readReport, sitePath, validateComment, validateReport, type Errors } from "./validate.ts";
 
 /** Generous for a 5,000-character comment, even if every character is escaped as %XX%XX%XX. */
@@ -70,21 +70,39 @@ function reply(env: Env, body: FormReply): Response {
   });
 }
 
-function done(request: Request, env: Env, path: string, sent: FormName): Response {
-  if (wantsJson(request)) return reply(env, sentReply(langOfPath(path), sent));
+/**
+ * The token a background sender puts back in the form (FormReply.k): a fresh one when the one sent can never pass
+ * (expired or not ours, the "expired" form error), as the page of a plain post gets; else the one sent. A token
+ * that was only too fast is kept, so it passes as soon as it is old enough.
+ */
+async function nextToken(env: Env, form: URLSearchParams, failure?: Failure): Promise<string> {
+  if (failure?.formError === "expired") return formToken(required(env.FORM_HMAC_KEY));
+  return form.get("token") ?? "";
+}
+
+async function done(
+  request: Request,
+  env: Env,
+  form: URLSearchParams,
+  path: string,
+  sent: FormName,
+): Promise<Response> {
+  if (wantsJson(request)) return reply(env, sentReply(langOfPath(path), sent, await nextToken(env, form)));
   const anchor = sent === "comment" ? "comment-status" : "report-status";
   return new Response(null, { status: 303, headers: { Location: `${path}?sent=${sent}#${anchor}` } });
 }
 
-function again(
+async function again(
   request: Request,
   env: Env,
   ctx: ExecutionContext,
+  form: URLSearchParams,
   path: string,
   failure: Failure,
   status = 422,
 ): Promise<Response> {
-  if (wantsJson(request)) return Promise.resolve(reply(env, failureReply(langOfPath(path), failure)));
+  if (wantsJson(request))
+    return reply(env, failureReply(langOfPath(path), failure, await nextToken(env, form, failure)));
   return servePage(request, env, ctx, { path, status, failure });
 }
 
@@ -109,15 +127,15 @@ export async function handleComment(request: Request, env: Env, ctx: ExecutionCo
   const spam = await spamCheck(env, form);
   if (spam) {
     log("spam rejected");
-    return again(request, env, ctx, path, { form: "comment", errors: {}, formError: spam, values });
+    return again(request, env, ctx, form, path, { form: "comment", errors: {}, formError: spam, values });
   }
   const hash = await ipHash(request, env.IP_SALT);
   if (!(await allow(env.DB, hash))) {
     log("rate limited");
-    return again(request, env, ctx, path, { form: "comment", errors: {}, formError: "rate", values }, 429);
+    return again(request, env, ctx, form, path, { form: "comment", errors: {}, formError: "rate", values }, 429);
   }
   const errors: Errors = validateComment(input);
-  if (Object.keys(errors).length) return again(request, env, ctx, path, { form: "comment", errors, values });
+  if (Object.keys(errors).length) return again(request, env, ctx, form, path, { form: "comment", errors, values });
 
   await env.DB.prepare(
     "INSERT INTO comments (slug, lang, name, email, body, status, created_at, ip_hash) VALUES (?1, ?2, ?3, ?4, ?5, 'pending', ?6, ?7)",
@@ -126,7 +144,7 @@ export async function handleComment(request: Request, env: Env, ctx: ExecutionCo
     .run();
   log("comment stored");
   ctx.waitUntil(notify(env, "comment", entry.title));
-  return done(request, env, path, "comment");
+  return done(request, env, form, path, "comment");
 }
 
 export async function handleReport(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -150,15 +168,15 @@ export async function handleReport(request: Request, env: Env, ctx: ExecutionCon
   const spam = await spamCheck(env, form);
   if (spam) {
     log("spam rejected");
-    return again(request, env, ctx, path, { form: "report", errors: {}, formError: spam, values });
+    return again(request, env, ctx, form, path, { form: "report", errors: {}, formError: spam, values });
   }
   const hash = await ipHash(request, env.IP_SALT);
   if (!(await allow(env.DB, hash))) {
     log("rate limited");
-    return again(request, env, ctx, path, { form: "report", errors: {}, formError: "rate", values }, 429);
+    return again(request, env, ctx, form, path, { form: "report", errors: {}, formError: "rate", values }, 429);
   }
   const errors = validateReport(input);
-  if (Object.keys(errors).length) return again(request, env, ctx, path, { form: "report", errors, values });
+  if (Object.keys(errors).length) return again(request, env, ctx, form, path, { form: "report", errors, values });
 
   await env.DB.prepare(
     "INSERT INTO reports (page_url, message, email, created_at, ip_hash, status) VALUES (?1, ?2, ?3, ?4, ?5, 'open')",
@@ -168,5 +186,5 @@ export async function handleReport(request: Request, env: Env, ctx: ExecutionCon
   log("report stored");
   const title = site.entries.find((e) => e.path === pagePath)?.title ?? pagePath;
   ctx.waitUntil(notify(env, "report", title));
-  return done(request, env, path, "report");
+  return done(request, env, form, path, "report");
 }
