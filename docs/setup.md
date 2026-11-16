@@ -82,6 +82,21 @@ The build downloads photo originals from R2.
 
 The EU bucket endpoint the photo script uses is `https://<ACCOUNT_ID>.eu.r2.cloudflarestorage.com`.
 
+**Building on a laptop without these credentials.** A photograph inside a journal entry has to be in `src/.originals/`
+(`pnpm photos:fetch` puts it there from R2). If one is missing, `pnpm build` stops and names the files; on GitHub this
+is what must happen, and it keeps happening: the originals are fetched there, so a missing one is a mistake to see.
+To look at the site on your own machine without the originals, opt in for that one build:
+
+```bash
+ALLOW_MISSING_ORIGINALS=1 pnpm build
+```
+
+(PowerShell: `$env:ALLOW_MISSING_ORIGINALS = "1"; pnpm build`.) The build then draws a plain grey picture where an entry
+photograph is missing and prints `WARNING: ALLOW_MISSING_ORIGINALS=1: … missing` with the file names. The grey pictures
+are removed when the build ends, are never mistaken for originals (`pnpm photos:fetch` replaces them) and the opt-in is
+refused when `CI` or `GITHUB_ACTIONS` is set. Never put it in a workflow, a `.env` file or a script. Portfolio photos
+(`src/content/photos`) need no opt-in: without their original they show the tone placeholder, as before.
+
 ### 6. Cloudflare API token for CI deploys
 
 1. Cloudflare → My Profile → **API Tokens** → Create Token → template **Edit Cloudflare Workers**. Add **Account → D1 →

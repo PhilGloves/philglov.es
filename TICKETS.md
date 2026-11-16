@@ -300,5 +300,22 @@ Three rounds, one pull request each, from `QA-REPORT.md`, `docs/qa/bug-reports.m
   - [x] TO-01 (third review) A photo still uploading holds Publish and Save draft with a message; they work again
         once it has finished or been removed.
   - [x] `.claude/` ignored by git, Prettier and ESLint, so `pnpm lint` is clean next to other sessions' worktrees.
-- [ ] R2 Round 2 (frontend and design findings; scope set by the owner).
+- [x] R2 Frontend and design, round 2 ([0028](docs/decisions/0028-fix-round-2-frontend.md)), done 2026-11-16:
+  - [x] BUG-5 and SO-04 Nothing a person can write widens the page, 320 to 1440 px (`overflow-wrap: anywhere` on `main`).
+  - [x] BUG-2 The photos of a series grid (and every link around a photo) show the focus ring, both themes.
+  - [x] BUG-1 The language switch is named "IT, Italiano" / "EN, English".
+  - [x] BUG-3 and SO-08 AAA 7:1 for the sign-off, the footnotes, the facts and the Now paragraph: `--muted` #565652,
+        `--band-text` #FAFCF4; prototypes and contrast floors updated.
+  - [x] SO-06 Previous/next: only the entry title carries the other language's `lang`.
+  - [x] SO-07 The sitemap lists `/journal/page/N` in both languages (pure `sitemapUrls`, tested with 51 entries).
+  - [x] SO-10 One stylesheet per page (`cssCodeSplit: false`); a unit test counts them.
+  - [x] SO-05 The theme button's name follows the system theme with no script (two hidden labels, no `aria-pressed`).
+        Public JavaScript 1,410 of 1,536 bytes.
+  - [x] BUG-8 (favicon) `/favicon.ico` is the site icon in an `.ico`, built by `postbuild`. (`/404` answering 200 is not
+        part of this round.)
+  - [x] BUG-6 A missing entry photo fails the build with the file names; `ALLOW_MISSING_ORIGINALS=1` (local only, refused
+        on CI) builds with a grey stand-in and a warning (`docs/setup.md`).
+  - [x] TO-02 Main navigation links are 44 × 44 px on phones, words unmoved.
+  - [ ] TO-03 `site.json` `portrait` (owner: the real portrait); the Person data carries it as its image and the launch
+        gate fails until it is set. Code done; waits for the photograph (with O1).
 - [ ] R3 Round 3 (scope set by the owner).

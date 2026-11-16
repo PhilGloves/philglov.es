@@ -5,19 +5,19 @@ severity. Severity: **high** blocks the launch, **medium** should be fixed befor
 
 Each open bug that a test can see has a test named `BUG-n` marked `test.fail()`: CI stays green while it is open and
 goes red ("expected to fail, but passed") the moment it is fixed, which is the cue to delete the marker and close the bug.
-Seven bugs are open; BUG-9 is closed (owner ruling) and BUG-4 is fixed (fix round 1, [0027](../decisions/0027-fix-round-1-backend.md)). Found on the build of `main` at the merge of #24 (decisions 0023 to 0025), 2026-11-15, local Worker (`pnpm preview`).
+Two bugs are open (BUG-7, and the `/404` half of BUG-8); BUG-9 is closed (owner ruling), BUG-4 is fixed (fix round 1, [0027](../decisions/0027-fix-round-1-backend.md)) and BUG-1, -2, -3, -5, -6 and the favicon half of BUG-8 are fixed (fix round 2, [0028](../decisions/0028-fix-round-2-frontend.md)). Found on the build of `main` at the merge of #24 (decisions 0023 to 0025), 2026-11-15, local Worker (`pnpm preview`).
 
-| #     | Title                                                                   | Owner             | Severity | Test                                                                          |
-| ----- | ----------------------------------------------------------------------- | ----------------- | -------- | ----------------------------------------------------------------------------- |
-| BUG-1 | The language switch's accessible name does not contain its visible text | Frontend          | medium   | `qa/a11y.spec.ts` "BUG-1"                                                     |
-| BUG-2 | No visible keyboard focus ring on the photos of a series grid           | Design            | high     | `qa/a11y.spec.ts` keyboard `/photos/lisbon` (`test.fail`)                     |
-| BUG-3 | Sign-off and footnote text are under AAA contrast (6.58:1)              | Design            | low      | `qa/a11y.spec.ts` "BUG-3"                                                     |
-| BUG-4 | "Save draft" is blocked until the description is filled in              | Backend           | medium   | **Fixed 2026-11-16**: `qa/phone.spec.ts` "BUG-4", an ordinary test now (0027) |
-| BUG-5 | A long URL or name in a comment widens the page at every phone width    | Design / Frontend | high     | `qa/comments-layout.spec.ts` "BUG-5"                                          |
-| BUG-6 | The build fails when an entry's photo is not in `src/.originals`        | Photo             | medium   | found by hand (below); not a browser test                                     |
-| BUG-7 | Three titles repeat across the two languages                            | Content           | low      | annotation on `qa/seo.spec.ts` (first test)                                   |
-| BUG-8 | `/404` answers 200, and `/favicon.ico` answers 404                      | Frontend          | low      | found by hand (below)                                                         |
-| BUG-9 | Every page logs a console warning in Safari/WebKit (COOP header)        | Backend / owner   | medium   | **Closed 2026-11-16**: owner ruling, [0026](../decisions/0026-coop-stays.md)  |
+| #     | Title                                                                   | Owner             | Severity | Test                                                                                 |
+| ----- | ----------------------------------------------------------------------- | ----------------- | -------- | ------------------------------------------------------------------------------------ |
+| BUG-1 | The language switch's accessible name does not contain its visible text | Frontend          | medium   | **Fixed 2026-11-16** (0028): `qa/a11y.spec.ts` "BUG-1", an ordinary test now         |
+| BUG-2 | No visible keyboard focus ring on the photos of a series grid           | Design            | high     | **Fixed 2026-11-16** (0028): `qa/a11y.spec.ts` keyboard, now also `/photos`          |
+| BUG-3 | Sign-off and footnote text are under AAA contrast (6.58:1)              | Design            | low      | **Fixed 2026-11-16** (0028): `qa/a11y.spec.ts` "BUG-3 and SO-08", all widths         |
+| BUG-4 | "Save draft" is blocked until the description is filled in              | Backend           | medium   | **Fixed 2026-11-16**: `qa/phone.spec.ts` "BUG-4", an ordinary test now (0027)        |
+| BUG-5 | A long URL or name in a comment widens the page at every phone width    | Design / Frontend | high     | **Fixed 2026-11-16** (0028): `qa/comments-layout.spec.ts`, `qa/long-content.spec.ts` |
+| BUG-6 | The build fails when an entry's photo is not in `src/.originals`        | Photo             | medium   | **Fixed 2026-11-16** (0028): `unit/standins.test.ts`; opt-in in `docs/setup.md`      |
+| BUG-7 | Three titles repeat across the two languages                            | Content           | low      | annotation on `qa/seo.spec.ts` (first test)                                          |
+| BUG-8 | `/404` answers 200, and `/favicon.ico` answers 404                      | Frontend          | low      | favicon **fixed 2026-11-16** (0028, `qa/print-cookies.spec.ts`); `/404` 200 open     |
+| BUG-9 | Every page logs a console warning in Safari/WebKit (COOP header)        | Backend / owner   | medium   | **Closed 2026-11-16**: owner ruling, [0026](../decisions/0026-coop-stays.md)         |
 
 Found by the independent second opinion (2026-11-16, SO-01 to SO-10, kept outside the repository) and **fixed in fix
 round 1** ([0027](../decisions/0027-fix-round-1-backend.md)), each with a test that failed before the fix:
@@ -31,7 +31,21 @@ round 1** ([0027](../decisions/0027-fix-round-1-backend.md)), each with a test t
 | TO-01 | Publishing while a photo was still uploading left the photo out without a word (third review) | `qa/phone.spec.ts` "TO-01"                                                 |
 | —     | Staging `/_assets/` responses: noindex now in their own rule (rule 15)                        | `unit/headers.test.ts`, `unit/build-output.test.ts`, `qa/rights.spec.ts`   |
 
-The other second-opinion findings (SO-04 to SO-08, SO-10) and the open bugs above are for rounds 2 and 3.
+**Fix round 2** ([0028](../decisions/0028-fix-round-2-frontend.md)), each with a test that failed before the fix; the expected-failure
+markers of BUG-1, -2, -3 and -5 are gone:
+
+| #     | Title                                                                   | Test                                                                                                        |
+| ----- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| SO-04 | Long valid entry titles and body words broke the page width             | `qa/long-content.spec.ts` (every page type, five widths)                                                    |
+| SO-05 | The theme button announced the old state after the system theme changed | `qa/theme.spec.ts` "with no choice made…", `header-entry.spec.ts`; no `aria-pressed` left                   |
+| SO-06 | Localised previous/next text inherited the other language               | `i18n.spec.ts` "previous/next links…"                                                                       |
+| SO-07 | Paginated journal indexes disappeared from the sitemap at 51 entries    | `unit/sitemap-urls.test.ts`                                                                                 |
+| SO-08 | The phone-sized light Now paragraph missed 7:1                          | `qa/a11y.spec.ts` "BUG-3 and SO-08"; `unit/tokens.test.ts`                                                  |
+| SO-10 | Two stylesheets against the one-file budget                             | `unit/build-output.test.ts` "every public page links exactly one stylesheet"                                |
+| TO-02 | Phone navigation links narrower than 44 px (third review)               | `header-entry.spec.ts` "TO-02" at 320 and 390 px, both languages                                            |
+| TO-03 | Person data had no image (third review)                                 | `unit/seo.test.ts`, `qa/seo.spec.ts`; the launch gate (`qa/launch.spec.ts`) fails until the portrait exists |
+
+Still open from the reviews, outside this round: the W-findings (test quality) and the security notes.
 
 Not bugs, but open and listed so nothing is lost: the **launch gate** (`pnpm test:launch`, `qa/launch.spec.ts`) fails
 until the owner answers O1 (visible `[placeholder]` text on the pages, `sameAs` empty); Lighthouse on Windows is Q17.

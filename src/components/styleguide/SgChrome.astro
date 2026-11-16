@@ -34,7 +34,9 @@ import SiteHeader from "../SiteHeader.astro";
     </button>
   </p>
   <p class="ffoot">
-    <button type="button" class="rbtn theme-toggle" aria-pressed="false" aria-label="Dark theme">
+    <button type="button" class="rbtn theme-toggle">
+      <span class="sr-only to-dark">Switch to dark theme</span>
+      <span class="sr-only to-light">Switch to light theme</span>
       <svg
         class="i-moon"
         viewBox="0 0 24 24"
@@ -63,7 +65,9 @@ import SiteHeader from "../SiteHeader.astro";
         <path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"></path>
       </svg>
     </button>
-    <button type="button" class="rbtn theme-toggle" aria-pressed="true" aria-label="Dark theme">
+    <button type="button" class="rbtn theme-toggle">
+      <span class="sr-only to-dark">Switch to dark theme</span>
+      <span class="sr-only to-light">Switch to light theme</span>
       <svg
         class="i-moon"
         viewBox="0 0 24 24"

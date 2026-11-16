@@ -9,7 +9,7 @@
  *  - indexing: on staging every page says noindex; with QA_PROD=1 (a SITE_ENV=production build, `pnpm qa:production`)
  *    no indexable page says noindex, anywhere: header or meta tag.
  */
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { builtPages, readBuilt } from "./lib.ts";
 
@@ -113,6 +113,15 @@ test("JSON-LD: valid JSON, schema.org context, the right type on the right page"
       }
       if (person["name"] !== "Filippo Guanti") problems.push(`${p.path}: Person.name is ${String(person["name"])}`);
       if (person["url"] !== ORIGIN) problems.push(`${p.path}: Person.url is ${String(person["url"])}`);
+      // TO-03: the image is the real portrait from site.json, and absent while there is none (never the placeholder).
+      const portrait = (
+        JSON.parse(readFileSync(new URL("../../../src/data/site.json", import.meta.url), "utf8")) as {
+          portrait: string | null;
+        }
+      ).portrait;
+      const wanted = portrait ? `${ORIGIN}${portrait}` : undefined;
+      if (person["image"] !== wanted)
+        problems.push(`${p.path}: Person.image is ${String(person["image"])}, not ${String(wanted)}`);
       // The profiles themselves are owner question O1; launch.spec.ts requires the list to be filled.
       if (person["sameAs"] !== undefined && !Array.isArray(person["sameAs"]))
         problems.push(`${p.path}: Person.sameAs is not a list`);

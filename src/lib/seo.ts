@@ -7,19 +7,35 @@ export const absolute = (path: string): string => new URL(path, SITE).href;
 
 const personId = `${SITE}/#person`;
 
-/** `sameAs` is left out while the owner has not listed any profile (TICKETS.md, O1). */
-export function personJsonLd(locale: Locale, image?: string): Record<string, unknown> {
+export interface PersonData {
+  name: string;
+  alternateName: string[];
+  jobTitle: Record<Locale, string>;
+  sameAs: string[];
+  /** Path of the real portrait on this site (e.g. "/_assets/portrait.jpg"), or null until the owner has one. */
+  portrait: string | null;
+}
+
+/**
+ * `sameAs` is left out while the owner has not listed any profile, and `image` while there is no real portrait
+ * (TICKETS.md, O1; the launch gate fails on both). The placeholder frame on About is never used as the image (TO-03).
+ */
+export function personJsonLd(
+  locale: Locale,
+  data: PersonData = site,
+  image: string | undefined = data.portrait ?? undefined,
+): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "Person",
     "@id": personId,
-    name: site.name,
-    alternateName: site.alternateName,
+    name: data.name,
+    alternateName: data.alternateName,
     url: SITE,
     ...(image ? { image: absolute(image) } : {}),
-    jobTitle: site.jobTitle[locale],
+    jobTitle: data.jobTitle[locale],
     knowsLanguage: ["en", "it"],
-    ...(site.sameAs.length > 0 ? { sameAs: site.sameAs } : {}),
+    ...(data.sameAs.length > 0 ? { sameAs: data.sameAs } : {}),
   };
 }
 

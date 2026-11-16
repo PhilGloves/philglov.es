@@ -92,11 +92,13 @@ const neighbours = [
         <nav class="pn" aria-label={t(locale, "navJournal")}>
           <div class="pn-grid">
             {neighbours.map(({ row, k }) => (
-              <a href={row.href} lang={row.only ? row.version.lang : undefined}>
+              <a href={row.href}>
                 <span class="k">
                   <Arrows text={k} />
                 </span>
-                <span class="v">{row.version.entry.data.title}</span>
+                <span class="v" lang={row.only ? row.version.lang : undefined}>
+                  {row.version.entry.data.title}
+                </span>
               </a>
             ))}
             {neighbours.length < 2 && (

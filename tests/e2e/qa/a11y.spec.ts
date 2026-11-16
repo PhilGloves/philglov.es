@@ -9,7 +9,7 @@
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
-import { builtPages, THEMES } from "./lib.ts";
+import { builtPages, THEMES, WIDTHS } from "./lib.ts";
 
 const axeSource = readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 
@@ -82,18 +82,20 @@ for (const built of builtPages()) {
   });
 }
 
-// BUG-1 (frontend, decisions 0023/0024): the language switch shows "IT" or "EN" but is named "Italiano" or "English".
-// WCAG 2.5.3 (Label in Name): the accessible name must contain the visible text, or a person who says "click IT" to
-// their speech software hits nothing. Fix: aria-label="IT, Italiano" (or visible text that is part of the name).
-// Remove test.fail() when fixed.
+// BUG-1 (frontend, decisions 0023/0024, fixed in fix round 2, 0028): the language switch shows "IT" or "EN". WCAG 2.5.3
+// (Label in Name): the accessible name must contain the visible text, or a person who says "click IT" to their speech
+// software hits nothing; it also still names the language in full.
 test("BUG-1: the language switch's accessible name contains its visible text (WCAG 2.5.3)", async ({
   page,
   javaScriptEnabled,
 }) => {
   test.skip(!javaScriptEnabled, "axe's own timers need JavaScript; the markup is the same in both projects");
-  test.fail();
-  for (const path of ["/", "/it", "/lisbona"]) {
+  for (const path of ["/", "/it", "/lisbona", "/it/lisbona", "/no-such-page"]) {
     await page.goto(path);
+    const sw = page.locator("header a.lang-switch");
+    const [visible, name] = [(await sw.innerText()).trim(), (await sw.getAttribute("aria-label")) ?? ""];
+    expect(name.toLowerCase(), `${path}: the name holds the visible text`).toContain(visible.toLowerCase());
+    expect(name, `${path}: and the language in full`).toMatch(/Italiano|English/);
     const violations = await axe(page, {
       runOnly: { type: "rule", values: ["label-content-name-mismatch"] },
       resultTypes: ["violations"],
@@ -102,24 +104,42 @@ test("BUG-1: the language switch's accessible name contains its visible text (WC
   }
 });
 
-// BUG-3 (design): the sign-off ("— Filippo") and the footnote text of an entry are body text but use the muted colour,
-// below the AAA 7:1 the brief asks for body text (rule 6). Remove test.fail() when fixed.
-test("BUG-3: the sign-off and the footnotes of an entry have AAA contrast (7:1), in both themes", async ({
+// BUG-3 (design, fixed in fix round 2, 0028): the sign-off ("— Filippo") and the footnote text of an entry are body text
+// and must reach the AAA 7:1 the brief asks for (rule 6); SO-08: so must the Now paragraph on the home page, whose
+// 23 px size on phones is below the large-text threshold. Both themes, every width the guide fixes, both languages.
+test("BUG-3 and SO-08: the sign-off, the footnotes and the Now paragraph have AAA contrast (7:1), in both themes at every width", async ({
   page,
   javaScriptEnabled,
 }) => {
   test.skip(!javaScriptEnabled, "axe's own timers need JavaScript");
-  test.fail();
+  test.setTimeout(120_000);
   const found: string[] = [];
+  const where: [string, string[][]][] = [
+    ["/lisbona", [[".sign"], ["[data-footnotes] p"], [".about"]]],
+    ["/it/lisbona", [[".sign"], ["[data-footnotes] p"], [".about"]]],
+    ["/", [[".band .con p"], [".band a"]]],
+    ["/it", [[".band .con p"], [".band a"]]],
+  ];
   for (const theme of THEMES) {
     await page.emulateMedia({ colorScheme: theme });
-    await page.goto("/lisbona");
-    const v = await axe(
-      page,
-      { runOnly: { type: "rule", values: ["color-contrast-enhanced"] }, resultTypes: ["violations"] },
-      { include: [[".sign"], ["[data-footnotes] p"]] },
-    );
-    found.push(...describeViolations(v).map((x) => `${theme}: ${x}`));
+    for (const [path, include] of where) {
+      await page.goto(path);
+      for (const width of WIDTHS) {
+        await page.setViewportSize({ width, height: 900 });
+        const present = include.filter(([selector]) => selector !== undefined);
+        const matched = await page.evaluate(
+          (sel) => sel.filter(([s]) => document.querySelector(s as string)).length,
+          present,
+        );
+        expect(matched, `${path}: the text under test exists`).toBeGreaterThan(0);
+        const v = await axe(
+          page,
+          { runOnly: { type: "rule", values: ["color-contrast-enhanced"] }, resultTypes: ["violations"] },
+          { include },
+        );
+        found.push(...describeViolations(v).map((x) => `${theme} ${path} ${width}px: ${x}`));
+      }
+    }
   }
   expect(found).toEqual([]);
 });
@@ -130,7 +150,9 @@ const KEYBOARD_PAGES = [
   "/lisbona",
   "/it/lisbona",
   "/journal",
+  "/photos",
   "/photos/lisbon",
+  "/it/photos/lisbon",
   "/photos/lisbon/tram-28",
   "/about",
 ];
@@ -141,10 +163,9 @@ for (const path of KEYBOARD_PAGES) {
       page,
     }, testInfo) => {
       test.setTimeout(120_000);
-      // BUG-2 (design/frontend): a photo link in the series grid has a computed 2 px outline and matches
-      // :focus-visible, but nothing is drawn (clipped by a parent), so a keyboard user cannot see which photo is
-      // focused (WCAG 2.4.7). Remove this line when fixed.
-      test.fail(path === "/photos/lisbon", "BUG-2: no visible focus ring on the photos in a series grid");
+      // BUG-2 (fixed in fix round 2, 0028): a photo link in the series grid had a computed 2 px outline and matched
+      // :focus-visible, but nothing was drawn (the link was an inline box around a block), so a keyboard user could not
+      // see which photo was focused (WCAG 2.4.7). The photo grids are in this list for it.
       await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
       await page.setViewportSize({ width: 1024, height: 800 });
       await page.goto(path);
