@@ -80,15 +80,21 @@ export function baseHeaders(env: string, scriptHashes: readonly string[] = []): 
 }
 
 /**
- * Extra headers for the files under /_assets/ (images among them), which the
- * build serves straight from dist/_headers. Image-dataset tools such as
+ * The lines of the /_assets/* rule in dist/_headers, after the "/*" rule (the
+ * files there are served without the Worker). Image-dataset tools such as
  * img2dataset obey `noai, noimageai` by default. Cloudflare's _headers cannot
  * match by file extension, so the whole folder carries it; for CSS, fonts and
  * scripts it is harmless. The Worker's own responses get `tdm-reservation`
  * from baseHeaders() instead, because _headers never applies to them.
+ *
+ * Outside production these files are noindex like every other response (rule
+ * 15). The rule says so itself: it detaches the "/*" rule's X-Robots-Tag and
+ * writes the whole value, so it never depends on how two matching rules are
+ * joined (decision 0027). Production is unchanged: noai, noimageai only.
  */
-export function assetHeaders(): Record<string, string> {
-  return { "X-Robots-Tag": "noai, noimageai" };
+export function assetHeaderLines(env: string): string[] {
+  if (isIndexable(env)) return ["X-Robots-Tag: noai, noimageai"];
+  return ["! X-Robots-Tag", "X-Robots-Tag: noindex, noai, noimageai"];
 }
 
 /** Apply `headers` to a response, returning a new mutable response. */

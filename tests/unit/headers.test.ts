@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { baseHeaders, contentSecurityPolicy, isIndexable } from "../../worker/src/headers.ts";
+import { assetHeaderLines, baseHeaders, contentSecurityPolicy, isIndexable } from "../../worker/src/headers.ts";
 
 test("only production is indexable", () => {
   assert.equal(isIndexable("production"), true);
@@ -11,6 +11,38 @@ test("non-production responses carry X-Robots-Tag: noindex", () => {
   assert.equal(baseHeaders("staging")["X-Robots-Tag"], "noindex");
   assert.equal(baseHeaders("preview")["X-Robots-Tag"], "noindex");
   assert.equal(baseHeaders("production")["X-Robots-Tag"], undefined);
+});
+
+/**
+ * How Cloudflare applies the matching rules of _headers (workers-shared asset-worker, also run by wrangler dev):
+ * in file order, each rule first removes its "! Name" headers, then sets its own, appending to a value an earlier
+ * rule set.
+ */
+function served(rules: string[][]): Map<string, string> {
+  const out = new Map<string, string>();
+  const set = new Set<string>();
+  for (const rule of rules) {
+    for (const line of rule.filter((l) => l.startsWith("! "))) out.delete(line.slice(2).toLowerCase());
+    for (const line of rule.filter((l) => !l.startsWith("! "))) {
+      const [name = "", value = ""] = line.split(/:\s*(.*)/);
+      const key = name.toLowerCase();
+      out.set(key, set.has(key) && out.has(key) ? `${out.get(key)}, ${value}` : value);
+      set.add(key);
+    }
+  }
+  return out;
+}
+const siteRule = (env: string) => Object.entries(baseHeaders(env)).map(([n, v]) => `${n}: ${v}`);
+
+test("staging assets are noindex too (rule 15), said by the /_assets/* rule itself; production assets are not", () => {
+  for (const env of ["staging", "preview", "local"]) {
+    assert.deepEqual(assetHeaderLines(env), ["! X-Robots-Tag", "X-Robots-Tag: noindex, noai, noimageai"], env);
+    assert.equal(served([siteRule(env), assetHeaderLines(env)]).get("x-robots-tag"), "noindex, noai, noimageai");
+    // Even alone, without the "/*" rule, it says noindex.
+    assert.equal(served([assetHeaderLines(env)]).get("x-robots-tag"), "noindex, noai, noimageai");
+  }
+  assert.deepEqual(assetHeaderLines("production"), ["X-Robots-Tag: noai, noimageai"]);
+  assert.equal(served([siteRule("production"), assetHeaderLines("production")]).get("x-robots-tag"), "noai, noimageai");
 });
 
 test("CSP is strict: self only, no unsafe-inline, no framing", () => {

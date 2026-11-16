@@ -110,9 +110,20 @@ test("share images are 1200×630 PNGs, one default and one per entry version", {
   assert.equal(existsSync(new URL("share-manifest.json", dist)), false, "the manifest must not be served");
 });
 
-test("dist/_headers: assets carry noai, noimageai; everything carries tdm-reservation", { skip }, () => {
-  const headers = readFileSync(new URL("_headers", dist), "utf8");
-  assert.match(headers, /\/_assets\/\*\n {2}X-Robots-Tag: noai, noimageai/);
-  assert.match(headers, /tdm-reservation: 1/);
-  assert.match(headers, /script-src 'self' 'sha256-/);
-});
+test(
+  "dist/_headers: assets carry noai, noimageai (and noindex outside production); all carry tdm-reservation",
+  { skip },
+  () => {
+    const headers = readFileSync(new URL("_headers", dist), "utf8");
+    // Built for production when the "/*" rule has no noindex (SITE_ENV=production, only at launch).
+    const production = !/^\/\*\n(?: {2}.*\n)*? {2}X-Robots-Tag: noindex\n/m.test(headers);
+    assert.match(
+      headers,
+      production
+        ? /\/_assets\/\*\n {2}X-Robots-Tag: noai, noimageai\n/
+        : /\/_assets\/\*\n {2}! X-Robots-Tag\n {2}X-Robots-Tag: noindex, noai, noimageai\n/,
+    );
+    assert.match(headers, /tdm-reservation: 1/);
+    assert.match(headers, /script-src 'self' 'sha256-/);
+  },
+);
