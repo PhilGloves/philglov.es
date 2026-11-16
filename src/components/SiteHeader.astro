@@ -2,7 +2,7 @@
 /**
  * Header and main navigation: name with the domain beneath, the four links,
  * the language switch ("IT"/"EN") and the theme toggle (a moon in light mode, a sun in dark mode: both inline SVG,
- * CSS shows one; decision 0023), as two round controls. One row on desktop; from tablet
+ * CSS shows one, and with it one of two visually hidden labels; decisions 0023, 0028), as two round controls. One row on desktop; from tablet
  * down the name and controls sit above the links. No menu button.
  * `demo` renders the same markup without landmarks, for /styleguide.
  */
@@ -29,9 +29,11 @@ const links = [
   { key: "now", href: `${prefix}/now`, label: t(locale, "navNow") },
   { key: "about", href: `${prefix}/about`, label: t(locale, "navAbout") },
 ] as const;
-// The visible text is the language code; the name is the whole language name, in that language, plus the note when
-// this page has no twin (the link then opens the other home page).
-const switchName = t(locale, "otherLanguageName") + (!hasTwin && !demo ? ` — ${t(locale, "switchNoTwin")}` : "");
+// The visible text is the language code; the name starts with it (WCAG 2.5.3, BUG-1) and goes on with the whole
+// language name, in that language, plus the note when this page has no twin (the link then opens the other home page).
+const switchName =
+  `${other.toUpperCase()}, ${t(locale, "otherLanguageName")}` +
+  (!hasTwin && !demo ? ` — ${t(locale, "switchNoTwin")}` : "");
 const Header = demo ? "div" : "header";
 const Nav = demo ? "div" : "nav";
 ---
@@ -59,13 +61,9 @@ const Nav = demo ? "div" : "nav";
       <a class="rbtn lang-switch" href={demo ? "#" : switchHref} hreflang={other} lang={other} aria-label={switchName}>
         {other.toUpperCase()}
       </a>
-      <button
-        type="button"
-        class="rbtn theme-toggle"
-        aria-pressed="false"
-        aria-label={t(locale, "themeToggle")}
-        data-theme-toggle
-      >
+      <button type="button" class="rbtn theme-toggle" data-theme-toggle>
+        <span class="sr-only to-dark">{t(locale, "themeToDark")}</span>
+        <span class="sr-only to-light">{t(locale, "themeToLight")}</span>
         <svg
           class="i-moon"
           viewBox="0 0 24 24"

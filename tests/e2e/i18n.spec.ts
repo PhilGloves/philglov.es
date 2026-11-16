@@ -35,7 +35,7 @@ test("an English-only entry: no hreflang, switch goes to the Italian home and sa
   await expect(switchLink).toHaveAttribute("href", "/it");
   // The visible text is the code; the accessible name is the language and says what the link does here.
   await expect(switchLink).toHaveText("IT");
-  await expect(switchLink).toHaveAttribute("aria-label", /^Italiano — This page is not available in Italian/);
+  await expect(switchLink).toHaveAttribute("aria-label", /^IT, Italiano — This page is not available in Italian/);
   await expect(page.locator("p.label")).toContainText("Not yet available in Italian");
 });
 
@@ -128,13 +128,13 @@ test("theme toggle: flips, remembers, and is hidden without JavaScript", async (
     await expect(toggle).toBeHidden();
     return;
   }
-  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(toggle).toHaveAccessibleName("Switch to dark theme");
   await toggle.click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(toggle).toHaveAccessibleName("Switch to light theme");
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(toggle).toHaveAccessibleName("Switch to light theme");
   await toggle.click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 });
@@ -155,6 +155,38 @@ test("with localStorage blocked the page still renders and follows the system th
   page.on("pageerror", (e) => errors.push(e.message));
   await page.emulateMedia({ colorScheme: "dark" });
   await page.goto("/");
-  await expect(page.locator("[data-theme-toggle]")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("[data-theme-toggle]")).toHaveAccessibleName("Switch to light theme");
   expect(errors).toEqual([]);
+});
+
+// SO-06 (fixed in fix round 2): in the previous/next links of an entry only the entry's title carries the other
+// language's lang attribute; the "Previous" / "Next" label is the page's own language. /it/lisbona links to /one-roll,
+// which exists in English only.
+test("previous/next links: only the title of an entry in the other language is marked with its language", async ({
+  page,
+}) => {
+  let marked = 0;
+  for (const path of ["/lisbona", "/it/lisbona", "/foto", "/it/provafoto"]) {
+    await page.goto(path);
+    const pageLang = await page.locator("html").getAttribute("lang");
+    const links = page.locator(".pn-grid a");
+    const count = await links.count();
+    expect(count, path).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) {
+      const link = links.nth(i);
+      const href = (await link.getAttribute("href")) ?? "";
+      const langs = await link.evaluate((a) => ({
+        link: a.getAttribute("lang"),
+        label: a.querySelector(".k")?.closest("[lang]")?.getAttribute("lang") ?? null,
+        title: a.querySelector(".v")?.closest("[lang]")?.getAttribute("lang") ?? null,
+      }));
+      expect(langs.link, path + " → " + href + ": the link itself has no lang").toBeNull();
+      expect(langs.label, path + " → " + href + ": the label keeps the page language").toBe(pageLang);
+      const entryLang = href === "/it" || href.startsWith("/it/") ? "it" : "en";
+      if (href.endsWith("/journal")) continue; // "back to the journal" is in the page's language
+      expect(langs.title, path + " → " + href + ": the title is in the language of its entry").toBe(entryLang);
+      if (entryLang !== pageLang) marked++;
+    }
+  }
+  expect(marked, "at least one link to an entry in the other language was checked").toBeGreaterThan(0);
 });

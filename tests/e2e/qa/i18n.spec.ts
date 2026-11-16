@@ -109,7 +109,7 @@ for (const built of pages) {
       await expect(sw).toHaveAttribute("hreflang", o);
       await expect(sw).toHaveAttribute("lang", o);
       await expect(sw).toHaveText(o.toUpperCase());
-      await expect(sw).toHaveAttribute("aria-label", o === "it" ? "Italiano" : "English");
+      await expect(sw).toHaveAttribute("aria-label", o === "it" ? "IT, Italiano" : "EN, English");
     } else {
       await expect(sw).toHaveAttribute("href", o === "it" ? "/it" : "/");
       // Round control with "IT" / "EN" as text; the accessible name carries the note (decision 0023).

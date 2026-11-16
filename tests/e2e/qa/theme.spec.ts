@@ -59,7 +59,9 @@ test.describe("with JavaScript", () => {
       await page.locator(link).first().click();
       await page.waitForURL(url);
       await expect(page.locator("html"), `after going to ${link}`).toHaveAttribute("data-theme", "dark");
-      await expect(page.locator("[data-theme-toggle]")).toHaveAttribute("aria-pressed", "true");
+      await expect(page.locator("[data-theme-toggle]")).toHaveAccessibleName(
+        /^(Switch to light theme|Passa al tema chiaro)$/,
+      );
       expect(await background(page)).toBe(BG.dark);
     }
     await page.reload();
@@ -104,12 +106,12 @@ test.describe("with JavaScript", () => {
   test("a stored choice beats the system preference, and the toggle says so", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto("/");
-    await expect(page.locator("[data-theme-toggle]")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("[data-theme-toggle]")).toHaveAccessibleName("Switch to light theme");
     await page.locator("[data-theme-toggle]").click(); // → light, stored
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     await page.reload();
     expect(await background(page)).toBe(BG.light);
-    await expect(page.locator("[data-theme-toggle]")).toHaveAttribute("aria-pressed", "false");
+    await expect(page.locator("[data-theme-toggle]")).toHaveAccessibleName("Switch to dark theme");
   });
 
   test("a stored value that is not a theme is ignored, and the page follows the system", async ({ page }) => {
@@ -131,12 +133,13 @@ test("with no choice made, the system preference decides, and the page follows w
   expect(await background(page)).toBe(BG.dark);
   if (javaScriptEnabled) {
     await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.+/);
-    await expect(page.locator("[data-theme-toggle]")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("[data-theme-toggle]")).toHaveAccessibleName("Switch to light theme");
   }
   await page.emulateMedia({ colorScheme: "light" });
   // The colours ease over 250 ms (motion tokens), so poll rather than read once.
   await expect.poll(() => background(page)).toBe(BG.light);
-  if (javaScriptEnabled) await expect(page.locator("[data-theme-toggle]")).toHaveCount(1);
+  // SO-05: what the button announces follows the system change too, with no script (the label is chosen by CSS).
+  if (javaScriptEnabled) await expect(page.locator("[data-theme-toggle]")).toHaveAccessibleName("Switch to dark theme");
 });
 
 test("without JavaScript the toggle is not shown (it could do nothing)", async ({ page, javaScriptEnabled }) => {
