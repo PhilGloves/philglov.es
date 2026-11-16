@@ -6,7 +6,7 @@
  * same markup the Worker writes (worker/src/page.ts, commentList) is put into the page here.
  */
 import { expect, test } from "@playwright/test";
-import { overflowX } from "./lib.ts";
+import { overflowX, WIDTHS } from "./lib.ts";
 
 const LONG_URL = `https://example.com/${"a-very-long-path-segment/".repeat(5)}end`;
 const LONG_NAME = "N".repeat(80);
@@ -43,17 +43,17 @@ async function withComment(page: import("@playwright/test").Page, name: string, 
   );
 }
 
-for (const width of [320, 390]) {
+for (const width of WIDTHS) {
   test(`a normal comment fits at ${width} px (the control for the next test)`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await withComment(page, "Marta", "The bit about hills being a negotiation is exactly how it felt to me too.");
     expect(await overflowX(page)).toBeLessThanOrEqual(0);
   });
 
-  // BUG-5 (design/frontend): .c-who and .c-body do not break long unbroken strings, so a pasted URL or a long name
-  // pushes the page sideways at 320 px (50 px) and at 390 px. Fix: overflow-wrap: anywhere on the comment text. Remove test.fail() when fixed.
+  // BUG-5 (fixed in fix round 2, 0028): .c-who and .c-body did not break long unbroken strings, so a pasted URL or a long
+  // name pushed the page sideways. main now says overflow-wrap: anywhere. long-content.spec.ts goes on from here (titles,
+  // entry text, captions, replies, all five widths).
   test(`BUG-5: a comment with a long URL and a long name does not widen the page at ${width} px`, async ({ page }) => {
-    test.fail();
     await page.setViewportSize({ width, height: 900 });
     await withComment(page, LONG_NAME, `See ${LONG_URL}`);
     expect(await overflowX(page)).toBeLessThanOrEqual(0);

@@ -32,7 +32,8 @@ export default defineConfig({
   prefetch: false,
   // Astro inlines small <script>s below this limit; an inline script would need its own CSP hash.
   // 0 keeps src/scripts/forms.ts an external same-origin file under /_assets/ (script-src 'self').
-  vite: { build: { assetsInlineLimit: 0 } },
+  // cssCodeSplit false keeps the generated photo colours in the one stylesheet (SO-10, decision 0028).
+  vite: { build: { assetsInlineLimit: 0, cssCodeSplit: false } },
   devToolbar: { enabled: false },
   // Photos inside journal entries (Markdown images): responsive without MDX. The layout adds srcset, sizes, width
   // and height and lazy loading; the service caps files at 1600 px and sets `sizes` to the text column; the one

@@ -127,3 +127,14 @@ test(
     assert.match(headers, /script-src 'self' 'sha256-/);
   },
 );
+
+// SO-10 (fixed in fix round 2): "1 file, ≤ 20 KB compressed" is a budget on the number of stylesheets too. The generated
+// photo colours (src/styles/photo-colours.generated.css) used to come out as a second file; they are bundled now.
+test("every public page links exactly one stylesheet, and the whole site has one", { skip }, () => {
+  for (const file of htmlFiles()) {
+    const links = [...readFileSync(file, "utf8").matchAll(/<link[^>]+rel="stylesheet"[^>]*>/g)];
+    assert.equal(links.length, 1, `${file.pathname}: ${links.length} stylesheet links`);
+  }
+  const css = readdirSync(new URL("_assets/", dist)).filter((f) => f.endsWith(".css"));
+  assert.equal(css.length, 1, `stylesheets in dist/_assets: ${css.join(", ")}`);
+});

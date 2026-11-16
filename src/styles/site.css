@@ -38,8 +38,7 @@
  *     other web font; code uses the system monospace (--font-code).
  *  8. Components are plain classes on semantic HTML. The markup for each is
  *     shown in /styleguide (src/pages/styleguide.astro): copy it from there.
- *  9. The theme script only sets data-theme on <html> and aria-pressed on
- *     .theme-toggle. Nothing in this file needs JavaScript; the toggle itself
+ *  9. The theme script only sets data-theme on <html>. Nothing in this file needs JavaScript; the toggle itself
  *     is hidden when scripting is off.
  *
  * Font: Crimson Pro © 2018 The Crimson Pro Project Authors, SIL Open Font
@@ -205,6 +204,19 @@
   a {
     color: inherit;
     text-decoration: none;
+  }
+
+  /* Text a person writes (a title, a word or a link in an entry, a comment's name and text, a caption) can hold a
+   * string longer than the line. "anywhere" lets it break there and, unlike "break-word", also lowers the
+   * min-content width that grid items, flex items and table cells measure, so the long string cannot push the
+   * page sideways at any width down to 320 px (BUG-5, SO-04, decision 0028). The index table keeps the figures of
+   * its columns whole. */
+  main {
+    overflow-wrap: anywhere;
+  }
+
+  .idx :is(th, .n, .dt, .ln, .mn) {
+    overflow-wrap: normal;
   }
 
   a:hover {
@@ -449,10 +461,14 @@
     list-style: none;
   }
 
+  /* The tap area is 44 px wide: the padding adds it, the negative margin takes it back, so the words keep their
+   * place and the 22 px between them (TO-02). */
   .nav a {
     display: inline-flex;
     align-items: center;
     min-block-size: var(--touch);
+    margin-inline: calc(-1 * var(--sp-8));
+    padding-inline: var(--sp-8);
     font-size: var(--fs-19);
     font-weight: 400;
   }
@@ -504,13 +520,16 @@
     block-size: var(--icon);
   }
 
-  /* One icon at a time: the moon in light mode, the sun in dark mode. The visitor's choice (data-theme) wins over
-     the system setting, as in tokens.css. No JavaScript is involved. */
-  .theme-toggle .i-sun {
+  /* One icon at a time: the moon in light mode, the sun in dark mode, and with it the one visually hidden label that
+     names what the button will do ("Switch to dark theme" / "Switch to light theme"; decision 0028). The visitor's
+     choice (data-theme) wins over the system setting, as in tokens.css, and the button's name follows a change of the
+     system setting with no JavaScript. */
+  .theme-toggle .i-sun,
+  .theme-toggle .to-light {
     display: none;
   }
 
-  :root[data-theme="dark"] .theme-toggle .i-moon {
+  :root[data-theme="dark"] .theme-toggle :is(.i-moon, .to-dark) {
     display: none;
   }
 
@@ -518,13 +537,21 @@
     display: block;
   }
 
+  :root[data-theme="dark"] .theme-toggle .to-light {
+    display: inline;
+  }
+
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .theme-toggle .i-moon {
+    :root:not([data-theme="light"]) .theme-toggle :is(.i-moon, .to-dark) {
       display: none;
     }
 
     :root:not([data-theme="light"]) .theme-toggle .i-sun {
       display: block;
+    }
+
+    :root:not([data-theme="light"]) .theme-toggle .to-light {
+      display: inline;
     }
   }
 
@@ -758,6 +785,12 @@
     background: var(--bg);
     color: var(--text);
     font-size: var(--fs-15);
+  }
+
+  /* A link that wraps a photograph is a block, so that its focus ring has a box to draw around (BUG-2): an inline link
+   * with a block inside it leaves the outline with no box. */
+  a:has(> .frame) {
+    display: block;
   }
 
   .frame picture {
@@ -1994,6 +2027,8 @@
     line-height: var(--lh-err);
     letter-spacing: -0.03em;
     color: var(--accent);
+    /* a fixed numeral, not text a person wrote: it must keep its column (main breaks long strings anywhere) */
+    overflow-wrap: normal;
   }
 
   /* ===== about page portrait ===== */
