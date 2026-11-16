@@ -6,7 +6,7 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, test } from "vitest";
 import { sniff } from "../../worker/src/admin/upload.ts";
-import { ATTENTION_AFTER, entriesFor } from "../../worker/src/admin/write.ts";
+import { ATTENTION_AFTER, entryRows } from "../../worker/src/admin/write.ts";
 import {
   entryMarkdown,
   parseEntry,
@@ -429,16 +429,25 @@ describe("the list of published entries", () => {
     comments: true,
   });
 
-  test("newest first; the search matches the title, any case, accents ignored", () => {
+  const titles = (rows: ReturnType<typeof entryRows>) =>
+    rows.map((r) => [r.versions.en?.title ?? "-", r.versions.it?.title ?? "-"].join(" | "));
+
+  test("one row per entry, newest first; the search matches either title, any case, accents ignored", () => {
     const entries = [
       e("Alps in winter", "2026-01-05"),
       e("Città vecchia", "2026-09-01", "it"),
       e("Lisbon", "2026-03-10"),
+      { ...e("Tre settimane", "2026-03-10", "it"), slug: "lisbon" },
     ];
-    expect(entriesFor(entries, "").map((x) => x.title)).toEqual(["Città vecchia", "Lisbon", "Alps in winter"]);
-    expect(entriesFor(entries, "CITTA").map((x) => x.title)).toEqual(["Città vecchia"]);
-    expect(entriesFor(entries, " in ").map((x) => x.title)).toEqual(["Alps in winter"]);
-    expect(entriesFor(entries, "nothing")).toEqual([]);
+    expect(titles(entryRows(entries, ""))).toEqual([
+      "- | Città vecchia",
+      "Lisbon | Tre settimane",
+      "Alps in winter | -",
+    ]);
+    expect(titles(entryRows(entries, "CITTA"))).toEqual(["- | Città vecchia"]);
+    expect(titles(entryRows(entries, "settimane"))).toEqual(["Lisbon | Tre settimane"]);
+    expect(titles(entryRows(entries, " in "))).toEqual(["Alps in winter | -"]);
+    expect(entryRows(entries, "nothing")).toEqual([]);
   });
 
   test("/admin/write shows the built entries, each opening the edit form; ?q= filters", async () => {
@@ -446,7 +455,7 @@ describe("the list of published entries", () => {
     expect(m.entries.every((x) => /^\d{4}-\d{2}-\d{2}$/.test(x.date))).toBe(true);
     const html = await (await adminFetch("/admin/write")).text();
     expect(html).toContain("Edit a published entry");
-    const newest = entriesFor(m.entries, "")[0];
+    const newest = Object.values(entryRows(m.entries, "")[0]?.versions ?? {})[0];
     if (!newest) throw new Error("the build has no entries");
     expect(html).toContain(`href="/admin/write?edit=1&amp;slug=${newest.slug}&amp;lang=${newest.lang}"`);
     const one = await (await adminFetch(`/admin/write?q=${encodeURIComponent(newest.title)}`)).text();
@@ -700,6 +709,300 @@ describe("editing a published entry", () => {
       });
     }
   }
+});
+
+// Decision 0029: the other-language version of a published entry is written from the entry itself, with its slug,
+// its photos (the same stored keys) and the existing version for reference. Nothing is translated (0012).
+describe("writing the other-language version of a published entry", () => {
+  const TWIN = "two-langs";
+  const EN = `src/content/journal/en/${TWIN}.md`;
+  const EN_TEXT = [
+    "---",
+    'title: "The harbour"',
+    "date: 2026-10-02",
+    "lang: en",
+    "originalLang: en",
+    'description: "A morning by the water."',
+    "comments: true",
+    "---",
+    "",
+    "Text in English.",
+    "",
+    '![Boats at dawn](../../../.originals/two-langs/boats.jpg "The old port")',
+    "",
+    "![A crane over the quay](../../../.originals/two-langs/crane.png)",
+    "",
+  ].join("\n");
+  const KEYS = ["two-langs/boats.jpg", "two-langs/crane.png"];
+  const versionForm = async (query = "") => {
+    await gh("/__set", { files: { [EN]: EN_TEXT } });
+    return (await adminFetch(`/admin/write?edit=1&slug=${TWIN}&lang=it${query}`)).text();
+  };
+  const hidden = (html: string, name: string) => new RegExp(`name="${name}" value="([^"]*)"`).exec(html)?.[1] ?? "";
+  const post = (fields: Record<string, string>, photos: [string, string, string][] = []) => {
+    const form = new URLSearchParams(fields);
+    for (const [key, alt, caption] of photos) {
+      form.append("photo_key", key);
+      form.append("photo_alt", alt);
+      form.append("photo_caption", caption);
+    }
+    return adminFetch("/admin/write", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: form.toString(),
+    });
+  };
+  const fromForm = (html: string, over: Record<string, string>) => ({
+    csrf: hidden(html, "csrf"),
+    draft_id: hidden(html, "draft_id"),
+    base_sha: hidden(html, "base_sha"),
+    twin: hidden(html, "twin"),
+    opened: hidden(html, "opened"),
+    slug: TWIN,
+    lang: "it",
+    ...over,
+  });
+  const written = async () => {
+    const put = (await calls()).find((c) => c.method === "PUT");
+    return {
+      path: put?.path ?? "",
+      text: new TextDecoder().decode(Uint8Array.from(atob(String(put?.body["content"])), (c) => c.charCodeAt(0))),
+    };
+  };
+
+  test("the list has one row per entry, with both languages; a missing one is a link to write it", async () => {
+    const m = await siteManifest();
+    const html = await (await adminFetch("/admin/write")).text();
+    const { slug } = await twinEntry();
+    const row = (s: string) => {
+      const start = html.indexOf(`data-entry="${s}"`);
+      return start < 0 ? "" : html.slice(start, html.indexOf("</li>\n", html.indexOf("</ul>", start)));
+    };
+    // A slug in both languages: one row, both versions linked to their edit forms.
+    expect(html.split(`data-entry="${slug}"`)).toHaveLength(2);
+    expect(row(slug)).toContain(`href="/admin/write?edit=1&amp;slug=${slug}&amp;lang=en"`);
+    expect(row(slug)).toContain(`href="/admin/write?edit=1&amp;slug=${slug}&amp;lang=it"`);
+    // A slug in one language: its row says the other is missing, as a link that writes it.
+    for (const single of m.entries.filter((e) => !m.entries.some((o) => o.slug === e.slug && o.lang !== e.lang))) {
+      const missing = single.lang === "en" ? "it" : "en";
+      expect(row(single.slug)).toContain(
+        `<a href="/admin/write?edit=1&amp;slug=${single.slug}&amp;lang=${missing}">Write the ${
+          missing === "en" ? "English" : "Italian"
+        } version</a>`,
+      );
+    }
+  });
+
+  test("its link opens the form: slug fixed, text empty, the existing version for reference, the same photos", async () => {
+    const html = await versionForm();
+    expect(html).toContain('<h2 class="admin-title">Write the Italian version</h2>');
+    expect(html).toContain(`<input id="w-slug" name="slug" readonly value="${TWIN}"`);
+    expect(html).toMatch(/id="w-title"\s+name="title"\s+maxlength="120"\s+required\s+value=""/);
+    expect(html).toMatch(/id="w-desc"\s+name="description"\s+maxlength="200"\s+required\s+value=""/);
+    expect(html).toMatch(/class="write-body"[^>]*>\n<\/textarea/);
+    expect(html).toContain("<summary>The English version, for reference</summary>");
+    expect(html).toContain("Text in English.");
+    // The same photographs, by the same stored keys; alt text and caption empty, the English ones shown as hints.
+    expect([...html.matchAll(/name="photo_key" value="([^"]+)"/g)].map((m) => m[1])).toEqual(KEYS);
+    expect(html.match(/name="photo_alt" required maxlength="300" value=""/g)).toHaveLength(2);
+    expect(html.match(/name="photo_caption" maxlength="300" value=""/g)).toHaveLength(2);
+    expect(html).toContain('English version: <span lang="en">Boats at dawn</span>');
+    expect(html).toContain('English version: <span lang="en">The old port</span>');
+    expect(html).toContain('English version: <span lang="en">A crane over the quay</span>');
+    expect(html).toContain("The English version has no caption.");
+    expect(html).toMatch(/id="ph-0-alt" name="photo_alt"[^>]*aria-describedby="ph-0-alt-hint"/);
+    // A language choice that names each version's state; it opens the same entry in that language.
+    expect(html).toContain('<option value="en">English · published</option>');
+    expect(html).toContain('<option value="it" selected>Italiano · not written yet</option>');
+    expect(html).toMatch(/<button type="submit" name="intent" value="switch" class="btn btn--ghost" formnovalidate/);
+    expect(html).toContain('<input type="hidden" id="w-lang" name="lang" value="it" />');
+    expect(hidden(html, "twin")).toBe("1");
+    expect(hidden(html, "base_sha")).toBe("");
+    expect(html).toContain(`data-draft="edit-it-${TWIN}"`);
+    expect(html).toContain(">Publish</button>");
+  });
+
+  test("Publish: one new file with the same photo keys and originalLang from the existing version", async () => {
+    const html = await versionForm();
+    await Promise.all(KEYS.map((k) => env.ORIGINALS.put(k, "x")));
+    await gh("/__reset");
+    await gh("/__set", { files: { [EN]: EN_TEXT } });
+    const res = await post(
+      fromForm(html, { intent: "publish", title: "Il porto", description: "Una mattina.", body: "Testo." }),
+      [
+        [KEYS[0] ?? "", "Barche all'alba", "Il porto vecchio"],
+        [KEYS[1] ?? "", "Una gru sul molo", ""],
+      ],
+    );
+    expect(res.status).toBe(200);
+    const page = await res.text();
+    // The confirmation offers the other language: here it exists, so it is an edit.
+    expect(page).toContain(`<a href="/admin/write?edit=1&amp;slug=${TWIN}&amp;lang=en">Edit the English version</a>`);
+    const all = await calls();
+    expect(all.filter((c) => c.method === "PUT")).toHaveLength(1);
+    const file = await written();
+    expect(file.path).toBe(`/repos/PhilGloves/philglov.es/contents/src/content/journal/it/${TWIN}.md`);
+    expect(file.text).toMatch(/^---\ntitle: "Il porto"\ndate: \d{4}-\d{2}-\d{2}\nlang: it\noriginalLang: en\n/);
+    expect(file.text).toContain(
+      "Testo.\n\n" +
+        '![Barche all\'alba](../../../.originals/two-langs/boats.jpg "Il porto vecchio")\n\n' +
+        "![Una gru sul molo](../../../.originals/two-langs/crane.png)\n",
+    );
+    expect(all.find((c) => c.path.endsWith("/pulls") && c.method === "POST")?.body["title"]).toBe(
+      "Italian version of it/two-langs: Il porto",
+    );
+    // Nothing stored twice: the photos are the two originals already there.
+    expect((await env.ORIGINALS.list({ prefix: `${TWIN}/` })).objects.map((o) => o.key)).toEqual(KEYS);
+  });
+
+  test("Publish is refused while a carried-over photo has no alt text, and the form stays as it was", async () => {
+    const html = await versionForm();
+    await Promise.all(KEYS.map((k) => env.ORIGINALS.put(k, "x")));
+    const res = await post(
+      fromForm(html, { intent: "publish", title: "Il porto", description: "Una mattina.", body: "Testo." }),
+      [
+        [KEYS[0] ?? "", "Barche all'alba", ""],
+        [KEYS[1] ?? "", "", ""],
+      ],
+    );
+    expect(res.status).toBe(422);
+    const page = await res.text();
+    expect(page).toContain("Every photo needs alt text");
+    expect(page).toContain('<h2 class="admin-title">Write the Italian version</h2>');
+    expect(page).toContain('English version: <span lang="en">A crane over the quay</span>');
+    expect((await calls()).some((c) => c.method === "PUT")).toBe(false);
+  });
+
+  test("a photo can be removed and another added; one of another slug is still refused", async () => {
+    const html = await versionForm();
+    await Promise.all([...KEYS, "two-langs/new-one-ab12.jpg"].map((k) => env.ORIGINALS.put(k, "x")));
+    const fields = fromForm(html, { intent: "publish", title: "Il porto", description: "Una mattina.", body: "" });
+    expect(
+      (
+        await post(fields, [
+          [KEYS[1] ?? "", "Una gru", ""],
+          ["two-langs/new-one-ab12.jpg", "Una foto nuova", ""],
+        ])
+      ).status,
+    ).toBe(200);
+    const file = await written();
+    expect(file.text).not.toContain("boats.jpg");
+    expect(file.text).toContain("two-langs/crane.png");
+    expect(file.text).toContain("two-langs/new-one-ab12.jpg");
+    expect((await post(fields, [["lisbona/boats.jpg", "Altro", ""]])).status).toBe(422);
+  });
+
+  test("Switch without JavaScript keeps what was typed as a draft, which is there again on switching back", async () => {
+    const html = await versionForm();
+    // Nothing typed: no draft, straight to the other version.
+    const plain = await post(fromForm(html, { intent: "switch", to: "en", title: "", description: "", body: "" }), [
+      [KEYS[0] ?? "", "", ""],
+      [KEYS[1] ?? "", "", ""],
+    ]);
+    expect(plain.status).toBe(303);
+    expect(plain.headers.get("Location")).toBe(`/admin/write?edit=1&slug=${TWIN}&lang=en`);
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM drafts").first("n")).toBe(0);
+
+    const typed = await post(
+      fromForm(html, { intent: "switch", to: "en", title: "Il porto", description: "", body: "Metà." }),
+      [
+        [KEYS[0] ?? "", "Barche", ""],
+        [KEYS[1] ?? "", "", ""],
+      ],
+    );
+    expect(typed.headers.get("Location")).toBe(`/admin/write?edit=1&slug=${TWIN}&lang=en&kept=it`);
+    const row = await env.DB.prepare("SELECT slug, lang, title, body, twin, base_sha FROM drafts").first();
+    expect(row).toEqual({ slug: TWIN, lang: "it", title: "Il porto", body: "Metà.", twin: 1, base_sha: "" });
+    const english = await (await adminFetch(typed.headers.get("Location") ?? "")).text();
+    expect(english).toContain("What you typed in Italian is kept as a draft, and is there again when you switch back.");
+    expect(english).toContain('value="The harbour"');
+    expect(english).toContain('<option value="it">Italiano · draft saved</option>');
+
+    // Switching back opens that draft, in the same form, with the photos and the hints.
+    const back = await versionForm();
+    expect(back).toContain('value="Il porto"');
+    expect(back).toContain(">\nMetà.</textarea");
+    expect(back).toContain('value="Barche"');
+    expect(back).toContain("Opened your draft of this version, saved");
+    expect(back).toContain('<h2 class="admin-title">Write the Italian version</h2>');
+    expect(back).toContain('English version: <span lang="en">Boats at dawn</span>');
+    expect(hidden(back, "twin")).toBe("1");
+    expect(hidden(back, "draft_id")).toMatch(/^[A-Za-z0-9_-]{22}$/);
+    expect(back).toContain("other-language version ·");
+  });
+
+  test("Switch from an edit keeps its draft too, with the version it started from", async () => {
+    await gh("/__set", { files: { [EN]: EN_TEXT } });
+    const edit = await (await adminFetch(`/admin/write?edit=1&slug=${TWIN}&lang=en`)).text();
+    expect(edit).toContain('<option value="en" selected>English · published</option>');
+    expect(edit).toContain('<option value="it">Italiano · not written yet</option>');
+    expect(edit).not.toContain("Language: <strong>");
+    const res = await post(
+      fromForm(edit, {
+        intent: "switch",
+        to: "it",
+        lang: "en",
+        title: "The harbour, again",
+        description: "A morning by the water.",
+        body: "Text in English.",
+      }),
+      [
+        [KEYS[0] ?? "", "Boats at dawn", "The old port"],
+        [KEYS[1] ?? "", "A crane over the quay", ""],
+      ],
+    );
+    expect(res.headers.get("Location")).toBe(`/admin/write?edit=1&slug=${TWIN}&lang=it&kept=en`);
+    expect(await env.DB.prepare("SELECT base_sha FROM drafts").first("base_sha")).toBe(hidden(edit, "base_sha"));
+    const again = await (await adminFetch(`/admin/write?edit=1&slug=${TWIN}&lang=en`)).text();
+    expect(again).toContain('value="The harbour, again"');
+    expect(again).toContain("Editing <a");
+  });
+
+  test("after a new entry is published, the confirmation offers to write the other language", async () => {
+    const res = await adminPost("/admin/write", { csrf: await csrf(), ...newEntry });
+    expect(await res.text()).toContain(
+      '<a href="/admin/write?edit=1&amp;slug=a-new-one&amp;lang=it">Write the Italian version</a>',
+    );
+  });
+
+  test("the existing version still on its way: the form opens from its pull request, Publish waits for it", async () => {
+    const branch = "publish/en-on-its-way-20261116090000";
+    const path = "src/content/journal/en/on-its-way.md";
+    await gh("/__set", {
+      files: { [`${path}@${branch}`]: EN_TEXT.replace(/two-langs/g, "on-its-way") },
+      pulls: [
+        {
+          html_url: "https://github.com/x/y/pull/5",
+          title: "New entry en/on-its-way: The harbour",
+          created_at: new Date().toISOString(),
+          user: { login: "philglov-publisher[bot]" },
+          head: { ref: branch },
+        },
+      ],
+    });
+    const html = await (await adminFetch("/admin/write?edit=1&slug=on-its-way&lang=it")).text();
+    expect(html).toContain('<h2 class="admin-title">Write the Italian version</h2>');
+    expect(html).toContain("Text in English.");
+    expect(html).toContain('name="photo_key" value="on-its-way/boats.jpg"');
+    expect(html).toContain('<option value="en" disabled>English · on its way</option>');
+    await env.ORIGINALS.put("on-its-way/boats.jpg", "x");
+    const res = await post(
+      {
+        ...fromForm(html, { intent: "publish", title: "Il porto", description: "Una mattina.", body: "Testo." }),
+        slug: "on-its-way",
+      },
+      [["on-its-way/boats.jpg", "Barche", ""]],
+    );
+    expect(res.status).toBe(409);
+    expect(await res.text()).toContain("The English version is not on the site yet");
+    expect((await calls()).some((c) => c.method === "PUT")).toBe(false);
+  });
+
+  test("no version in either language: nothing to open", async () => {
+    const html = await (await adminFetch("/admin/write?edit=1&slug=no-such-entry&lang=it")).text();
+    expect(html).toContain("No Italian entry with the slug no-such-entry.");
+    expect(hidden(html, "twin")).toBe("");
+  });
 });
 
 describe("reading an entry back", () => {

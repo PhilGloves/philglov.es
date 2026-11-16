@@ -92,7 +92,12 @@ export const MODERATION_SCRIPT = String.raw`"use strict";
  *    reference text, from /admin/write/reference;
  *  - autosave in this browser (localStorage), restored when newer than the server copy; a first Save draft
  *    removes the copy the text came from (data-moved), and Publish the draft's own (data-clear);
- *  - photo uploads one at a time, with progress and automatic retry.
+ *  - photo uploads one at a time, with progress and automatic retry;
+ *  - on an entry's form, the language switch on change (decision 0029): the typed text is written to the browser
+ *    copy at once, so it is there again on switching back; the Switch button, for pages without JavaScript, is
+ *    hidden. The choice leads to another page, it is not a field, so changing it is never autosaved. A photo still
+ *    uploading would be lost on leaving, so it holds the switch as it holds Publish (TO-01). The other version's alt
+ *    text and caption under a carried-over photo (`data-hint`) are kept when a browser copy is restored.
  */
 export const WRITE_SCRIPT = String.raw`"use strict";
 (function () {
@@ -115,6 +120,13 @@ export const WRITE_SCRIPT = String.raw`"use strict";
     try { localStorage.removeItem("philglov-write:" + moved); } catch (e) {}
     history.replaceState(null, "", location.href.replace(/&moved=[^&#]*/, ""));
   }
+  var version = $("w-version");
+  if (version) form.querySelector('button[value="switch"]').hidden = true;
+  var hints = {};
+  Array.prototype.forEach.call(list.querySelectorAll(".photo-item"), function (li) {
+    var h = hints[li.querySelector('input[name="photo_key"]').value] = {};
+    Array.prototype.forEach.call(li.querySelectorAll("[data-hint]"), function (n) { h[n.getAttribute("data-hint")] = n; });
+  });
   var serverTime = Number(form.getAttribute("data-updated")) || 0;
   var maxSize = Number(form.getAttribute("data-max"));
   var autoSlug = slug.value === "";
@@ -144,6 +156,12 @@ export const WRITE_SCRIPT = String.raw`"use strict";
       if (f[3]) input.required = true;
       input.value = f[2] || "";
       field.appendChild(input);
+      var hint = (hints[photoKey] || {})[f[0]];
+      if (hint) {
+        hint.id = id + "-" + f[0] + "-hint";
+        input.setAttribute("aria-describedby", hint.id);
+        field.appendChild(hint);
+      }
       li.appendChild(field);
     });
     var actions = el("div", { class: "actions" });
@@ -161,12 +179,15 @@ export const WRITE_SCRIPT = String.raw`"use strict";
     return { savedAt: Date.now(), title: title.value, slug: slug.value, lang: lang.value,
       description: form.elements.namedItem("description").value, body: body.value, photos: photos };
   }
-  var timer;
-  function save() {
+  var timer = 0;
+  function store() {
+    clearTimeout(timer); timer = 0;
+    try { localStorage.setItem(key, JSON.stringify(snapshot())); } catch (e) {}
+  }
+  function save(e) {
+    if (e && e.target === version) return;
     clearTimeout(timer);
-    timer = setTimeout(function () {
-      try { localStorage.setItem(key, JSON.stringify(snapshot())); } catch (e) {}
-    }, 400);
+    timer = setTimeout(store, 400);
   }
   function restore() {
     var saved;
@@ -209,21 +230,30 @@ export const WRITE_SCRIPT = String.raw`"use strict";
   // a message that says why, and work again once it has finished or been removed: nothing picked is dropped
   // silently (TO-01, decision 0027). Without JavaScript there are no uploads, so nothing changes.
   var queue = [], current = null, held = null;
-  var buttons = form.querySelector('button[name="intent"]').parentNode;
+  var buttons = form.querySelector('button[value="publish"]').parentNode;
   function say(text) { status.textContent = text; }
   function pending() { return queue.length + (current ? 1 : 0); }
   function gate() {
     if (!held) return;
     var n = pending();
     if (!n) { held.parentNode.removeChild(held); held = null; return; }
-    held.textContent = "Not yet: " + n + (n === 1 ? " photo is" : " photos are") + " still uploading. Publish and Save draft work as soon as " +
+    held.textContent = "Not yet: " + n + (n === 1 ? " photo is" : " photos are") + " still uploading. " +
+      (version ? "Publish, Save draft and the language switch work" : "Publish and Save draft work") + " as soon as " +
       (n === 1 ? "it has" : "they have") + " finished, or remove " + (n === 1 ? "it" : "them") + ".";
+  }
+  function hold() {
+    if (!held) { held = el("p", { class: "alert", role: "alert" }); buttons.parentNode.insertBefore(held, buttons); }
+    gate();
   }
   form.addEventListener("submit", function (e) {
     if (!pending()) return;
     e.preventDefault();
-    if (!held) { held = el("p", { class: "alert", role: "alert" }); buttons.parentNode.insertBefore(held, buttons); }
-    gate();
+    hold();
+  });
+  if (version) version.addEventListener("change", function () {
+    if (pending()) { version.value = lang.value; hold(); return; }
+    if (timer) store();
+    location.href = "/admin/write?edit=1&slug=" + encodeURIComponent(slug.value) + "&lang=" + version.value;
   });
   function finished(job) {
     if (current === job) current = null;

@@ -6,7 +6,9 @@
  *    page does not scroll sideways;
  *  - a draft survives a reload (autosave in the browser) and a dropped connection; an upload that drops is retried;
  *  - a non-image renamed .jpg is refused; Publish opens a pull request and never touches main;
- *  - the other-language version of an existing entry is written to its own file with the right originalLang.
+ *  - the other-language version of an existing entry is written from the entry's row in the list (its slug fixed,
+ *    its photos carried over, decision 0029) to its own file with the right originalLang; typing that slug into a
+ *    new entry still does the same.
  */
 import { expect, test, type Page } from "@playwright/test";
 import { blockedOutbound, serveAdmin, type Admin } from "../admin-worker.ts";
@@ -372,7 +374,39 @@ test("Publish opens a pull request on its own branch and never writes to main", 
   expect(files[0]).toMatch(/^src\/content\/journal\/(en|it)\/[a-z0-9-]+\.md$/);
 });
 
-test("writing the other-language version of an existing entry makes its twin with originalLang from the original", async ({
+test("the other-language version, from the entry's row: its own file, the same photo, originalLang from the original", async ({
+  page,
+}) => {
+  const uploads: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().includes("/admin/upload")) uploads.push(r.url());
+  });
+  await write(page);
+  await page.locator('[data-entry="foto"]').getByRole("link", { name: "Write the Italian version" }).tap();
+  await page.waitForURL(/\?edit=1&slug=foto&lang=it$/);
+  await expect(page.locator("#w-slug")).toHaveValue("foto");
+  await expect(page.locator("#w-slug")).toHaveAttribute("readonly", "");
+  await expect(page.locator("#reference pre")).toContainText("lang: en");
+  // The reference text has long lines (the photo paths): they wrap, so the page stays 390 px wide (with isMobile the
+  // layout viewport would widen to fit, so innerWidth is no measure).
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.fill("#w-title", "Foto, in italiano");
+  await page.fill("#w-desc", "La mia versione.");
+  await page.fill("#w-body", "Testo scritto a mano.");
+  await page.fill("#photo-list input[name='photo_alt']", "Pinzette su un tavolo");
+  await page.getByRole("button", { name: "Publish" }).tap();
+  await expect(page.locator("#published")).toBeVisible();
+  const puts = admin.github.calls.filter((c) => c.method === "PUT");
+  expect(puts.map((c) => c.path)).toEqual(["/repos/PhilGloves/philglov.es/contents/src/content/journal/it/foto.md"]);
+  const text = Buffer.from(String(puts[0]?.body?.["content"]), "base64").toString("utf8");
+  expect(text).toMatch(/^lang: it$/m);
+  expect(text, "the Italian version is a translation of the English original").toMatch(/^originalLang: en$/m);
+  expect(text).toContain("](../../../.originals/foto/1000029179-9gp7.jpg)");
+  expect(uploads, "the photo is the English version's, not uploaded again").toEqual([]);
+  expect(noise).toEqual([]);
+});
+
+test("typing the slug of an existing entry into a new entry in the other language still makes its twin", async ({
   page,
 }) => {
   await write(page);
