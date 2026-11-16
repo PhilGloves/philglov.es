@@ -8,8 +8,9 @@
  *    for this run, so the Access JWT check runs for real against it;
  *  - https://api.github.com: a small stand-in for the GitHub App calls that
  *    reads files from this checkout and records what the Worker sent. A test
- *    can set, through /__set: files that differ from the checkout, the open
- *    pull requests, a refused auto-merge, and a write refused as a conflict.
+ *    can set, through /__set: files that differ from the checkout (or exist only
+ *    on a branch, as "<path>@<branch>"), the open pull requests, a refused
+ *    auto-merge, and a write refused as a conflict.
  */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -90,7 +91,13 @@ function fakeGitHub() {
     if (contents && request.method === "GET") {
       try {
         const path = contents[1] ?? "";
-        const text = state.files[path] ?? readFileSync(new URL(`./${path}`, import.meta.url), "utf8");
+        // A file on another branch (an open publisher pull request) only when a test sets "<path>@<branch>".
+        const ref = url.searchParams.get("ref") ?? "main";
+        const text =
+          ref === "main"
+            ? (state.files[path] ?? readFileSync(new URL(`./${path}`, import.meta.url), "utf8"))
+            : state.files[`${path}@${ref}`];
+        if (text === undefined) throw new Error("not on that branch");
         return json(200, {
           sha: blobSha(text),
           encoding: "base64",
