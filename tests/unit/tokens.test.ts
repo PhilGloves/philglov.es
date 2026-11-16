@@ -22,7 +22,8 @@ test("the measured ratios in the tokens.css comment match the real ones", () => 
       ?.value.toFixed(2) ?? "";
   for (const [label, line] of [
     ["text on bg", "text on bg (body text)"],
-    ["muted on bg", "muted on bg (metadata, captions)"],
+    ["muted on bg", "muted on bg (sign-off, footnotes, facts)"],
+    ["band-text on band", "band-text on band (Now paragraph)"],
     ["accent on bg", "accent on bg (links, markers)"],
     ["band-muted on band", "band-muted on band (Now label)"],
   ] as const) {
@@ -43,4 +44,16 @@ test("motion tokens are 150 / 250 ms ease-out and switch off for reduced motion"
   assert.match(css, /--dur-base: 250ms/);
   assert.match(css, /--ease: ease-out/);
   assert.match(css, /prefers-reduced-motion: reduce\)\s*\{\s*:root\s*\{\s*--dur-fast: 0ms;\s*--dur-base: 0ms/);
+});
+
+// BUG-3 and SO-08 (fix round 2, 0028): body text on the page, and the Now paragraph on the moss band, reach AAA 7:1 in both
+// themes. The floors in scripts/contrast.ts say so; this proves it, so lowering a floor is a visible change.
+test("the muted text and the Now paragraph are held to the AAA floor of 7:1, and reach it, in both themes", () => {
+  for (const theme of ["light", "dark"] as const)
+    for (const label of ["muted on bg", "band-text on band"]) {
+      const found = checkTheme(css, theme).find((r) => r.pair.label === label);
+      assert.ok(found, `${theme} ${label}`);
+      assert.equal(found.pair.floor, 7, `${theme} ${label}: floor`);
+      assert.ok(found.value >= 7, `${theme} ${label}: ${found.value.toFixed(3)}`);
+    }
 });

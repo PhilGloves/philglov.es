@@ -18,21 +18,21 @@
  *   pair                                  light     dark     floor
  *   text on bg (body text)                17.77     15.46    7    (AAA)
  *   text on surface                       16.36     14.17    7
- *   muted on bg (metadata, captions)       6.58      7.29    4.5
- *   muted on surface                       6.06      6.68    4.5
+ *   muted on bg (sign-off, footnotes, facts) 7.11    7.29    7    (AAA)
+ *   muted on surface                       6.55      6.68    4.5
  *   accent on bg (links, markers)          7.03      9.08    7
  *   accent on surface                      6.47      8.33    4.5
  *   accent on 7% row hover tint            6.36      8.08    4.5
- *   muted on 7% row hover tint             5.95      6.49    4.5
+ *   muted on 7% row hover tint             6.43      6.49    4.5
  *   accent-ink on accent (button label)    7.03      9.08    4.5
- *   band-text on band (Now section)        6.69     12.00    4.5
+ *   band-text on band (Now paragraph)      7.04     12.00    7    (AAA)
  *   band-muted on band (Now label)         5.13      7.21    4.5
  *   error on bg                            7.11      9.26    4.5
  *   error on surface                       6.55      8.49    4.5
  *   bg on text (skip link)                17.77     15.46    7
- *   muted on bg as input border (UI, 3:1) 6.58      7.29    3
+ *   muted on bg as input border (UI, 3:1) 7.11      7.29    3
  *   focus on bg (UI, 3:1)                  7.03      9.08    3
- *   band-text on band as focus ring (3:1)  6.69     12.00    3
+ *   band-text on band as focus ring (3:1)  7.04     12.00    3
  *
  *   --rule is a decoration (hairlines between rows, 1.29:1 / 1.35:1). Nothing
  *   depends on it to be understood; controls use --muted borders instead.
@@ -46,13 +46,13 @@
     --bg: #fbfbf8;
     --surface: #f1f2ec;
     --text: #141414;
-    --muted: #5b5b57;
+    --muted: #565652;
     --rule: #e0dfd9;
     --accent: #4a5d23;
     --accent-ink: #fbfbf8;
     --focus: #4a5d23;
     --band: #4a5d23;
-    --band-text: #f4f6ee;
+    --band-text: #fafcf4;
     --band-muted: #d3dcc0;
     --error: #a3261a;
   }
