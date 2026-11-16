@@ -1,6 +1,7 @@
 # One workflow for pull requests and main. Order (docs/guide.md, Lead prompt 5):
 #   lint → typecheck → build → unit → Worker → e2e → Lighthouse → deploy
 # There is no translation step: both languages are written by hand.
+# One required check, "Test": a change that only touches journal entries runs its fast scope; the rest runs everything.
 # Deploy jobs are switched on with repository variables once docs/setup.md
 # is done: PREVIEW_DEPLOY, STAGING_DEPLOY, and PRODUCTION_DEPLOY (at launch).
 name: CI
@@ -33,7 +34,11 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # The full QA matrix (tests/e2e/qa, decision 0022) takes about 20 minutes on a fast laptop, more on a runner.
+    # A change that only touches journal entries runs the fast scope instead (step "How much to test").
+    timeout-minutes: 60
+    outputs:
+      scope: ${{ steps.scope.outputs.scope }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Publisher pull requests auto-merge (decision 0021), so this job, the required check, proves they change
@@ -59,6 +64,26 @@ jobs:
             fi
           done <<< "$changes"
           exit "$bad"
+      # One required check, "Test" (ruleset "Protect main"), so the split lives inside this job. A change that only
+      # adds or edits journal entries (what the phone publishes, and a laptop entry too) runs lint, the build with
+      # its content check, html-validate, the unit tests (the photo checks) and the Chromium core suite. Anything else, and every other trigger, runs
+      # everything: typecheck, unit, Worker, the QA matrix, Firefox and WebKit, Lighthouse, the production-mode checks.
+      - name: How much to test
+        id: scope
+        run: |
+          scope=full
+          if git fetch --no-tags --quiet --depth=2 origin "$GITHUB_SHA" 2>/dev/null; then
+            files="$(git diff --name-only --no-renames HEAD^1 HEAD 2>/dev/null || true)"
+            if [ -n "$files" ] && ! printf '%s\n' "$files" | grep -qvE '^src/content/journal/(en|it)/[a-z0-9]+(-[a-z0-9]+)*\.md$'; then
+              scope=content
+            fi
+          fi
+          echo "scope=$scope" >> "$GITHUB_OUTPUT"
+          if [ "$scope" = content ]; then
+            echo "Scope: entries only, so the fast scope (lint, build and content check, html-validate, unit tests, Chromium core suite)." | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Scope: full (typecheck, unit, Worker, QA matrix, Firefox and WebKit, Lighthouse, production-mode checks)." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
@@ -76,6 +101,7 @@ jobs:
       - name: Lint
         run: pnpm lint
       - name: Typecheck
+        if: steps.scope.outputs.scope == 'full'
         run: pnpm typecheck
 
       # Photo originals come from the private R2 bucket; resized outputs are
@@ -109,15 +135,32 @@ jobs:
         run: pnpm build
       - name: Validate HTML
         run: pnpm validate:html
+      # Also in the fast scope: a phone publish is when new photographs arrive, and these tests read every output image
+      # with exiftool (no GPS, rights fields) before the entry can go live (tests/unit/qa-images.test.ts).
       - name: Unit tests
         run: pnpm test:unit
       # The Worker inside the Workers runtime (Vitest + Miniflare), against the built dist/.
       - name: Worker tests
+        if: steps.scope.outputs.scope == 'full'
         run: pnpm test:worker
-      - name: End-to-end tests
+      # The core suite (everything in tests/e2e except tests/e2e/qa) is what a publish waits for.
+      - name: End-to-end core suite (Chromium, JavaScript on and off)
+        if: steps.scope.outputs.scope == 'content'
+        env:
+          E2E_SCOPE: core
         run: pnpm test:e2e
+      - name: End-to-end tests, core and the QA matrix (Chromium, JavaScript on and off)
+        if: steps.scope.outputs.scope == 'full'
+        run: pnpm test:e2e
+      - name: Install Firefox and WebKit
+        if: steps.scope.outputs.scope == 'full'
+        run: pnpm exec playwright install --with-deps firefox webkit
+      - name: Smoke subset in Firefox and WebKit
+        if: steps.scope.outputs.scope == 'full'
+        run: pnpm test:cross
       - name: Lighthouse CI
         id: lighthouse
+        if: steps.scope.outputs.scope == 'full'
         run: pnpm test:lighthouse
       # Pass or fail, write each run's scores and timings to the job summary so
       # a budget failure can be read without downloading the reports. Each URL
@@ -142,6 +185,33 @@ jobs:
           path: dist/
           include-hidden-files: true
           retention-days: 7
+      # After the artifact above is saved, so the deploys never get a production-mode dist. SEO and rights need a
+      # SITE_ENV=production build to prove no page is noindex by accident (QA suite 11, decision 0022).
+      - name: Production-mode build (for the SEO, rights and launch checks)
+        if: steps.scope.outputs.scope == 'full'
+        env:
+          SITE_ENV: production
+        run: pnpm build
+      - name: SEO and rights suites on the production-mode build
+        if: steps.scope.outputs.scope == 'full'
+        env:
+          QA_PROD: "1"
+        run: pnpm exec playwright test --project=chromium tests/e2e/qa/seo.spec.ts tests/e2e/qa/rights.spec.ts
+      # The launch gate fails until the owner has answered O1 (placeholder text, sameAs), so it informs and does not
+      # block. When O1 is answered, delete continue-on-error and this check blocks as it should.
+      - name: Launch gate (informational until O1 is answered)
+        id: launch
+        if: steps.scope.outputs.scope == 'full'
+        continue-on-error: true
+        env:
+          QA_PROD: "1"
+        run: pnpm test:launch
+      - name: Launch gate result
+        if: ${{ steps.scope.outputs.scope == 'full' && !cancelled() }}
+        env:
+          OUTCOME: ${{ steps.launch.outcome }}
+        run: |
+          echo "Launch gate (not blocking yet, owner question O1): $OUTCOME" | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:
@@ -151,6 +221,75 @@ jobs:
             playwright-report/
             .lighthouseci/
           # .lighthouseci/ is a hidden folder, which upload-artifact skips by default.
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # A published entry merges on the fast scope above and goes live without waiting for the QA matrix. The matrix still
+  # runs on main for it, here, in parallel: every page of the build is in it (accessibility, SEO, links, images), the
+  # new entry included. It does not gate the deploy and is not a required check; a red cross on main is the signal.
+  # Runs only for pushes to main that the fast scope handled (entry-only changes); every other push already ran the
+  # full scope inside "Test".
+  full-qa-after-publish:
+    name: Full QA matrix after a publish
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.test.outputs.scope == 'content'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - run: npm install -g "pnpm@$PNPM_VERSION"
+      - run: pnpm install --frozen-lockfile
+      - name: Restore photo caches
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            src/.originals
+            node_modules/.astro
+          key: photos-${{ hashFiles('src/content/photos/**/photos.json', 'src/content/journal/**/*.md') }}
+          restore-keys: photos-
+      - name: Fetch photo originals from R2
+        if: ${{ hashFiles('scripts/fetch-originals.ts') != '' }}
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_ORIGINALS_BUCKET }}
+        run: node scripts/fetch-originals.ts
+      - name: Install exiftool
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libimage-exiftool-perl
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - name: Build
+        run: pnpm build
+      - name: Validate HTML
+        run: pnpm validate:html
+      - name: Unit tests
+        run: pnpm test:unit
+      - name: Worker tests
+        run: pnpm test:worker
+      - name: End-to-end tests, core and the QA matrix (Chromium, JavaScript on and off)
+        run: pnpm test:e2e
+      - name: Smoke subset in Firefox and WebKit
+        run: pnpm test:cross
+      - name: Production-mode build (for the SEO and rights checks)
+        env:
+          SITE_ENV: production
+        run: pnpm build
+      - name: SEO and rights suites on the production-mode build
+        env:
+          QA_PROD: "1"
+        run: pnpm exec playwright test --project=chromium tests/e2e/qa/seo.spec.ts tests/e2e/qa/rights.spec.ts
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: test-reports-after-publish
+          path: |
+            test-results/
+            playwright-report/
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
@@ -227,6 +366,55 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm exec wrangler deploy --env staging
+
+  # The live-site check (QA suite 15, tests/e2e/qa/live.spec.ts) against what Cloudflare really serves, right after a
+  # staging deploy: console, network, cookies, headers, injected scripts. Staging is behind Access, so it needs a
+  # service token (docs/setup.md, step 8b). Until both secrets exist the job says so and skips; it never fails for that.
+  live-check-staging:
+    name: Live-site check (staging)
+    needs: deploy-staging
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.deploy-staging.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      LIVE_URL: ${{ vars.STAGING_URL || 'https://philglov-staging.philglov-es.workers.dev' }}
+    steps:
+      - name: Is the Access service token set?
+        id: token
+        env:
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          if [ -n "$CF_ACCESS_CLIENT_ID" ] && [ -n "$CF_ACCESS_CLIENT_SECRET" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Live-site check skipped::The secrets CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET are not set, so the staging site (behind Cloudflare Access) cannot be checked. The owner's steps are in docs/setup.md, step 8b."
+            {
+              echo "### Live-site check skipped"
+              echo
+              echo "The Access service token is not set up yet (secrets \`CF_ACCESS_CLIENT_ID\` and \`CF_ACCESS_CLIENT_SECRET\`)."
+              echo "Nothing was checked on the deployed staging site. Steps: \`docs/setup.md\`, step 8b."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - if: steps.token.outputs.present == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: steps.token.outputs.present == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - if: steps.token.outputs.present == 'true'
+        run: npm install -g "pnpm@$PNPM_VERSION"
+      - if: steps.token.outputs.present == 'true'
+        run: pnpm install --frozen-lockfile
+      - if: steps.token.outputs.present == 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run the live-site check on ${{ env.LIVE_URL }}
+        if: steps.token.outputs.present == 'true'
+        env:
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: pnpm test:live
 
   # Off until launch (docs/setup.md, "At launch"). Rebuilt with
   # SITE_ENV=production so the static files lose X-Robots-Tag: noindex.

@@ -128,6 +128,71 @@ GitHub → Settings → Secrets and variables → Actions → **Variables**:
 
 Leave `PRODUCTION_DEPLOY` unset until launch.
 
+### 8b. Live-site check on staging: an Access service token
+
+_Needed for the check that runs after every staging deploy (`live-check-staging` in `.github/workflows/ci.yml`, QA
+suite 15). Until the two secrets below exist, that job prints a warning, says "Live-site check skipped" in the run
+summary and does nothing else; it never fails for that._ Staging is behind Cloudflare Access, which turns a robot away
+as it does a stranger, so the check needs a **service token**: a Client ID and a Client Secret that Access accepts in
+two request headers (`CF-Access-Client-Id`, `CF-Access-Client-Secret`) instead of a login. **Never paste the token in a
+chat, an issue or a pull request**; it goes only into the two places below, typed or pasted by you.
+
+1. **Create the token.** Cloudflare dashboard → **Zero Trust** → **Access** → **Service credentials** (older dashboards:
+   **Access → Service Auth**) → **Service Tokens** → **Create Service Token**.
+   - Name: `github-ci-live-check`.
+   - Service Token Duration: **1 year** (not "Non-expiring"; put the renewal date in your calendar).
+   - **Generate token.** The page now shows the **Client ID** (ends in `.access`) and the **Client Secret**. The
+     secret is shown **once**: keep the page open until step 3 is done. If you lose it, delete the token and make a new one.
+2. **Let the token into the staging application, and only that one.** Zero Trust → **Access → Applications** → the
+   application for `philglov-staging` (the one step 7 made; if the list shows it as "Workers" application, open it from
+   the Worker's own **Access** tab) → **Policies** → **Add a policy**:
+   - Policy name: `CI live check (service token)`.
+   - Action: **Service Auth** (not "Allow": Allow policies ask for a login, Service Auth takes the token).
+   - Include → selector **Service Token** → `github-ci-live-check`.
+   - Save. Do **not** add the token to the `philglov-preview` application, and never to the production `/admin`
+     application (step 13): the token must not reach `/admin` there.
+3. **Store it as GitHub Actions secrets.** GitHub → this repository → Settings → Secrets and variables → Actions →
+   **Secrets** → **New repository secret**, twice:
+   - Name `CF_ACCESS_CLIENT_ID`, value: the Client ID.
+   - Name `CF_ACCESS_CLIENT_SECRET`, value: the Client Secret.
+
+   Or from a terminal inside this repository (each command asks for the value and reads it from the keyboard, so it is
+   not left in your shell history; paste the value and press Enter):
+
+   ```bash
+   gh secret set CF_ACCESS_CLIENT_ID
+   ```
+
+   ```bash
+   gh secret set CF_ACCESS_CLIENT_SECRET
+   ```
+
+4. **Try it before trusting it.** In a terminal, put the two values in variables without echoing them (they stay in this
+   one terminal window), then ask staging for its home page and its robots file:
+
+   ```bash
+   read -r -p "Client ID: " CF_ID; read -r -s -p "Client Secret: " CF_SECRET; echo
+   curl -s -o /dev/null -w "%{http_code}
+   ```
+
+" -H "CF-Access-Client-Id: $CF_ID" -H "CF-Access-Client-Secret: $CF_SECRET" https://philglov-staging.philglov-es.workers.dev/
+curl -s -o /dev/null -w "%{http_code}
+" https://philglov-staging.philglov-es.workers.dev/
+unset CF_ID CF_SECRET
+
+````
+
+The first line must print `200`, the second `302` (a visitor without the token is sent to the login). `403` on the
+first means the policy in step 2 is not on that application, or its action is not **Service Auth**.
+5. **Run it once by hand** (optional): GitHub → Actions → the latest run of CI on `main` → **Re-run all jobs**; the job
+**Live-site check (staging)** now runs `pnpm test:live` instead of skipping. It checks the pages, the headers, that
+no script or cookie was added on Cloudflare's side, and that `/admin` still turns a visitor away. On staging it lets
+through one cookie, `CF_Authorization`, which Access itself sets; production has none and the check will then
+allow none.
+6. **Renewing.** Before the year is up: Service Tokens → the token → **Refresh** (gives a new secret), repeat step 3.
+At launch, set the repository variable `STAGING_URL` only if the staging address changes; for the production check
+run `LIVE_URL=https://philglov.es pnpm test:live` after the first production deploy (no token needed there).
+
 ### 9. Worker secrets and config
 
 _Done 2026-11-12 for staging and preview (backend agent, values piped from `openssl` straight into wrangler, never
@@ -137,7 +202,7 @@ Generate fresh random values per environment; never reuse them between environme
 
 ```bash
 openssl rand -base64 32 | pnpm exec wrangler secret put FORM_HMAC_KEY --env staging
-```
+````
 
 ```bash
 openssl rand -base64 32 | pnpm exec wrangler secret put IP_SALT --env staging

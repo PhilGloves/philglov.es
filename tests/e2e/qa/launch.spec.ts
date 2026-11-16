@@ -1,0 +1,44 @@
+/**
+ * The launch gate (project `launch`, `pnpm test:launch`). Not part of the staging run: these fail until the owner has
+ * answered O1 (TICKETS.md): no visible [placeholder] text anywhere, a filled sameAs list, real descriptions. Run it
+ * against a production build (`pnpm qa:production`) so it also proves no page is noindex.
+ */
+import { expect, test } from "@playwright/test";
+import { builtPages, readBuilt } from "./lib.ts";
+
+const PLACEHOLDER = /\[(placeholder|segnaposto)[^\]]*\]/i;
+
+test("no page has unfilled placeholder text, in the body, the title or the description", () => {
+  const found: string[] = [];
+  for (const p of builtPages()) {
+    if (p.file === "styleguide.html") continue;
+    const html = readBuilt(p.file);
+    const visible = html.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ");
+    const m = PLACEHOLDER.exec(visible) ?? PLACEHOLDER.exec(html);
+    if (m) found.push(`${p.path}: ${m[0]}`);
+  }
+  expect(found).toEqual([]);
+});
+
+test("Person JSON-LD has a sameAs list of https profiles (home and About, both languages)", () => {
+  const problems: string[] = [];
+  for (const file of ["index.html", "it.html", "about.html", "it/about.html"]) {
+    const html = readBuilt(file);
+    const person = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
+      .map((m) => JSON.parse(m[1] ?? "") as Record<string, unknown>)
+      .find((b) => b["@type"] === "Person");
+    const same = person?.["sameAs"];
+    if (!Array.isArray(same) || same.length === 0) problems.push(`${file}: sameAs is ${JSON.stringify(same)}`);
+    else for (const u of same) if (!/^https:\/\//.test(String(u))) problems.push(`${file}: ${String(u)}`);
+  }
+  expect(problems).toEqual([]);
+});
+
+test("production: no page or image says noindex", async ({ request }) => {
+  const problems: string[] = [];
+  for (const p of builtPages().filter((x) => x.indexable)) {
+    const h = (await request.get(p.path)).headers()["x-robots-tag"] ?? "";
+    if (/noindex/.test(h)) problems.push(`${p.path}: X-Robots-Tag ${h}`);
+  }
+  expect(problems, "serve a SITE_ENV=production build: pnpm qa:production").toEqual([]);
+});

@@ -43,6 +43,9 @@ NON-NEGOTIABLES
     _Owner ruling 2026-11-13 (O4): this means errors from the site's own code. The browser's own "Failed to load
     resource" line for a page served with a 4xx status (the 404 page, the 422/429 answer to a failed form post) is
     expected and does not count; keep those statuses._
+    _Owner ruling 2026-11-16 (BUG-9): the same for a browser engine's own notice about cross-origin isolation, which
+    WebKit prints on every page that sends `Cross-Origin-Opener-Policy`. The header stays
+    ([0026](docs/decisions/0026-coop-stays.md))._
 12. Domain is philglov.es; the person is Filippo Guanti. SEO goal: rank first for "Filippo Guanti". Follow the SEO
     section of docs/guide.md: titles, Person and BlogPosting JSON-LD with sameAs, hreflang, canonical, sitemap, Open
     Graph.
@@ -151,6 +154,8 @@ scripts/lib/content-check.ts    the build check; scripts/lib/new-entry.ts the `p
 scripts/                      build helpers, run with plain `node` (type stripping); build-fonts.py by hand
 tests/unit/ tests/e2e/        node:test unit tests; Playwright e2e (admin-worker.ts: the real Worker behind a test
                               Access, for /admin in a browser, 0020)
+tests/e2e/qa/                 the QA suites, one file per suite of the QA brief; lib.ts has the page list and settle() (0022)
+docs/qa/                      bug-reports.md, manual-checklist.md; QA-REPORT.md at the root is the coverage report
 docs/guide.md docs/design/    owner's guide and prototypes — never edit
 docs/decisions/               one record per architectural decision
 docs/setup.md                 steps only the owner can do
@@ -171,7 +176,13 @@ pnpm preview                     serve dist/ through the real Worker on http://1
 pnpm lint | pnpm format          ESLint + Prettier
 pnpm typecheck                   wrangler types + astro check + worker tsc + tests/worker tsc
 pnpm validate:html               html-validate on dist/
-pnpm test:unit | test:e2e        node:test | Playwright (needs a build)
+pnpm test:unit | test:e2e        node:test | Playwright, Chromium with JavaScript on and off (needs a build)
+E2E_SCOPE=core pnpm test:e2e       only the core suite (no tests/e2e/qa): what CI runs for entry-only changes (0022)
+pnpm test:cross | test:visual     Firefox + WebKit smoke | full-page screenshots against local baselines (0022)
+pnpm test:launch                 the launch gate: fails until the owner answers O1 (placeholders, sameAs)
+pnpm test:live                   suite 15 against LIVE_URL (CF_ACCESS_CLIENT_ID/_SECRET while staging is behind Access)
+pnpm qa | qa:production          the whole QA run (3 e2e repeats, Firefox, WebKit) | SEO, rights and launch gate on a
+                                 SITE_ENV=production build; both refuse to start while port 8787 is taken
 pnpm test:worker                 Vitest in the Workers runtime, against dist/ (needs a build)
 pnpm test:lighthouse             Lighthouse CI against pnpm preview; 3 runs per page, judged on the median (0013)
 pnpm new <slug> --lang it|en     new entry, or the other-language version of one (ticket C4)
