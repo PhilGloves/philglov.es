@@ -14,6 +14,9 @@ Release: ______ Date: ______ Tester: ______ Build / commit: ______
       a few minutes, in both menus (journal index, feed).
 - [ ] Open the entry on the phone: the photo has its alt text and no location data (download it: no GPS in its details).
 - [ ] Edit the entry from the phone ("Edit a published entry"): one pull request, merged by itself.
+- [ ] Once it is live, tap "Write the Italian version" on its row: the slug is fixed, the photo is there without an
+      upload, its English alt text shows under the empty field. Switch to English and back: what you typed is still
+      there. Publish: a second pull request, the Italian file only, merged by itself; the two versions link each other.
 - [ ] Delete the test entry afterwards (laptop: remove the file in a pull request).
 
 ## Screen readers

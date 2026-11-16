@@ -15,6 +15,13 @@
  * Editing (decision 0021): a published entry, picked from the list, opens in
  * the same form with its slug and language fixed. Saving replaces only that
  * file, and only if it is still the version that was opened (`base_sha`).
+ *
+ * One entry, two languages (decision 0029): the list has one row per entry,
+ * and a missing language is a link to write it. That form has the entry's
+ * slug, its photos by the same stored keys (alt text and caption empty, the
+ * existing ones shown as hints) and the existing version for reference. On an
+ * entry's form the language is a choice between its two versions; switching
+ * keeps what was typed (the browser copy, or a server draft without JavaScript).
  */
 import type { Identity } from "../access.ts";
 import {
@@ -48,10 +55,14 @@ import { manifest, pathFor, type Entry, type Lang } from "../manifest.ts";
 import { randomId } from "../crypto.ts";
 import { required } from "../secrets.ts";
 import { csrfToken } from "../tokens.ts";
+import { clean } from "../validate.ts";
 import { adminPage, when } from "./layout.ts";
 import { MAX_PHOTO } from "./upload.ts";
 
 const LANG_NAME: Record<Lang, string> = { en: "English", it: "Italian" };
+/** Each language in its own name, as the language choices show it. */
+const OWN_NAME: Record<Lang, string> = { en: "English", it: "Italiano" };
+const LANGS: readonly Lang[] = ["en", "it"];
 const other = (lang: Lang): Lang => (lang === "en" ? "it" : "en");
 const asLang = (value: string | null): Lang => (value === "it" ? "it" : "en");
 
@@ -70,6 +81,8 @@ interface DraftRow {
   photos: string;
   updated_at: number;
   base_sha: string;
+  /** 1 for a draft of an entry's other-language version written from the entry (decision 0029). */
+  twin: number;
 }
 
 interface FormState {
@@ -84,9 +97,67 @@ interface FormState {
   query?: string;
   /** After a first Save draft: the browser copy the text came from, which the page's script removes (SO-03). */
   moved?: string;
+  /** The form writes the other-language version of a published entry: slug fixed, photos carried over (0029). */
+  twin?: boolean;
+  /** That entry's existing version, once read (null: not found). */
+  other?: Twin | null;
+  /** What the form held when it was opened (fingerprint), so a switch keeps a draft only when something was typed. */
+  opened?: string;
 }
 
 const editing = (state: FormState): boolean => state.baseSha !== "";
+/** The form belongs to a published entry (an edit, or its other-language version): the slug is fixed. */
+const fixed = (state: FormState): boolean => editing(state) || state.twin === true;
+
+/** The existing version a new language version is written from: on main, or still in its publisher pull request. */
+interface Twin {
+  lang: Lang;
+  text: string;
+  /** On main; false while its pull request has not merged (Publish waits for it). */
+  live: boolean;
+}
+
+/** The branch of a publisher pull request for this file (worker/src/github.ts names it). */
+const branchFor = (lang: Lang, slug: string): RegExp => new RegExp(`^publish/${lang}-${slug}-[0-9]{14}$`);
+
+const publications = (env: Env): Promise<OpenPublication[] | null> =>
+  githubConfigured(env)
+    ? openPublications(env).catch((error: unknown) => {
+        log("publications unavailable", error);
+        return null;
+      })
+    : Promise.resolve([]);
+
+/** The other-language version of slug in lang, from main or else from the newest open publisher pull request. */
+async function twinOf(env: Env, slug: string, lang: Lang, open?: OpenPublication[] | null): Promise<Twin | null> {
+  if (!githubConfigured(env) || !SLUG.test(slug)) return null;
+  const o = other(lang);
+  const path = entryFilePath(o, slug);
+  const live = await readFile(env, path);
+  if (live) return { lang: o, text: live.text, live: true };
+  const coming = (open === undefined ? await publications(env) : open)?.filter((p) =>
+    branchFor(o, slug).test(p.branch),
+  );
+  const branch = coming?.[coming.length - 1]?.branch;
+  const file = branch ? await readFile(env, path, branch) : null;
+  return file ? { lang: o, text: file.text, live: false } : null;
+}
+
+/** The photos after the existing version's text, by key: their alt text and caption are the hints (0029). */
+const photosOf = (twin: Twin | null | undefined, slug: string): PhotoRef[] =>
+  twin ? splitPhotos(parseEntry(twin.text)?.body ?? "", slug).photos : [];
+
+/** What a form holds, normalised as a post of it is read, as a short hash. */
+async function fingerprint(input: EntryInput): Promise<string> {
+  const text = JSON.stringify([
+    clean(input.title, false),
+    clean(input.description, false),
+    clean(input.body, true),
+    input.photos.map((p) => [p.key, clean(p.alt, false), clean(p.caption, false)]),
+  ]);
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(digest).slice(0, 16)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 /** The browser copy (autosave key, after "philglov-write:") of an edit of a published entry not yet a draft. */
 const editKey = (lang: Lang, slug: string): string => `edit-${lang}-${slug}`;
@@ -151,18 +222,37 @@ function fieldError(errors: EntryErrors | undefined, field: keyof EntryErrors, i
 const invalid = (errors: EntryErrors | undefined, field: keyof EntryErrors): Safe =>
   errors?.[field] ? new Safe(' aria-invalid="true"') : new Safe("");
 
-function photoItem(photo: PhotoRef, index: number): Safe {
+/**
+ * One photo with its alt text and caption. A photo carried over from the other-language version shows that
+ * version's alt text and caption under the fields, in its own language (`data-hint`, which the page's script keeps
+ * when it restores a browser copy).
+ */
+function photoItem(photo: PhotoRef, index: number, hint?: PhotoRef, hintLang?: Lang): Safe {
   const id = `ph-${index}`;
+  const said = (field: "alt" | "cap", text: string): Safe | string => {
+    if (!hint || !hintLang) return "";
+    const what = field === "alt" ? "alt text" : "caption";
+    return html`<span id="${id}-${field}-hint" class="hint" data-hint="${field}"
+      >${
+        text
+          ? html`${LANG_NAME[hintLang]} version: <span lang="${hintLang}">${text}</span>`
+          : `The ${LANG_NAME[hintLang]} version has no ${what}.`
+      }</span
+    >`;
+  };
+  const described = (field: "alt" | "cap"): Safe => new Safe(hint ? ` aria-describedby="${id}-${field}-hint"` : "");
   return html`<li class="card photo-item">
     <input type="hidden" name="photo_key" value="${photo.key}" />
     <p class="fine">${photo.key.split("/").pop() ?? photo.key}</p>
     <div class="field">
       <label for="${id}-alt">Alt text: what is in it and why it matters</label
-      ><input id="${id}-alt" name="photo_alt" required maxlength="300" value="${photo.alt}" />
+      ><input id="${id}-alt" name="photo_alt" required maxlength="300" value="${photo.alt}"${described("alt")} />
+      ${said("alt", hint?.alt ?? "")}
     </div>
     <div class="field">
       <label for="${id}-cap">Caption</label
-      ><input id="${id}-cap" name="photo_caption" maxlength="300" value="${photo.caption}" />
+      ><input id="${id}-cap" name="photo_caption" maxlength="300" value="${photo.caption}"${described("cap")} />
+      ${said("cap", hint?.caption ?? "")}
     </div>
     <div class="actions"><button type="button" class="btn btn--ghost" data-remove>Remove</button></div>
   </li>`;
@@ -185,18 +275,33 @@ const CHEAT_SHEET = html`<details>
 /** Lowercase, accents dropped: "Città" matches "citta". */
 const folded = (text: string): string => text.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
 
-/** Published entries whose title contains the search, newest first. */
-export function entriesFor(entries: readonly Entry[], query: string): Entry[] {
-  const q = folded(query.trim());
-  return entries
-    .filter((e) => !q || folded(e.title).includes(q))
-    .sort((a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title) || a.lang.localeCompare(b.lang));
+/** One published entry: its slug, its date (the original's), and the versions that exist. */
+export interface EntryRow {
+  slug: string;
+  date: string;
+  versions: Partial<Record<Lang, Entry>>;
 }
 
+/** Published entries, one row per entry, whose title in either language contains the search, newest first. */
+export function entryRows(entries: readonly Entry[], query: string): EntryRow[] {
+  const q = folded(query.trim());
+  const rows = new Map<string, EntryRow>();
+  for (const e of entries) {
+    const row = rows.get(e.slug) ?? { slug: e.slug, date: e.date, versions: {} };
+    row.versions[e.lang] = e;
+    if (e.lang === e.originalLang) row.date = e.date;
+    rows.set(e.slug, row);
+  }
+  return [...rows.values()]
+    .filter((r) => !q || Object.values(r.versions).some((e) => folded(e.title).includes(q)))
+    .sort((a, b) => b.date.localeCompare(a.date) || a.slug.localeCompare(b.slug));
+}
+
+/** The entry in this language: its edit form, or the form that writes this version when it does not exist yet. */
 const editLink = (slug: string, lang: Lang): string => `/admin/write?edit=1&slug=${slug}&lang=${lang}`;
 
 function publishedList(entries: readonly Entry[], query: string): Safe {
-  const found = entriesFor(entries, query);
+  const found = entryRows(entries, query);
   const shown = found.slice(0, LISTED);
   return html`<h2 class="admin-title" id="published-entries">Edit a published entry</h2>
     <form method="get" action="/admin/write#published-entries" class="form">
@@ -210,10 +315,17 @@ function publishedList(entries: readonly Entry[], query: string): Safe {
       shown.length
         ? html`<ol class="queue" data-entries>
             ${shown.map(
-              (e) =>
-                html`<li class="card">
-                  <h3><a href="${editLink(e.slug, e.lang)}" lang="${e.lang}">${e.title}</a></h3>
-                  <p class="fine muted">${e.date} · ${LANG_NAME[e.lang]} · ${e.path}</p>
+              (r) =>
+                html`<li class="card" data-entry="${r.slug}">
+                  <p class="fine muted">${r.date} · ${r.slug}</p>
+                  <ul class="versions">
+                    ${LANGS.map((l) => {
+                      const e = r.versions[l];
+                      return e
+                        ? html`<li>${LANG_NAME[l]}: <a href="${editLink(r.slug, l)}" lang="${l}">${e.title}</a></li>`
+                        : html`<li><a href="${editLink(r.slug, l)}">Write the ${LANG_NAME[l]} version</a></li>`;
+                    })}
+                  </ul>
                 </li>`,
             )}
           </ol>`
@@ -250,28 +362,84 @@ function goingLive(open: OpenPublication[] | null, now: number): Safe {
     </ol>`;
 }
 
+/** What a version of an entry is, as its language choice says it. */
+type VersionState = "published" | "on its way" | "draft saved" | "not written yet";
+
+/**
+ * On an entry's form, the language is a choice between the entry's two versions, each with its state (0029).
+ * Choosing the other opens the same entry in that language: on change with JavaScript, with Switch without it
+ * (which keeps the typed text as a server draft first). A version still on its way cannot be opened yet.
+ */
+async function versionChoice(
+  env: Env,
+  state: FormState,
+  twin: Twin | null,
+  entries: readonly Entry[],
+  open: OpenPublication[] | null,
+): Promise<Safe> {
+  const { slug, lang } = state.input;
+  const o = other(lang);
+  const otherLive = state.twin
+    ? twin?.live === true
+    : entries.some((e) => e.slug === slug && e.lang === o) ||
+      (githubConfigured(env) && (await readFile(env, entryFilePath(o, slug)).catch(() => null)) !== null);
+  const drafted = (
+    await env.DB.prepare("SELECT DISTINCT lang FROM drafts WHERE slug = ?1").bind(slug).all<{ lang: Lang }>()
+  ).results.map((r) => r.lang);
+  const stateOf = (l: Lang, live: boolean): VersionState => {
+    if (live) return "published";
+    if ((open ?? []).some((p) => branchFor(l, slug).test(p.branch))) return "on its way";
+    return drafted.includes(l) ? "draft saved" : "not written yet";
+  };
+  const states = { [lang]: stateOf(lang, editing(state)), [o]: stateOf(o, otherLive) } as Record<Lang, VersionState>;
+  const option = (l: Lang): Safe => {
+    const flag = l === lang ? " selected" : states[l] === "on its way" ? " disabled" : "";
+    return html`<option value="${l}"${new Safe(flag)}>${OWN_NAME[l]} · ${states[l]}</option>`;
+  };
+  return html`<div class="field">
+    <label for="w-version">Language</label>
+    <div class="switch">
+      <select id="w-version" name="to">
+        ${LANGS.map(option)}
+      </select>
+      <button type="submit" name="intent" value="switch" class="btn btn--ghost" formnovalidate data-switch>Switch</button>
+    </div>
+    <input type="hidden" id="w-lang" name="lang" value="${lang}" />
+  </div>`;
+}
+
 async function writePage(env: Env, identity: Identity, state: FormState, status = 200): Promise<Response> {
   const csrf = await csrfToken(required(env.FORM_HMAC_KEY), identity.sub);
   const { input, errors } = state;
   const isEdit = editing(state);
-  const found = input.slug && !isEdit ? await lookup(env, input.slug, input.lang).catch(() => null) : null;
+  const isFixed = fixed(state);
+  const found = input.slug && !isFixed ? await lookup(env, input.slug, input.lang).catch(() => null) : null;
   const [drafts, site, open] = await Promise.all([
     env.DB.prepare(
-      "SELECT id, slug, lang, title, updated_at, base_sha FROM drafts ORDER BY updated_at DESC LIMIT 20",
-    ).all<Pick<DraftRow, "id" | "slug" | "lang" | "title" | "updated_at" | "base_sha">>(),
+      "SELECT id, slug, lang, title, updated_at, base_sha, twin FROM drafts ORDER BY updated_at DESC LIMIT 20",
+    ).all<Pick<DraftRow, "id" | "slug" | "lang" | "title" | "updated_at" | "base_sha" | "twin">>(),
     manifest(env),
-    githubConfigured(env)
-      ? openPublications(env).catch((error: unknown) => {
-          log("publications unavailable", error);
-          return null;
-        })
-      : Promise.resolve([]),
+    publications(env),
   ]);
-  // The autosave key in this browser: per server draft, per entry being edited, or the one new entry.
-  const autosave = state.draftId || (isEdit ? editKey(input.lang, input.slug) : "");
+  // The autosave key in this browser: per server draft, per entry (an edit or its other-language version), or the
+  // one new entry. A language switch keeps the typed text under it.
+  const autosave = state.draftId || (isFixed ? editKey(input.lang, input.slug) : "");
+  // A new language version is written from the existing one: its reference text, its photos' alt text and captions.
+  const twin = state.twin
+    ? state.other !== undefined
+      ? state.other
+      : await twinOf(env, input.slug, input.lang, open).catch(() => null)
+    : null;
+  const hints = new Map(photosOf(twin, input.slug).map((p) => [p.key, p]));
+  const reference = twin
+    ? { lang: twin.lang, text: twin.text }
+    : found?.reference
+      ? { lang: other(input.lang), text: found.reference }
+      : null;
 
   const errorList = errors && Object.values(errors).filter(Boolean);
-  const body = html` <h2 class="admin-title">${isEdit ? "Edit" : "Write"}</h2>
+  const heading = isEdit ? "Edit" : state.twin ? `Write the ${LANG_NAME[input.lang]} version` : "Write";
+  const body = html` <h2 class="admin-title">${heading}</h2>
     ${state.message ?? ""}
     ${
       errorList?.length
@@ -298,6 +466,8 @@ async function writePage(env: Env, identity: Identity, state: FormState, status 
       <input type="hidden" name="csrf" value="${csrf}" />
       <input type="hidden" name="draft_id" value="${state.draftId}" />
       <input type="hidden" name="base_sha" value="${state.baseSha}" />
+      ${state.twin ? html`<input type="hidden" name="twin" value="1" />` : ""}
+      ${isFixed ? html`<input type="hidden" name="opened" value="${state.opened ?? (await fingerprint(input))}" />` : ""}
       <div class="field">
         <label for="w-title">Title</label
         ><input
@@ -311,17 +481,20 @@ async function writePage(env: Env, identity: Identity, state: FormState, status 
         />${fieldError(errors, "title", "w-title")}
       </div>
       ${
-        isEdit
+        isFixed
           ? html`<div class="field-row">
               <div class="field">
                 <label for="w-slug">Slug</label
                 ><input id="w-slug" name="slug" readonly value="${input.slug}" aria-describedby="w-slug-hint" />
-                <span id="w-slug-hint" class="hint">Fixed while editing, so links to it never break.</span>
+                <span id="w-slug-hint" class="hint"
+                  >${
+                    isEdit
+                      ? "Fixed while editing, so links to it never break."
+                      : `The same as the ${LANG_NAME[other(input.lang)]} version's, so the two are paired.`
+                  }</span
+                >
               </div>
-              <div class="field">
-                <p>Language: <strong>${LANG_NAME[input.lang]}</strong></p>
-                <input type="hidden" id="w-lang" name="lang" value="${input.lang}" />
-              </div>
+              ${await versionChoice(env, state, twin, site.entries, open)}
             </div>`
           : html`<div class="field-row">
               <div class="field">
@@ -381,20 +554,20 @@ ${input.body}</textarea
       <noscript><p class="fine">Adding photos needs JavaScript; the text works without it.</p></noscript>
       ${fieldError(errors, "photos", "w-photos")}
       <ol class="queue" id="photo-list">
-        ${input.photos.map(photoItem)}
+        ${input.photos.map((p, i) => photoItem(p, i, hints.get(p.key), twin?.lang))}
       </ol>
       <div class="actions">
         <button type="submit" name="intent" value="publish" class="btn">${isEdit ? "Save changes" : "Publish"}</button>
         <button type="submit" name="intent" value="save" class="btn btn--ghost" formnovalidate>Save draft</button>
       </div>
-      ${isEdit ? html`<p class="fine"><a href="/admin/write">Write a new entry instead</a></p>` : ""}
+      ${isFixed ? html`<p class="fine"><a href="/admin/write">Write a new entry instead</a></p>` : ""}
     </form>
     <div id="reference">
       ${
-        found?.reference
+        reference
           ? html`<details open>
-              <summary>The ${LANG_NAME[other(input.lang)]} version, for reference</summary>
-              <pre class="fine">${found.reference}</pre>
+              <summary>The ${LANG_NAME[reference.lang]} version, for reference</summary>
+              <pre class="fine" lang="${reference.lang}">${reference.text}</pre>
             </details>`
           : ""
       }
@@ -409,7 +582,8 @@ ${input.body}</textarea
                 html`<li class="card">
                   <h3><a href="/admin/write?draft=${d.id}">${d.title || "(untitled)"}</a></h3>
                   <p class="fine muted">
-                    ${d.lang} · ${d.slug || "no slug"} · ${d.base_sha ? "edit of a published entry · " : ""}saved
+                    ${d.lang} · ${d.slug || "no slug"} ·
+                    ${d.base_sha ? "edit of a published entry · " : d.twin ? "other-language version · " : ""}saved
                     ${when(d.updated_at)} UTC
                   </p>
                   <form method="post" action="/admin/action" class="actions">
@@ -440,7 +614,28 @@ const notEditable = (slug: string, lang: Lang, reason: string): Safe => html`<di
   else in it changes.
 </div>`;
 
-/** GET /admin/write: a blank form, a server draft (?draft=), or a published entry (?edit=1&slug=&lang=). */
+/** A draft row in the form: an edit keeps the version it started from, a language version its mode. */
+function fromDraft(state: FormState, d: DraftRow): void {
+  state.input = {
+    title: d.title,
+    slug: d.slug,
+    lang: d.lang,
+    description: d.description,
+    body: d.body,
+    photos: JSON.parse(d.photos) as PhotoRef[],
+  };
+  state.draftId = d.id;
+  state.baseSha = d.base_sha;
+  state.twin = !d.base_sha && d.twin === 1;
+  state.updated = d.updated_at;
+}
+
+/**
+ * GET /admin/write: a blank form, a server draft (?draft=), or a published entry in one language
+ * (?edit=1&slug=&lang=): its edit form, or, when that language does not exist yet, the form that writes it from the
+ * other (0029). Either opens the newest server draft of that version instead when there is one: a language switch
+ * without JavaScript keeps the typed text there.
+ */
 export async function writeForm(env: Env, identity: Identity, url: URL): Promise<Response> {
   const lang = asLang(url.searchParams.get("lang"));
   const state: FormState = {
@@ -455,17 +650,7 @@ export async function writeForm(env: Env, identity: Identity, url: URL): Promise
   if (draftId) {
     const d = await env.DB.prepare("SELECT * FROM drafts WHERE id = ?1").bind(draftId).first<DraftRow>();
     if (d) {
-      state.input = {
-        title: d.title,
-        slug: d.slug,
-        lang: d.lang,
-        description: d.description,
-        body: d.body,
-        photos: JSON.parse(d.photos) as PhotoRef[],
-      };
-      state.draftId = d.id;
-      state.baseSha = d.base_sha;
-      state.updated = d.updated_at;
+      fromDraft(state, d);
       const moved = url.searchParams.get("moved") ?? "";
       if (MOVED_KEY.test(moved)) state.moved = moved;
       const saved = url.searchParams.get("saved")
@@ -475,8 +660,45 @@ export async function writeForm(env: Env, identity: Identity, url: URL): Promise
     }
   } else if (url.searchParams.get("edit") && SLUG.test(slug)) {
     const file = githubConfigured(env) ? await readFile(env, entryFilePath(lang, slug)).catch(() => null) : null;
-    const found = file ? editable(file.text) : null;
-    if (file && found?.ok) {
+    const twin = file ? null : await twinOf(env, slug, lang).catch(() => null);
+    const kept = url.searchParams.get("kept");
+    const keptNotice =
+      kept === "en" || kept === "it"
+        ? html`<p class="notice" role="status">
+            What you typed in ${LANG_NAME[kept]} is kept as a draft, and is there again when you switch back.
+          </p>`
+        : html``;
+    const draft =
+      file || twin
+        ? await env.DB.prepare(
+            `SELECT * FROM drafts WHERE slug = ?1 AND lang = ?2 AND ${file ? "base_sha <> ''" : "base_sha = '' AND twin = 1"}
+             ORDER BY updated_at DESC LIMIT 1`,
+          )
+            .bind(slug, lang)
+            .first<DraftRow>()
+        : null;
+    const found = file && !draft ? editable(file.text) : null;
+    if (draft) {
+      fromDraft(state, draft);
+      state.other = twin;
+      state.message = html`${keptNotice}
+        <p class="notice" role="status">
+          Opened your draft of this version, saved ${when(draft.updated_at)} UTC. To start again from
+          ${file ? "the published text" : "an empty form"}, delete the draft under Drafts.
+        </p>
+        ${file ? editingNotice(slug, lang) : ""}`;
+    } else if (twin) {
+      // The other-language version, written by hand: the same slug, the same photos (by their stored keys, nothing
+      // uploaded again), alt text and captions empty, the existing ones shown as hints.
+      state.input = {
+        ...empty(lang),
+        slug,
+        photos: photosOf(twin, slug).map((p) => ({ key: p.key, alt: "", caption: "" })),
+      };
+      state.twin = true;
+      state.other = twin;
+      state.message = keptNotice;
+    } else if (file && found?.ok) {
       const { body, photos } = splitPhotos(found.body, slug);
       state.input = {
         title: found.title,
@@ -487,7 +709,7 @@ export async function writeForm(env: Env, identity: Identity, url: URL): Promise
         photos,
       };
       state.baseSha = file.sha;
-      state.message = editingNotice(slug, lang);
+      state.message = html`${keptNotice}${editingNotice(slug, lang)}`;
     } else {
       state.input.slug = "";
       state.message = found
@@ -508,12 +730,12 @@ export async function referenceJson(env: Env, url: URL): Promise<Response> {
   return new Response(JSON.stringify(result), { headers: { "Content-Type": "application/json" } });
 }
 
-async function saveDraft(env: Env, input: EntryInput, draftId: string, baseSha: string): Promise<string> {
+async function saveDraft(env: Env, input: EntryInput, draftId: string, baseSha: string, twin = false): Promise<string> {
   const id = /^[A-Za-z0-9_-]{22}$/.test(draftId) ? draftId : randomId();
   await env.DB.prepare(
-    `INSERT INTO drafts (id, slug, lang, title, description, body, photos, updated_at, base_sha)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
-     ON CONFLICT (id) DO UPDATE SET slug = ?2, lang = ?3, title = ?4, description = ?5, body = ?6, photos = ?7, updated_at = ?8, base_sha = ?9`,
+    `INSERT INTO drafts (id, slug, lang, title, description, body, photos, updated_at, base_sha, twin)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+     ON CONFLICT (id) DO UPDATE SET slug = ?2, lang = ?3, title = ?4, description = ?5, body = ?6, photos = ?7, updated_at = ?8, base_sha = ?9, twin = ?10`,
   )
     .bind(
       id,
@@ -525,6 +747,7 @@ async function saveDraft(env: Env, input: EntryInput, draftId: string, baseSha: 
       JSON.stringify(input.photos),
       Date.now(),
       baseSha,
+      twin ? 1 : 0,
     )
     .run();
   return id;
@@ -550,14 +773,30 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
   const sent = form.get("base_sha") ?? "";
   const baseSha = BLOB_SHA.test(sent) ? sent : "";
   const state: FormState = { input, draftId, baseSha, updated: Date.now() };
+  state.twin = !baseSha && form.get("twin") === "1";
+  const opened = form.get("opened");
+  if (opened) state.opened = opened;
   const isEdit = editing(state);
+  const isFixed = fixed(state);
+
+  if (form.get("intent") === "switch") {
+    // Switch without JavaScript (0029): the text typed here is kept as a server draft, which the entry opens again
+    // when switching back; nothing typed, no draft. Then the same entry in the language chosen.
+    if (!isFixed || !SLUG.test(input.slug))
+      return new Response(null, { status: 303, headers: { Location: "/admin/write" } });
+    const typed = Boolean(draftId) || (await fingerprint(input)) !== opened;
+    if (typed) await saveDraft(env, input, draftId, baseSha, state.twin);
+    const to = asLang(form.get("to"));
+    const location = `${editLink(input.slug, to)}${typed ? `&kept=${input.lang}` : ""}`;
+    return new Response(null, { status: 303, headers: { Location: location } });
+  }
 
   if (form.get("intent") === "save") {
     if (!input.slug && input.title) input.slug = slugFromTitle(input.title);
-    const id = await saveDraft(env, input, draftId, baseSha);
-    // The first save of a new entry or of an edit moves the text from that form's browser copy to this draft, which
-    // has its own; the draft page then removes the old copy, so it never comes back after Publish (SO-03).
-    const moved = id === draftId ? "" : isEdit ? editKey(input.lang, input.slug) : "new";
+    const id = await saveDraft(env, input, draftId, baseSha, state.twin);
+    // The first save of a new entry or of an entry's form moves the text from that form's browser copy to this
+    // draft, which has its own; the draft page then removes the old copy, so it never comes back after Publish (SO-03).
+    const moved = id === draftId ? "" : isFixed ? editKey(input.lang, input.slug) : "new";
     const location = `/admin/write?draft=${id}&saved=1${moved ? `&moved=${encodeURIComponent(moved)}` : ""}`;
     return new Response(null, { status: 303, headers: { Location: location } });
   }
@@ -589,6 +828,15 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
       const message = html`<div class="alert" role="alert">
         <strong>Not published.</strong> ${pathFor(input.slug, input.lang)} already exists in ${LANG_NAME[input.lang]}.
         <a href="${editLink(input.slug, input.lang)}">Edit it</a>, or choose another slug.
+      </div>`;
+      return writePage(env, identity, { ...state, message }, 409);
+    }
+    // A language version needs the version it is written from on main: until then its pull request would fail the
+    // content check (a translation without its original), so it waits, and the text can be kept as a draft.
+    if (state.twin && !twin) {
+      const message = html`<div class="alert" role="alert">
+        <strong>Not published yet.</strong> The ${LANG_NAME[other(input.lang)]} version is not on the site yet: its pull
+        request may still be on its way. Save a draft, and publish this once it is live.
       </div>`;
       return writePage(env, identity, { ...state, message }, 409);
     }
@@ -639,7 +887,12 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
     if (draftId) await env.DB.prepare("DELETE FROM drafts WHERE id = ?1").bind(draftId).run();
     log("entry published");
     const live = pathFor(input.slug, input.lang);
-    const cleared = draftId || (isEdit ? editKey(input.lang, input.slug) : "new");
+    const cleared = draftId || (isFixed ? editKey(input.lang, input.slug) : "new");
+    // The other language next: its edit form, or the form that writes it from this one (0029).
+    const next = other(input.lang);
+    const otherLink = html`<p>
+      <a href="${editLink(input.slug, next)}">${twin ? "Edit" : "Write"} the ${LANG_NAME[next]} version</a>
+    </p>`;
     const body = autoMerge
       ? html`<h2 class="admin-title">Pull request opened</h2>
           <div class="alert" role="alert" id="published" data-clear="${cleared}">
@@ -648,6 +901,7 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
             green.
           </div>
           <p><a class="btn" href="${pr.url}">Open the pull request</a></p>
+          ${otherLink}
           <p><a href="/admin/write">Write another entry</a></p>`
       : html`<h2 class="admin-title">${isEdit ? "Saved" : "Published"}</h2>
           <p class="notice" role="status" id="published" data-clear="${cleared}">
@@ -658,6 +912,7 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
             It goes live once the checks pass. If it is still waiting after 15 minutes, this page shows it as needing
             attention, with the link: <a href="${pr.url}">the pull request</a>.
           </p>
+          ${otherLink}
           <p><a href="/admin/write">Write another entry</a></p>`;
     return adminPage(env, { title: isEdit ? "Saved" : "Published", current: "write", body, script: "write" });
   } catch (error) {

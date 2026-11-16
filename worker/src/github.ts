@@ -164,17 +164,16 @@ export interface OpenPublication {
   url: string;
   title: string;
   openedAt: number;
+  /** Its branch, publish/<lang>-<slug>-<stamp> ("" if GitHub did not say). */
+  branch: string;
 }
 
 /** The publisher's pull requests that are still open (not merged yet), oldest first. */
 export async function openPublications(env: Env): Promise<OpenPublication[]> {
-  const pulls = await call<{ html_url: string; title: string; created_at: string; user: { login: string } }[]>(
-    env,
-    "list pull requests",
-    "GET",
-    "/pulls?state=open&base=main&sort=created&direction=asc&per_page=50",
-  );
+  const pulls = await call<
+    { html_url: string; title: string; created_at: string; user: { login: string }; head?: { ref?: string } }[]
+  >(env, "list pull requests", "GET", "/pulls?state=open&base=main&sort=created&direction=asc&per_page=50");
   return (pulls ?? [])
     .filter((p) => p.user.login === PUBLISHER)
-    .map((p) => ({ url: p.html_url, title: p.title, openedAt: Date.parse(p.created_at) }));
+    .map((p) => ({ url: p.html_url, title: p.title, openedAt: Date.parse(p.created_at), branch: p.head?.ref ?? "" }));
 }

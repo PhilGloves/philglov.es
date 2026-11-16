@@ -53,7 +53,8 @@ repository and to Contents and Pull requests. Photos are written as
 `![alt](../../../.originals/<slug>/<file> "caption")`: the path where the photo pipeline (P1) puts
 `philglov-originals/<slug>/<file>`, relative to the entry file. Until P1 exists such an entry fails its build, which
 is the intended safety net. The App ID and installation ID are secrets, not vars, so the owner sets them without a
-pull request.
+pull request. _Amended by [0029](0029-write-the-other-language.md): the other-language version is also written from
+the entry itself, with its photos carried over, and an entry's form switches between its two languages._
 
 **Secrets.** Read from `env` and typed optional: they may be missing on a deployed Worker, and every path that
 needs one checks first (forms 503, `/admin` 403, publishing "not set up"); `secrets.ts` `required()` is the guard

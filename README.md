@@ -49,7 +49,7 @@ pnpm lint && pnpm typecheck && pnpm build && pnpm validate:html && pnpm test:uni
    the preview reads right.
 
 From the phone: open `/admin/write`, write, add photos with alt text, tap Publish — it opens the same kind of pull
-request _(ticket B8)_.
+request _(ticket B8)_. Step by step: [docs/publishing-from-the-phone.md](docs/publishing-from-the-phone.md).
 
 ## Add the other-language version
 
@@ -57,8 +57,9 @@ Everything is written by hand; nothing on this site is machine-translated, and t
 
 - Write the other version whenever you like, with the **same slug**, in the other language folder:
   `pnpm new lisbona --lang en` creates `src/content/journal/en/lisbona.md` with `lang: en` and `originalLang` taken
-  from the Italian file _(ticket C4)_. On the phone, use `/admin/write` with the same slug; it shows the existing text
-  for reference _(ticket B8)_.
+  from the Italian file _(ticket C4)_. On the phone, open `/admin/write` and tap "Write the English version" on the
+  entry's row: the slug and the photos come with it, and the Italian text is shown for reference
+  ([docs/publishing-from-the-phone.md](docs/publishing-from-the-phone.md), decision 0029).
 - A page is your translation when `lang` differs from `originalLang`. Its label, in the details block at the end of
   the entry, reads "Originally written in Italian · Read the original →".
 - Until the other version exists, the entry says "Not yet available in Italian" (or "Non ancora disponibile in

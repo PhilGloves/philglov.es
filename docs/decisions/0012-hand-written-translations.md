@@ -19,7 +19,10 @@ Status: Accepted · 2026-11-11 · Owner decision · Supersedes [0011](0011-ci-tr
   English · Not yet available in Italian" for an original without a twin (and the Italian equivalents).
 - Laptop: `pnpm new <slug> --lang it|en` creates a filled-in entry, or the other-language version of an existing one
   with `originalLang` taken from it (ticket C4). Phone: `/admin/write` with an existing slug in the other language
-  creates that entry's other-language version, with the existing text shown for reference (ticket B8).
+  creates that entry's other-language version, with the existing text shown for reference (ticket B8). _Amended by
+  [0029](0029-write-the-other-language.md): the other version is written from the entry's row in the list ("Write
+  the Italian version"), with its slug fixed and its photos carried over by the same keys; their alt text and
+  captions are still written by hand, with the existing ones shown as hints. Typing the slug still works._
 - Photo alt text and captions in the other language are written by hand too; an entry photo may carry alt text in one
   language until its entry is translated.
 

@@ -2201,6 +2201,33 @@
     gap: var(--sp-16);
   }
 
+  /* one published entry, both languages (decision 0029) */
+  .versions {
+    display: grid;
+    gap: var(--sp-8);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--fs-20);
+  }
+
+  /* the other version, for reference: its long lines wrap, so the page never scrolls sideways */
+  .admin pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  /* an entry's language choice and, without JavaScript, its Switch button */
+  .switch {
+    display: flex;
+    gap: var(--sp-12);
+  }
+
+  .switch select {
+    flex: 1;
+    min-inline-size: 0;
+  }
+
   .admin textarea.write-body {
     min-block-size: 55vh;
     font-size: var(--fs-22);
