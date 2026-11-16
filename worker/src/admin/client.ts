@@ -204,20 +204,58 @@ export const WRITE_SCRIPT = String.raw`"use strict";
     }, 500);
   }
 
-  // Uploads: one at a time, progress, retry with growing pauses.
-  var queue = [], busy = false;
+  // Uploads: one at a time, progress, retry with growing pauses. Every selected photo has its row, with Remove, from
+  // the moment it is picked. While one is waiting, uploading or about to retry, Publish and Save draft are held with
+  // a message that says why, and work again once it has finished or been removed: nothing picked is dropped
+  // silently (TO-01, decision 0027). Without JavaScript there are no uploads, so nothing changes.
+  var queue = [], current = null, held = null;
+  var buttons = form.querySelector('button[name="intent"]').parentNode;
   function say(text) { status.textContent = text; }
+  function pending() { return queue.length + (current ? 1 : 0); }
+  function gate() {
+    if (!held) return;
+    var n = pending();
+    if (!n) { held.parentNode.removeChild(held); held = null; return; }
+    held.textContent = "Not yet: " + n + (n === 1 ? " photo is" : " photos are") + " still uploading. Publish and Save draft work as soon as " +
+      (n === 1 ? "it has" : "they have") + " finished, or remove " + (n === 1 ? "it" : "them") + ".";
+  }
+  form.addEventListener("submit", function (e) {
+    if (!pending()) return;
+    e.preventDefault();
+    if (!held) { held = el("p", { class: "alert", role: "alert" }); buttons.parentNode.insertBefore(held, buttons); }
+    gate();
+  });
+  function finished(job) {
+    if (current === job) current = null;
+    gate(); next();
+  }
+  function cancel(job) {
+    job.cancelled = true;
+    clearTimeout(job.timer);
+    if (job.xhr) job.xhr.abort();
+    var i = queue.indexOf(job);
+    if (i >= 0) queue.splice(i, 1);
+    if (job.row.parentNode) job.row.parentNode.removeChild(job.row);
+    say(job.file.name + " removed.");
+    finished(job);
+  }
+  function add(job) {
+    job.row = el("div", { class: "upload" });
+    job.label = el("span", { class: "fine" }, job.file.name + " · waiting");
+    job.bar = el("progress", { max: "100", value: "0", "aria-label": job.file.name + " upload" });
+    var remove = el("button", { type: "button", class: "btn btn--ghost" }, "Remove");
+    remove.addEventListener("click", function () { cancel(job); });
+    job.row.appendChild(job.label); job.row.appendChild(job.bar); job.row.appendChild(remove);
+    status.parentNode.insertBefore(job.row, status);
+    queue.push(job);
+  }
   function next() {
-    if (busy || !queue.length) return;
-    busy = true;
-    var job = queue.shift();
-    var row = el("div", { class: "upload" });
-    var label = el("span", { class: "fine" }, job.file.name);
-    var bar = el("progress", { max: "100", value: "0", "aria-label": job.file.name + " upload" });
-    row.appendChild(label); row.appendChild(bar);
-    status.parentNode.insertBefore(row, status);
+    if (current || !queue.length) return;
+    var job = current = queue.shift();
+    var row = job.row, label = job.label, bar = job.bar;
     function attempt(n) {
-      var xhr = new XMLHttpRequest();
+      if (job.cancelled) return;
+      var xhr = job.xhr = new XMLHttpRequest();
       xhr.open("PUT", "/admin/upload?slug=" + encodeURIComponent(job.slug) + "&name=" + encodeURIComponent(job.name));
       xhr.setRequestHeader("X-CSRF-Token", csrf);
       xhr.upload.onprogress = function (e) {
@@ -228,23 +266,25 @@ export const WRITE_SCRIPT = String.raw`"use strict";
         }
       };
       xhr.onload = function () {
+        if (job.cancelled) return;
         var data = {};
         try { data = JSON.parse(xhr.responseText); } catch (e) {}
         if (xhr.status === 200 && data.key) {
           row.parentNode.removeChild(row);
           list.appendChild(photoItem(data.key, "", ""));
           say(job.file.name + " uploaded. Add its alt text.");
-          save(); busy = false; next();
+          save(); finished(job);
         } else if (xhr.status >= 500 || xhr.status === 0) retry(n);
-        else { label.textContent = job.file.name + ": " + (data.error || "rejected"); busy = false; next(); }
+        else { label.textContent = job.file.name + ": " + (data.error || "rejected"); finished(job); }
       };
-      xhr.onerror = function () { retry(n); };
+      xhr.onerror = function () { if (!job.cancelled) retry(n); };
       xhr.send(job.file);
     }
+    // A photo that failed or was refused keeps its row and its message: it is never left out without a word.
     function retry(n) {
-      if (n >= 5) { label.textContent = job.file.name + ": failed after 5 tries. Pick it again to retry."; busy = false; next(); return; }
+      if (n >= 5) { label.textContent = job.file.name + ": failed after 5 tries. Pick it again to retry."; finished(job); return; }
       label.textContent = job.file.name + ": connection lost, retrying (" + (n + 1) + " of 5)";
-      setTimeout(function () { attempt(n + 1); }, 1000 * Math.pow(2, n));
+      job.timer = setTimeout(function () { attempt(n + 1); }, 1000 * Math.pow(2, n));
     }
     attempt(0);
   }
@@ -255,7 +295,7 @@ export const WRITE_SCRIPT = String.raw`"use strict";
     Array.prototype.forEach.call(e.target.files, function (file) {
       if (file.size > maxSize) { say(file.name + " is over 25 MB."); return; }
       var base = file.name.replace(/\.[a-z0-9]{1,5}$/i, "");
-      queue.push({ file: file, slug: slug.value, name: slugify(base || "photo") + "-" + Math.random().toString(36).slice(2, 6) });
+      add({ file: file, slug: slug.value, name: slugify(base || "photo") + "-" + Math.random().toString(36).slice(2, 6) });
     });
     e.target.value = "";
     next();
