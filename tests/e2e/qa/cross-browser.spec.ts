@@ -11,6 +11,12 @@ import { overflowX, settle, watch } from "./lib.ts";
  * but the HTML would load. Production is https and the directive does nothing there. These tests drop that one
  * directive from the CSP header, in every browser, and nothing else.
  */
+// A route still fetching when a test ends (the touch icon, after the last navigation) is reported against the NEXT
+// test ("route.fetch: Test ended"). Drop the routes first, ignoring what is in flight.
+test.afterEach(async ({ page }) => {
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
 test.beforeEach(async ({ page }) => {
   await page.route("**/*", async (route) => {
     const res = await route.fetch();
