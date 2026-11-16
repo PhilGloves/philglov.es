@@ -26,6 +26,12 @@ for (const [name, path] of PAGES) {
       const seen = watch(page, baseURL ?? "", path === "/no-such-page" ? path : undefined);
       await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
       for (const width of [1440, 1024, 768, 390]) {
+        // Why this test used to fail now and then with `requestfailed ... net::ERR_ABORTED` on an image (also on an
+        // unchanged main): changing the width of a page that is still showing makes `<picture>` pick another source, so
+        // the browser starts a new image request; the `goto` that follows cancels it if it has not finished. Whether it
+        // had finished was a race. Leave the page first (everything on it has settled by now), resize the empty page,
+        // and only then load the page at its new width: nothing is in flight at any moment the test itself changes.
+        await page.goto("about:blank");
         await page.setViewportSize({ width, height: 900 });
         await page.goto(path);
         // Lazy photos below the fold: scroll through once so every image is drawn, then back to the top.
