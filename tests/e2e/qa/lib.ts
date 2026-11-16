@@ -141,7 +141,10 @@ export async function settle(page: Page, seen: Watch): Promise<string[]> {
   return page.evaluate(() => {
     const out: string[] = [];
     for (const face of document.fonts)
-      if (face.status === "error") out.push(`font failed: ${face.family} ${face.style} ${face.weight}`);
+      // The "Crimson Pro Fallback" faces are local() fonts (Palatino, Georgia) that tune the text while the real font
+      // loads; a machine without them (a Linux runner) reports them as "error". Not a broken font (as in fonts.ts).
+      if (face.status === "error" && !face.family.replace(/"/g, "").startsWith("Crimson Pro Fallback"))
+        out.push(`font failed: ${face.family} ${face.style} ${face.weight}`);
     for (const img of document.images)
       if (img.currentSrc !== "" && img.complete && img.naturalWidth === 0) out.push(`image broken: ${img.currentSrc}`);
     return out;

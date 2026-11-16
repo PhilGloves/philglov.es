@@ -75,7 +75,8 @@ test("every internal link, asset and anchor on every page resolves", async ({ re
     type: "outbound links (not followed)",
     description: [...outbound].sort().join(", ") || "none",
   });
-  expect(checked.size, "the crawl found pages to check").toBeGreaterThan(60);
+  // Every built page is a URL of its own, and each links to more (a build with photos has many more).
+  expect(checked.size, "the crawl found pages to check").toBeGreaterThan(pages.length);
   expect(problems).toEqual([]);
 });
 

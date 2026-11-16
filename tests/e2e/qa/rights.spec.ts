@@ -131,7 +131,10 @@ function sampleImages(): string[] {
 test("X-Robots-Tag: noai, noimageai is on images, and not on pages or the API", async ({ request }) => {
   const problems: string[] = [];
   const images = sampleImages();
-  expect(images.length, "the build has avif, webp, jpeg, png and share images to sample").toBeGreaterThanOrEqual(5);
+  // A build without photo originals (a fork, CI before R2 has photos) has only the touch icon and the share image.
+  expect(images.length, "the build has at least the share image and the touch icon to sample").toBeGreaterThanOrEqual(
+    2,
+  );
   for (const image of images) {
     const tag = (await request.get(image)).headers()["x-robots-tag"] ?? "";
     if (!/noai/.test(tag) || !/noimageai/.test(tag)) problems.push(`${image}: X-Robots-Tag is "${tag}"`);
