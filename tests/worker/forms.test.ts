@@ -338,3 +338,42 @@ describe("sent in the background by the page's script (Accept: application/json)
     expect(res.status).toBe(303);
   });
 });
+
+// SO-09: a missing address is answered with the one built 404 page, whose report form said "/404".
+describe("a report sent from a missing address", () => {
+  const report = async (url: string, message = "The link I followed is broken.") =>
+    post("/api/report", { message, email: "", url, lang: "en", website: "", token: await agedToken() });
+
+  test("names the address the visitor asked for, in both languages", async () => {
+    for (const [path, home] of [
+      ["/a-missing-review-address", "/"],
+      ["/it/a-missing-review-address", "/it"],
+    ] as const) {
+      const page = await SELF.fetch(`${ORIGIN}${path}?from=somewhere`);
+      expect(page.status).toBe(404);
+      const html = await page.text();
+      expect(html).toContain(`name="url" value="${path}"`);
+      expect(html).not.toContain('name="url" value="/404"');
+      const res = await report(path);
+      expect(res.status).toBe(303);
+      // The thank-you is on that language's home: the missing address has no page of its own to come back to.
+      expect(res.headers.get("Location")).toBe(`${home}?sent=report#report-status`);
+      const row = await env.DB.prepare("SELECT page_url FROM reports ORDER BY id DESC").first("page_url");
+      expect(row).toBe(path);
+    }
+  });
+
+  test("a refused report keeps the address in the form it is shown again in", async () => {
+    const res = await report("/a-missing-review-address", "");
+    expect(res.status).toBe(422);
+    const html = await res.text();
+    expect(html).toContain('name="url" value="/a-missing-review-address"');
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM reports").first("n")).toBe(0);
+  });
+
+  test("the real /404 page, and an address too long to report, keep the page's own address", async () => {
+    expect(await (await SELF.fetch(`${ORIGIN}/404`)).text()).toContain('name="url" value="/404"');
+    const long = `/${"x".repeat(400)}`;
+    expect(await (await SELF.fetch(`${ORIGIN}${long}`)).text()).toContain('name="url" value="/404"');
+  });
+});

@@ -27,7 +27,13 @@ export interface Failure {
   errors: Errors;
   formError?: FormError | undefined;
   values: Partial<Record<Field, string>>;
+  /** A report: the page it is about, kept in the form when the answer is another page (a missing address). */
+  url?: string | undefined;
 }
+
+/** The report form's hidden address (src/components/SiteFooter.astro); sitePath() takes at most 300 characters. */
+const REPORT_URL = 'form[action^="/api/report"] input[name="url"]';
+const MAX_REPORT_URL = 300;
 
 export interface PageOptions {
   /** Serve this path instead of the request's (a 422 answers with the form's page). */
@@ -139,7 +145,10 @@ export async function servePage(
   const original = await asset.text();
   let body = original;
   try {
-    const rewriter = await buildRewriter(env, ctx, path, url, options);
+    // A missing address is answered with the one built 404 page, whose report form says "/404": it should say the
+    // address the visitor asked for, so the report names it (SO-09).
+    const missing = !options.path && asset.status === 404 ? url.pathname : undefined;
+    const rewriter = await buildRewriter(env, ctx, path, url, options, missing);
     body = await rewriter.transform(new Response(original, { headers: { "Content-Type": "text/html" } })).text();
   } catch (error) {
     log("rewrite failed", error);
@@ -154,9 +163,14 @@ async function buildRewriter(
   path: string,
   url: URL,
   options: PageOptions,
+  missing?: string,
 ): Promise<HTMLRewriter> {
   const rewriter = new HTMLRewriter();
   const lang = langOfPath(path);
+
+  const reported = options.failure?.url ?? missing;
+  if (reported && reported.length <= MAX_REPORT_URL)
+    rewriter.on(REPORT_URL, { element: (el) => void el.setAttribute("value", reported) });
 
   if (env.FORM_HMAC_KEY) {
     const token = await formToken(env.FORM_HMAC_KEY);

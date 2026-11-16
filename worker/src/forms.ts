@@ -168,15 +168,24 @@ export async function handleReport(request: Request, env: Env, ctx: ExecutionCon
   const spam = await spamCheck(env, form);
   if (spam) {
     log("spam rejected");
-    return again(request, env, ctx, form, path, { form: "report", errors: {}, formError: spam, values });
+    return again(request, env, ctx, form, path, { form: "report", errors: {}, formError: spam, values, url: pagePath });
   }
   const hash = await ipHash(request, env.IP_SALT);
   if (!(await allow(env.DB, hash))) {
     log("rate limited");
-    return again(request, env, ctx, form, path, { form: "report", errors: {}, formError: "rate", values }, 429);
+    return again(
+      request,
+      env,
+      ctx,
+      form,
+      path,
+      { form: "report", errors: {}, formError: "rate", values, url: pagePath },
+      429,
+    );
   }
   const errors = validateReport(input);
-  if (Object.keys(errors).length) return again(request, env, ctx, form, path, { form: "report", errors, values });
+  if (Object.keys(errors).length)
+    return again(request, env, ctx, form, path, { form: "report", errors, values, url: pagePath });
 
   await env.DB.prepare(
     "INSERT INTO reports (page_url, message, email, created_at, ip_hash, status) VALUES (?1, ?2, ?3, ?4, ?5, 'open')",
