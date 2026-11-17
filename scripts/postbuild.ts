@@ -1,7 +1,9 @@
 /**
  * Runs after `astro build` and scripts/share-images.ts.
  *
- * 0. Fixes the footnote back-links in the built HTML (scripts/lib/footnotes.ts).
+ * 0. Fixes the footnote back-links in the built HTML (scripts/lib/footnotes.ts), then reads every page with
+ *    scripts/lib/page-check.ts and stops the build, naming each page and problem, if an entry's or a page's text
+ *    could redirect, embed, collect or run anything (raw HTML in Markdown; security audit, decision 0030).
  * 1. Finds the one inline script in the built HTML (the theme script), checks
  *    that every page carries exactly the same one, and writes its SHA-256 to
  *    worker/src/script-hashes.json. The Worker puts it in the CSP header
@@ -26,6 +28,7 @@ import { removeStandIns } from "./lib/standins.ts";
 import { assetHeaderLines, baseHeaders } from "../worker/src/headers.ts";
 import { localiseFootnotes } from "./lib/footnotes.ts";
 import { inlineScripts, sha256 } from "./lib/inline-scripts.ts";
+import { pageProblems } from "./lib/page-check.ts";
 
 const dist = new URL("../dist/", import.meta.url);
 
@@ -36,15 +39,30 @@ function htmlFiles(dir: URL): URL[] {
 }
 
 const hashes = new Set<string>();
+const refused: string[] = [];
 for (const file of htmlFiles(dist)) {
   const original = readFileSync(file, "utf8");
   const html = localiseFootnotes(original);
   if (html.includes("↩")) throw new Error(`${file.pathname}: a footnote back-link still uses the "↩" glyph`);
   if (html !== original) writeFileSync(file, html);
+  const page =
+    file.pathname
+      .slice(dist.pathname.length - 1)
+      .replace(/\.html$/, "")
+      .replace(/\/index$/, "") || "/";
+  const problems = await pageProblems(html, { specimens: page === "/styleguide" });
+  refused.push(...problems.map((p) => `  ${page}: ${p}`));
   const scripts = inlineScripts(html);
-  if (scripts.length > 1) throw new Error(`${file.pathname}: more than one inline script`);
+  if (scripts.length > 1) refused.push(`  ${page}: more than one inline script`);
   // The 404 and a few pages may carry the script too; every page must carry the same one.
   for (const body of scripts) hashes.add(sha256(body));
+}
+if (refused.length) {
+  console.error(
+    `postbuild: these pages hold HTML the site does not allow (raw HTML in an entry's Markdown, most likely). ` +
+      `Remove it from the text; see decision 0030.\n${refused.join("\n")}`,
+  );
+  process.exit(1);
 }
 if (hashes.size !== 1) throw new Error(`Expected exactly one inline script across all pages, found ${hashes.size}`);
 const scriptHashes = [...hashes];

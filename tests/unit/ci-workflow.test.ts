@@ -37,7 +37,8 @@ test("photo originals never go into the Actions cache, which fork pull requests 
 
 test("every action is pinned to a full commit SHA", () => {
   for (const w of workflows)
-    for (const m of w.text.matchAll(/uses:\s*([^\s#]+)/g)) assert.match(m[1] ?? "", /@[0-9a-f]{40}$/, `${w.name}: ${m[1]}`);
+    for (const m of w.text.matchAll(/uses:\s*([^\s#]+)/g))
+      assert.match(m[1] ?? "", /@[0-9a-f]{40}$/, `${w.name}: ${m[1]}`);
 });
 
 test("no trigger runs a fork's code with this repository's secrets or write token", () => {

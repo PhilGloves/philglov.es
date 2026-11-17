@@ -69,7 +69,11 @@ function guard(change: (c: Change) => void, name = STEP) {
     const later: (() => void)[] = [];
     const symlink = (path: string, target: string) =>
       later.push(() => {
-        const blob = execFileSync("git", ["hash-object", "-w", "--stdin"], { cwd: dir, input: target, encoding: "utf8" });
+        const blob = execFileSync("git", ["hash-object", "-w", "--stdin"], {
+          cwd: dir,
+          input: target,
+          encoding: "utf8",
+        });
         git(dir, "update-index", "--add", "--cacheinfo", `120000,${blob.trim()},${path}`);
       });
     const executable = (path: string) => later.push(() => git(dir, "update-index", "--chmod=+x", path));
@@ -138,11 +142,17 @@ test("anything else fails the check: other paths, deletions, renames, other fold
   const cases: [string, Parameters<typeof guard>[0]][] = [
     ["a script", ({ write }) => write("scripts/build.ts", "changed\n")],
     ["the workflow", ({ write }) => write(".github/workflows/ci.yml", "on: push\n")],
-    ["an entry and a script", ({ write }) => (write("src/content/journal/en/new.md", "x\n"), write("scripts/x.ts", "x\n"))],
+    [
+      "an entry and a script",
+      ({ write }) => (write("src/content/journal/en/new.md", "x\n"), write("scripts/x.ts", "x\n")),
+    ],
     ["a deleted entry", ({ remove }) => remove("src/content/journal/en/alps.md")],
     [
       "a renamed entry",
-      ({ write, remove }) => (remove("src/content/journal/en/alps.md"), write("src/content/journal/en/alpi.md", "alps\n")),
+      ({ write, remove }) => (
+        remove("src/content/journal/en/alps.md"),
+        write("src/content/journal/en/alpi.md", "alps\n")
+      ),
     ],
     ["a page", ({ write }) => write("src/content/pages/en/about.md", "x\n")],
     ["another language folder", ({ write }) => write("src/content/journal/de/x.md", "x\n")],
@@ -150,16 +160,23 @@ test("anything else fails the check: other paths, deletions, renames, other fold
     ["a bad slug", ({ write }) => write("src/content/journal/en/Bad_Slug.md", "x\n")],
     ["not Markdown", ({ write }) => write("src/content/journal/en/x.html", "x\n")],
     // An entry's path, but not a plain file: a link the build would follow to another file, or an executable.
-    ["a link at an entry's path", ({ symlink }) => symlink("src/content/journal/en/link.md", "../../../../.git/config")],
+    [
+      "a link at an entry's path",
+      ({ symlink }) => symlink("src/content/journal/en/link.md", "../../../../.git/config"),
+    ],
     [
       "an entry turned into a link",
       ({ remove, symlink }) => (
-        remove("src/content/journal/en/alps.md"), symlink("src/content/journal/en/alps.md", "../../../../scripts/build.ts")
+        remove("src/content/journal/en/alps.md"),
+        symlink("src/content/journal/en/alps.md", "../../../../scripts/build.ts")
       ),
     ],
     [
       "an executable entry",
-      ({ write, executable }) => (write("src/content/journal/en/run.md", "x\n"), executable("src/content/journal/en/run.md")),
+      ({ write, executable }) => (
+        write("src/content/journal/en/run.md", "x\n"),
+        executable("src/content/journal/en/run.md")
+      ),
     ],
     ["no change", () => {}],
   ];
@@ -176,17 +193,32 @@ test("the fast content scope is only for entry files that are plain files; anyth
     assert.equal(result.code, 0, result.out);
     return /scope=(\w+)/.exec(result.output)?.[1];
   };
-  assert.equal(scope(({ write }) => write("src/content/journal/it/lago.md", "nuovo\n")), "content");
-  assert.equal(scope(({ write }) => write("src/content/journal/en/alps.md", "alps, edited\n")), "content");
+  assert.equal(
+    scope(({ write }) => write("src/content/journal/it/lago.md", "nuovo\n")),
+    "content",
+  );
+  assert.equal(
+    scope(({ write }) => write("src/content/journal/en/alps.md", "alps, edited\n")),
+    "content",
+  );
   const full: [string, Parameters<typeof guard>[0]][] = [
     ["a script", ({ write }) => write("scripts/build.ts", "changed\n")],
-    ["an entry and a script", ({ write }) => (write("src/content/journal/en/new.md", "x\n"), write("scripts/x.ts", "x\n"))],
+    [
+      "an entry and a script",
+      ({ write }) => (write("src/content/journal/en/new.md", "x\n"), write("scripts/x.ts", "x\n")),
+    ],
     ["a page", ({ write }) => write("src/content/pages/en/about.md", "x\n")],
     ["the workflow", ({ write }) => write(".github/workflows/ci.yml", "on: push\n")],
-    ["a link at an entry's path", ({ symlink }) => symlink("src/content/journal/en/link.md", "../../../../.git/config")],
+    [
+      "a link at an entry's path",
+      ({ symlink }) => symlink("src/content/journal/en/link.md", "../../../../.git/config"),
+    ],
     [
       "an executable entry",
-      ({ write, executable }) => (write("src/content/journal/en/run.md", "x\n"), executable("src/content/journal/en/run.md")),
+      ({ write, executable }) => (
+        write("src/content/journal/en/run.md", "x\n"),
+        executable("src/content/journal/en/run.md")
+      ),
     ],
     ["no change", () => {}],
   ];
