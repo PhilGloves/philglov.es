@@ -145,34 +145,35 @@ Tests only; the site is unchanged.
   its sideways line; the test then timed out later, on a control the wide table had pushed off screen). A control test keeps
   this: it adds a 700 px element, expects the new measure to see it and the old one not to.
 
-## Round 4 (2026-11-17): the launch gate sees the site's own gaps
+## Round 4 (2026-11-17): the launch gate sees every placeholder
 
 Tests only; the site is unchanged, and no text of the owner's was touched.
 
 - **The gap.** The launch gate's first test looked only for `[placeholder…]` and `[segnaposto…]`. The review of PR #35 found
   it let through `[launch date]`, `[city]` and `[your contact email]` on the privacy page, their Italian twins,
   `[your contact email]` on the rights pages, and site.json's `[contact email]` and `[city]` on About, while setup.md's
-  launch blocker 3 relied on it.
-- **Scope: the site's own gaps, never what the owner writes in an entry** (owner ruling, same day). The gate reads the
-  built pages of `src/content/pages` (About, Now, Privacy, Rights, both languages; one per file in the folder, so a new page
-  is covered at once; what site.json puts on About comes with them) and the two home pages, for the home line "Based in
-  [City]" / "Vivo a [città]" (`heroBased` in `src/i18n`), which carries the same city. It does not read journal entries,
-  the journal index, photo series or any other listing: a bracket there is text (`[sic]`, a quoted `[city]`), and the
-  sample entries' and photo series' `[Placeholder…]` texts are not the gate's business. A first version read every page
-  and also flagged those; it was narrowed.
-- **The rule** (`scripts/lib/placeholders.ts`, `findPlaceholders`): two kinds of bracket count. A _sample-text marker_,
-  a bracket that starts with `placeholder` or `segnaposto` (`[Placeholder]`, `[Segnaposto: due o tre frasi …]`): on the
-  pages of `src/content/pages` only. A _field name_, a bracket whose whole text is `city`, `città`, `launch date`, `data di
-lancio`, `contact email`, `your contact email` or `la tua email di contatto` (case, spacing and line breaks ignored):
-  on those pages and the home pages. `<script>`, `<style>`, `<code>` and `<pre>` are left out first. The About portrait's
-  label (`[Portrait … placeholder until …]`) and the `[ photo ]` frame are not counted: they belong to the portrait
-  (TO-03), which its own test already fails until the photograph exists, and to the photo originals. A new kind of gap
-  gets a line in the list and a test, never a looser pattern.
-- **The proof.** `tests/unit/placeholders.test.ts`: the pages read are exactly the ten files, and no entry or listing is
-  among them; each gap of the review is found; entry-like and photo-like brackets are not; a fully filled page passes; over
-  the current build only known gaps are found. Run by hand, not committed: `pnpm test:launch` on today's build fails with
-  22 lines (`/privacy: [launch date]`, `/it/rights: [la tua email di contatto]`, `/about: [city]`, `/: [City]`, `/now:
-[Placeholder]` …, none in an entry); with every gap in pages, site.json and `heroBased` replaced by real-looking text
-  and the site rebuilt, that test passes (the other launch tests, sameAs, portrait and noindex, still fail on a staging
-  build as they should), while the sample entries and photo series stayed as they are.
+  launch blocker 3 relied on it. Scanning every bracket in the built pages found one more: the home page's "Based in
+  [City]" / "Vivo a [città]" (`heroBased` in `src/i18n`).
+- **Two kinds of bracket, two scopes** (owner rulings, same day; a first version narrowed everything to the pages and was
+  corrected). `scripts/lib/placeholders.ts`, `findPlaceholders`:
+  1. _Sample text counts on every built page_, entries, photo series, their listings and alt texts included, so the sample
+     entries and the sample Lisbon series fail the gate until the owner replaces or deletes them. A bracket counts when it
+     starts with `placeholder` or `segnaposto`, or with the sample forms `testo segnaposto`, `testo alternativo segnaposto`
+     and `serie segnaposto` (`[Placeholder]`, `[Placeholder alt text: …]`, `[placeholder series]`, `[Testo alternativo
+segnaposto: …]`, `[serie segnaposto]`). The old pattern missed the Italian forms with the word in the middle.
+  2. _Field names count only on the pages and the home pages_: the built pages of `src/content/pages` (About, Now,
+     Privacy, Rights, both languages; one per file in the folder, so a new page is covered at once; what site.json puts on
+     About comes with them) and the two home pages. A bracket whose whole text is `city`, `città`, `launch date`, `data di
+lancio`, `contact email`, `your contact email` or `la tua email di contatto` (case, spacing and line breaks ignored).
+     In an entry, a photo series or a listing, a `[sic]` or a quoted `[city]` is text and passes.
+     `<script>`, `<style>`, `<code>` and `<pre>` are left out first. The About portrait's label (`[Portrait … placeholder until
+…]`) and the `[ photo ]` frame are not counted: the portrait has its own failing test (TO-03). The styleguide is not
+     read. A new kind of gap gets a line in the list and a test, never a looser pattern.
+- **The proof.** `tests/unit/placeholders.test.ts`: each sample form and each field name is found; a quoted `[city]` and a
+  `[sic]` in entry-like HTML are not; a filled page passes; over the current build every entry and series whose source holds
+  sample text is flagged, and no field name outside the known ones is found. Run by hand, not committed: `pnpm test:launch`
+  on today's build fails with 68 lines (`/privacy: [launch date]`, `/about: [city]`, `/: [City]`, `/lisbona: [Placeholder]`,
+  `/it/lisbona: [Testo segnaposto in italiano: …]`, `/photos/lisbon: [placeholder series]`, `/it/photos/lisbon/alfama: [Testo
+alternativo segnaposto: …]` …); with every gap filled, the sample entries and the Lisbon series deleted, and the site rebuilt,
+  that test passes (the other launch tests, sameAs, portrait and noindex, still fail on a staging build as they should).
 - **On CI** the gate is still informational (`continue-on-error` in `ci.yml`) until owner question O1 is answered.

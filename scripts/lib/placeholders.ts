@@ -1,22 +1,25 @@
 /**
- * The site's own unfilled gaps: the bracketed text the owner still has to replace before launch (O1, TICKETS.md). The
- * launch gate (`tests/e2e/qa/launch.spec.ts`, `pnpm test:launch`) fails on every one it finds, naming the page and the
- * text. Decision 0022, "Round 4".
- *
- * **Scope.** Only what the site itself leaves open: the pages in `src/content/pages` (About, Now, Privacy, Rights, both
- * languages), what `src/data/site.json` puts on them (`contactEmail`, `city`), and the home page's "Based in …" line,
- * which carries the same city. Never a journal entry, a photo series or any listing of them: what the owner writes
- * there is text, and a bracket in it (`[sic]`, a quoted `[city]`) is never a gap.
+ * Unfilled placeholders: the bracketed text the owner still has to replace or delete before launch (O1, TICKETS.md).
+ * The launch gate (`tests/e2e/qa/launch.spec.ts`, `pnpm test:launch`) fails on every one it finds, naming the page and
+ * the text. Decision 0022, "Round 4".
  *
  * Two kinds of bracket count, read from the built HTML (visible text, `title`, `description`, `alt` and `aria-label`):
  *
- * 1. A sample-text marker: a bracket that starts with the word `placeholder` or `segnaposto` (`[Placeholder]`,
- *    `[Segnaposto: due o tre frasi …]`). Pages only.
- * 2. A field name: a bracket whose whole text is one of `FIELD_NAMES` (`[city]`, `[launch date]`, `[your contact
- *    email]`, `[la tua email di contatto]` …). Pages and the home page.
+ * 1. **Sample text** (the owner's ruling: it must fail until it is replaced or deleted): a bracket that starts with
+ *    `placeholder` or `segnaposto`, or with one of the sample forms `testo segnaposto`, `testo alternativo segnaposto`,
+ *    `serie segnaposto` (`[Placeholder]`, `[Placeholder alt text: …]`, `[placeholder series]`, `[Testo alternativo
+ *    segnaposto: …]`, `[serie segnaposto]`). On **every** built page: the sample entries, the sample photo series and
+ *    their listings included.
+ * 2. **A field name**: a bracket whose whole text is one of `FIELD_NAMES` (`[city]`, `[launch date]`, `[your contact
+ *    email]`, `[la tua email di contatto]` …). Only on the pages of `src/content/pages` (About, Now, Privacy, Rights,
+ *    both languages; what `src/data/site.json` puts on About is on them) and the home pages, whose "Based in …" line
+ *    carries the same city. Never in an entry, a photo series or a listing: a `[sic]` or a quoted `[city]` there is
+ *    text.
  *
  * `<script>`, `<style>`, `<code>` and `<pre>` are left out first (CSS selectors, JSON-LD arrays, a bracket shown on
- * purpose). A new kind of gap goes into this file with a test, never into a looser pattern. The owner never edits it.
+ * purpose). The About portrait's label (`[Portrait … placeholder until …]`) and the `[ photo ]` frame are not counted:
+ * the portrait has its own failing test (TO-03). A new kind of gap goes into this file with a test, never into a looser
+ * pattern. The owner never edits it.
  */
 import { existsSync, readdirSync } from "node:fs";
 
@@ -31,41 +34,37 @@ export const FIELD_NAMES: readonly string[] = [
   "la tua email di contatto",
 ];
 
-const MARKER = /\[\s*(?:placeholder|segnaposto)\b[^\]]*\]/gi;
+const SAMPLE = /\[\s*(?:(?:testo(?:\s+alternativo)?|serie)\s+)?(?:placeholder|segnaposto)\b[^\]]*\]/gi;
 const BRACKET = /\[([^\]]*)\]/g;
 const NOT_TEXT = /<(script|style|pre|code)\b[\s\S]*?<\/\1\s*>/gi;
 
-/** The gaps in one built page, as written, in order of appearance, each once. `markers: false` looks for field names only. */
-export function findPlaceholders(page: string, { markers = true }: { markers?: boolean } = {}): string[] {
+/**
+ * The placeholders in one built page, as written, in order of appearance, each once. Sample text always counts;
+ * `fields: false` leaves the field names out (entries, photo series, listings).
+ */
+export function findPlaceholders(page: string, { fields = true }: { fields?: boolean } = {}): string[] {
   const text = page.replace(NOT_TEXT, " ");
   const found = new Set<string>();
-  if (markers) for (const m of text.matchAll(MARKER)) found.add(m[0]);
-  for (const m of text.matchAll(BRACKET)) {
-    if (FIELD_NAMES.includes((m[1] ?? "").replace(/\s+/g, " ").trim().toLowerCase())) found.add(m[0]);
-  }
+  for (const m of text.matchAll(SAMPLE)) found.add(m[0]);
+  if (fields)
+    for (const m of text.matchAll(BRACKET)) {
+      if (FIELD_NAMES.includes((m[1] ?? "").replace(/\s+/g, " ").trim().toLowerCase())) found.add(m[0]);
+    }
   return [...found].sort((a, b) => text.indexOf(a) - text.indexOf(b));
 }
 
-export interface GapPage {
-  /** Built file under dist/: "privacy.html", "it/about.html", "index.html". */
-  file: string;
-  /** Pages from `src/content/pages` also get the sample-text markers; the home page only the field names. */
-  markers: boolean;
-}
-
 /**
- * The built pages the gate reads: one per file in `src/content/pages/<lang>` (a page added there is covered at once), and
- * the two home pages. Entries, the journal, photos, the 404 page and the styleguide are not in it.
+ * The built files where field names count: one per file in `src/content/pages/<lang>` (a page added there is covered at
+ * once) and the two home pages. Every other page is read for sample text only.
  */
-export function gapPages(pagesDir: URL): GapPage[] {
-  const out: GapPage[] = [];
+export function fieldPages(pagesDir: URL): string[] {
+  const out: string[] = [];
   for (const lang of ["en", "it"]) {
     const dir = new URL(`${lang}/`, pagesDir);
     if (!existsSync(dir)) continue;
     for (const f of readdirSync(dir).sort()) {
-      if (f.endsWith(".md")) out.push({ file: `${lang === "it" ? "it/" : ""}${f.slice(0, -3)}.html`, markers: true });
+      if (f.endsWith(".md")) out.push(`${lang === "it" ? "it/" : ""}${f.slice(0, -3)}.html`);
     }
   }
-  out.push({ file: "index.html", markers: false }, { file: "it.html", markers: false });
-  return out;
+  return [...out, "index.html", "it.html"];
 }

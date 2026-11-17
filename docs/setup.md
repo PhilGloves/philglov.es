@@ -355,7 +355,8 @@ pull request and says it has to be merged by hand.
 2. Passkeys on GitHub, Cloudflare and the domain registrar (step 1, plus the registrar).
 3. The privacy and rights pages have no unfilled placeholder (contact email, city, launch date). `pnpm test:launch` checks
    About, Now, Privacy, Rights and the home page, in both languages: it names each `[city]`, `[launch date]`,
-   `[your contact email]` and the like it finds, and ignores journal entries (decision 0022, "Round 4").
+   `[your contact email]` and the like it finds. It also fails on the sample entries and the sample photo series until they
+   are replaced or deleted (decision 0022, "Round 4").
 4. QA's full matrix and the security audit report zero open failures.
 5. `/admin` returns 403 without an Access token on philglov.es (QA test, re-run against production).
 6. The owner has read and rewritten every Italian interface string and the Italian privacy and rights pages.

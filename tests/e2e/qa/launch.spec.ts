@@ -1,25 +1,30 @@
 /**
  * The launch gate (project `launch`, `pnpm test:launch`). Not part of the staging run: these fail until the owner has
- * answered O1 (TICKETS.md): no unfilled gap on the pages or in site.json (scripts/lib/placeholders.ts), a filled sameAs
+ * answered O1 (TICKETS.md): no sample text and no unfilled gap anywhere (scripts/lib/placeholders.ts), a filled sameAs
  * list, real descriptions. Run it against a production build (`pnpm qa:production`) so it also proves no page is
  * noindex.
  */
 import { expect, test } from "@playwright/test";
-import { findPlaceholders, gapPages } from "../../../scripts/lib/placeholders.ts";
+import { fieldPages, findPlaceholders } from "../../../scripts/lib/placeholders.ts";
 import { builtPages, readBuilt } from "./lib.ts";
 
-// The site's own gaps only, read from the built pages: About, Now, Privacy and Rights in both languages (what
-// site.json puts on About included), and the home page's "Based in …" line. Never a journal entry, a photo series or a
-// listing of them. Which brackets count, and why: scripts/lib/placeholders.ts (decision 0022, "Round 4").
-const pagesDir = new URL("../../../src/content/pages/", import.meta.url);
+// Sample text ("[Placeholder…]", "[Segnaposto…]", "[serie segnaposto]" …) counts on every built page: the sample entries
+// and the sample photo series fail the gate until the owner replaces or deletes them. Field names ("[city]", "[launch
+// date]" …) count only on About, Now, Privacy, Rights (what site.json puts on About included) and the home pages, so a
+// "[sic]" or a quoted "[city]" in an entry passes. Which brackets count, and why: scripts/lib/placeholders.ts
+// (decision 0022, "Round 4"). The styleguide is the owner's copy-from page and is not read.
+const fieldFiles = new Set(fieldPages(new URL("../../../src/content/pages/", import.meta.url)));
 
-test("no page of the site has an unfilled gap left, in the body, the title or the description", () => {
+test("no page has sample text or an unfilled gap left, in the body, the title, the description or an alt text", () => {
   const found: string[] = [];
-  for (const p of gapPages(pagesDir)) {
-    for (const text of findPlaceholders(readBuilt(p.file), { markers: p.markers }))
-      found.push(`${p.file === "index.html" ? "/" : `/${p.file.replace(/\.html$/, "")}`}: ${text}`);
+  for (const p of builtPages()) {
+    if (p.file === "styleguide.html") continue;
+    for (const text of findPlaceholders(readBuilt(p.file), { fields: fieldFiles.has(p.file) }))
+      found.push(`${p.path}: ${text}`);
   }
-  expect(found, "every line is a page and the bracketed text the owner still has to replace (O1)").toEqual([]);
+  expect(found, "every line is a page and the bracketed text the owner still has to replace or delete (O1)").toEqual(
+    [],
+  );
 });
 
 test("Person JSON-LD has a sameAs list of https profiles (home and About, both languages)", () => {
