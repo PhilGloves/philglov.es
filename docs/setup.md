@@ -15,6 +15,10 @@ Resource names used everywhere (see `wrangler.jsonc` and `docs/decisions/0008-en
 | R2 originals | `philglov-originals-staging` | (shares staging)   | `philglov-originals`   |
 | R2 backups   | `philglov-backups-staging`   | (shares staging)   | `philglov-backups`     |
 
+The builds (CI) read one originals bucket, `R2_ORIGINALS_BUCKET`: staging's until launch, production's from step 12b
+on. Photos are uploaded on staging until then and on production after; staging and preview never reach production's
+bucket (decision 0031).
+
 ---
 
 ## Part 1 — Now: staging, no domain needed
@@ -377,9 +381,9 @@ pnpm exec wrangler r2 bucket create philglov-originals --jurisdiction eu
 pnpm exec wrangler r2 bucket create philglov-backups --jurisdiction eu
 ```
 
-Paste the D1 ID over `REPLACE_WITH_PRODUCTION_D1_ID`. Create a new read-only R2 token for `philglov-originals` (step 5),
-replace the two R2 secrets, and set `R2_ORIGINALS_BUCKET` = `philglov-originals`. Add the production Worker secrets
-(step 9 with `--env production`, fresh values) and the GitHub App key (step 10).
+Paste the D1 ID over `REPLACE_WITH_PRODUCTION_D1_ID`. Add the production Worker secrets (step 9 with
+`--env production`, fresh values) and a GitHub App key of its own (step 10). The photos move to `philglov-originals`
+in step 12b.
 
 **A deploy token for production.** The staging and preview token (step 6) has no zone access and stays that way.
 Production gets a token of its own, so only the `production` environment can touch the philglov.es zone: My Profile →
@@ -388,6 +392,72 @@ Edit**, **Zone → Workers Routes → Edit** and **Zone → Zone → Read**, acc
 resources **philglov.es** only. Without the zone permissions the production deploy cannot attach the custom domain
 `philglov.es`; if that first deploy still reports an authorization error for the custom domain, the error names the
 missing zone permission: add only that one. Copy the token; step 16 puts it in the `production` environment.
+
+### 12b. The photos: one copy to production's bucket, then uploads only on production
+
+Until launch every photo is uploaded on staging and lives in `philglov-originals-staging`, the bucket the builds read.
+From launch the builds read `philglov-originals`, which starts empty, and photos are added only on
+`philglov.es/admin/write`. Staging and preview keep their own bucket and never reach production's (decision 0031). Do
+these in this order, after step 12 and before step 16; nothing here can be done from the phone.
+
+1. **Finish the drafts that have photos.** On staging's `/admin/write`, publish every draft with photos that should
+   go live, and wait until each is on the site (its pull request merged). Only photos an entry on `main` uses are
+   copied, and production's `/admin/write` will not have staging's drafts. Delete the drafts you do not want.
+2. **Stop photo uploads on staging and preview.** In a pull request, set `"PHOTO_UPLOADS": "off"` in the `staging`
+   and the `preview` vars of `wrangler.jsonc` (both together; production stays `"on"`), and merge it. Once staging
+   has deployed it, an upload there answers "This copy of the site no longer stores photos…". A preview made before
+   that change still takes uploads, but nothing from it can go live: its photos would not be in the bucket the builds
+   read after step 5, and the build would stop naming them. From here until production is live (step 16) no photo
+   can be added anywhere; entries without photos can still be published from staging.
+3. **Two R2 tokens for the copy**, made for it and deleted in step 7. Cloudflare → **R2 Object Storage** → **Manage
+   API tokens** → Create **Account API token**, twice:
+   - `copy-from-staging`: **Object Read only**, applied to `philglov-originals-staging` only;
+   - `copy-to-production`: **Object Read & Write**, applied to `philglov-originals` only.
+
+   Each page shows its Access Key ID and Secret Access Key once: keep both pages open until step 4 is done.
+
+4. **Copy.** In PowerShell, in the repository folder, on up-to-date `main` (`git switch main`, then `git pull`). Set the
+   five values for this window only; `Read-Host` keeps them out of the command history, which is saved to a file:
+
+```powershell
+$env:R2_ACCOUNT_ID = Read-Host "Account ID"
+$env:R2_FROM_ACCESS_KEY_ID = Read-Host "copy-from-staging, Access Key ID"
+$env:R2_FROM_SECRET_ACCESS_KEY = [Net.NetworkCredential]::new("", (Read-Host "copy-from-staging, Secret Access Key" -AsSecureString)).Password
+$env:R2_TO_ACCESS_KEY_ID = Read-Host "copy-to-production, Access Key ID"
+$env:R2_TO_SECRET_ACCESS_KEY = [Net.NetworkCredential]::new("", (Read-Host "copy-to-production, Secret Access Key" -AsSecureString)).Password
+```
+
+```powershell
+node scripts/copy-originals.ts
+```
+
+It reads which originals the entries and photo series of this checkout use, copies each one production does not
+have yet (same name, same bytes), checks every copy, and lists what it did. It never writes over an object in
+production. Its last line must be `copy-originals: all N originals the content uses are in philglov-originals.`
+Otherwise it names each problem and ends with an error: **MISSING** (used by an entry, in neither bucket: add the photo
+again once production is live), **DIFFERENT** (production has other bytes under that name: ask an agent) or
+**FAILED** (often a token on the wrong bucket or with the wrong permission). Run it again after a fix: what it copied
+is skipped. "Not copied" lists photos in staging that no entry uses, such as drafts' and test uploads; they stay
+there. Then clear the values (closing the window does it too):
+
+```powershell
+Remove-Item Env:R2_ACCOUNT_ID, Env:R2_FROM_ACCESS_KEY_ID, Env:R2_FROM_SECRET_ACCESS_KEY, Env:R2_TO_ACCESS_KEY_ID, Env:R2_TO_SECRET_ACCESS_KEY
+```
+
+5. **Point the builds at production's bucket.** A third R2 token, `ci-read-production`: **Object Read only**,
+   applied to `philglov-originals` only. GitHub → Settings → Secrets and variables → **Actions**: replace the
+   repository secrets `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY` with its values, and set the variable
+   `R2_ORIGINALS_BUCKET` = `philglov-originals`. Then → **Dependabot**: replace the same two secrets.
+6. **Check.** Push a new commit to a pull request, or open a small one (a re-run of an older run keeps the old
+   bucket variable): its step "Fetch photo originals from R2" prints `N needed, N downloaded`, and Build passes. Staging keeps working: it deploys what Test builds, now with
+   production's photos.
+7. **Delete the old tokens.** R2 → Manage API tokens: delete `copy-from-staging`, `copy-to-production`, and the read
+   token CI used for staging (step 5 of Part 1); nothing uses them any more. A laptop token for staging (README) can go
+   too; make one for `philglov-originals` when you need the photos on the laptop.
+
+From launch on, write entries with photos on `philglov.es/admin/write` only, and edit published entries there too:
+staging's `/admin/write` cannot find photos uploaded after launch, so it refuses to publish an edit of an entry that
+has them.
 
 ### 13. Cloudflare Access for /admin
 

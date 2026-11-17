@@ -4,6 +4,10 @@ How to write, edit and publish an entry from `/admin/write`. The rules behind it
 [0017](decisions/0017-backend-worker.md), [0021](decisions/0021-publishing-goes-live.md),
 [0027](decisions/0027-fix-round-1-backend.md) and [0029](decisions/0029-write-the-other-language.md).
 
+Until launch this is staging's `/admin/write`. From launch, write and edit entries with photos on
+`philglov.es/admin/write` only: staging and preview then stop storing photos and say so (decision
+[0031](decisions/0031-photos-at-launch.md)).
+
 ## A new entry
 
 1. Open `/admin/write` and sign in with the one-time code (Cloudflare Access).

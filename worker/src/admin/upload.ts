@@ -8,6 +8,8 @@
  * Stored as philglov-originals/<slug>/<name>-<4 random>.jpg|png. The Worker picks the random end and never writes
  * over a stored object: the name comes from the request, and replacing a photo a published entry shows would change
  * the site on its next build with no pull request (security audit, decision 0030).
+ * Only where PHOTO_UPLOADS is "on": from launch the builds read production's bucket, so staging and preview turn it
+ * "off" and say where photos go instead of storing one no build would find (decision 0031).
  */
 import { photoName, SLUG } from "../entry-file.ts";
 import { log } from "../log.ts";
@@ -44,7 +46,16 @@ export function sniff(bytes: Uint8Array): "jpg" | "png" | null {
 const json = (status: number, body: unknown): Response =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
+export const UPLOADS_OFF =
+  "This copy of the site no longer stores photos. Since launch, entries with photos are written on " +
+  "philglov.es/admin/write.";
+
 export async function upload(request: Request, env: Env): Promise<Response> {
+  if (String(env.PHOTO_UPLOADS) !== "on") {
+    await request.body?.cancel();
+    log("photo rejected");
+    return json(403, { error: UPLOADS_OFF });
+  }
   const url = new URL(request.url);
   const slug = url.searchParams.get("slug") ?? "";
   if (!SLUG.test(slug) || slug.length > 60) return json(400, { error: "Set a valid slug before adding photos." });

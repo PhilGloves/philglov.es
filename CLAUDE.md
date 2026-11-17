@@ -185,6 +185,12 @@ WAY OF WORKING
 - 2026-11-17: follow-up to the audit (0030, items 11–12): Workers Logs' invocation logs are off in every environment
   (the owner found visitors' IP addresses in them on staging, M-4; re-check on staging after the deploy, checklist
   item 15); checklist item 6 corrected: only `CLOUDFLARE_API_TOKEN` moves into environments.
+- 2026-11-17: fourth opinion ([0031](docs/decisions/0031-photos-at-launch.md), `TICKETS.md` F1–F3): the docs let the
+  owner run the site alone on Windows (README "On Windows", [docs/owner-playbook.md](docs/owner-playbook.md), setup.md
+  steps 5–10 corrected; `restore-backup.ts` writes its own UTF-8 file; `tests/unit/docs.test.ts`); three unused
+  exports removed; **photos at launch**: `scripts/copy-originals.ts` copies once what the content uses from staging's
+  bucket to production's, never over an object; then `R2_ORIGINALS_BUCKET` and the read keys point at production's
+  bucket, and staging and preview get `PHOTO_UPLOADS: "off"` (setup.md step 12b).
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -214,6 +220,7 @@ scripts/check-originals.ts      before the build: entry photos present, or the o
 scripts/lib/content-check.ts    the build check; scripts/lib/new-entry.ts the `pnpm new` template
 scripts/lib/page-check.ts       what a built page may contain; postbuild fails on anything else (0030)
 scripts/restore-backup.ts       a weekly backup back into SQL (lib/backup-restore.ts; README "Restoring", 0030)
+scripts/copy-originals.ts       at launch, once: originals staging bucket → production's (lib/copy-originals.ts, 0031)
 scripts/                      build helpers, run with plain `node` (type stripping); build-fonts.py by hand
 tests/unit/ tests/e2e/        node:test unit tests; Playwright e2e (admin-worker.ts: the real Worker behind a test
                               Access, for /admin in a browser, 0020)
@@ -257,6 +264,7 @@ pnpm new <slug> --lang it|en     new entry, or the other-language version of one
 pnpm check:content               cross-file content check (twins, slugs, folders, alt); runs first in pnpm build (C2)
 node scripts/contrast.ts         every colour pair with its measured contrast (unit tests enforce the floors)
 node scripts/restore-backup.ts <backup.json> <restore.sql>   a backup as SQL (UTF-8, no BOM) for wrangler d1 execute (README)
+node scripts/copy-originals.ts   at launch only: the originals to production's bucket (five R2_* variables, setup.md 12b)
 python scripts/build-fonts.py    rebuild the fonts from the pinned sources (by hand, only when they change)
 ```
 
@@ -304,6 +312,10 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
   `sizes` from `src/lib/photo-sizes.ts` and `priority` on the first image of a page only. Per-photo colours are
   generated classes (`.c-<hex>`), never inline styles. Every output image gets rights metadata and must carry no GPS:
   `scripts/photo-rights.ts` fails the build otherwise. Originals never enter git (0019).
+- Photo uploads (0031): the Worker stores one only when its var `PHOTO_UPLOADS` is `"on"`. Production always is;
+  staging and preview are until launch and then `"off"`, both the same (`tests/unit/wrangler-config.test.ts`). Never
+  bind staging or preview to production's bucket. The launch copy never writes over an object; tests of R2 code run
+  against `tests/unit/r2-stand-in.ts`, which checks signatures and each token's buckets.
 - Security audit rules (0030): CI never caches `src/.originals` (fork pull requests read main's caches;
   `tests/unit/ci-workflow.test.ts`). Raw HTML in content is limited by `scripts/lib/page-check.ts`: to allow a new
   element or attribute, change its allow-list there with a test, never by skipping the check. The publisher guard

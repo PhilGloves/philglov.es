@@ -1,8 +1,10 @@
 /**
- * A minimal S3-compatible client for the private R2 originals bucket: AWS
+ * A minimal S3-compatible client for the private R2 originals buckets: AWS
  * Signature V4 over node:crypto and fetch, so the photo pipeline needs no SDK
- * dependency (brief: fewer than 10 direct dependencies). It only reads: list
- * and get. The EU-jurisdiction endpoint is <account>.eu.r2.cloudflarestorage.com.
+ * dependency (brief: fewer than 10 direct dependencies). The build only reads
+ * (get); the one-time copy to production at launch (scripts/copy-originals.ts,
+ * decision 0031) also lists, heads and puts. The EU-jurisdiction endpoint is
+ * <account>.eu.r2.cloudflarestorage.com.
  */
 import { createHash, createHmac } from "node:crypto";
 
@@ -71,16 +73,27 @@ ${payloadHash}`;
   return `AWS4-HMAC-SHA256 Credential=${input.accessKeyId}/${scope}, SignedHeaders=${names.join(";")}, Signature=${signature}`;
 }
 
-async function request(cfg: R2Config, path: string, query: Record<string, string> = {}): Promise<Response> {
+interface Send {
+  query?: Record<string, string>;
+  body?: Uint8Array<ArrayBuffer>;
+  /** Extra headers, signed too (e.g. content-type). */
+  headers?: Record<string, string>;
+}
+
+/** One signed request; the caller reads the status. The payload hash covers the body, so R2 refuses a changed one. */
+async function send(cfg: R2Config, method: string, path: string, opts: Send = {}): Promise<Response> {
   const endpoint = cfg.endpoint ?? `https://${cfg.accountId}.eu.r2.cloudflarestorage.com`;
   const url = new URL(endpoint);
   const amzDate = new Date().toISOString().replace(/[:-]|\.\d{3}/g, "");
   const fullPath = `/${encode(cfg.bucket)}${path}`;
+  const query = opts.query ?? {};
+  const payloadHash = hex(opts.body ?? "");
   const auth = authorization({
-    method: "GET",
+    method,
     path: fullPath,
     query,
-    headers: { host: url.host, "x-amz-date": amzDate },
+    headers: { host: url.host, "x-amz-date": amzDate, ...opts.headers },
+    payloadHash,
     accessKeyId: cfg.accessKeyId,
     secretAccessKey: cfg.secretAccessKey,
     region: "auto",
@@ -88,9 +101,15 @@ async function request(cfg: R2Config, path: string, query: Record<string, string
     amzDate,
   });
   const search = new URLSearchParams(query).toString();
-  const res = await fetch(`${endpoint}${fullPath}${search ? `?${search.replace(/\+/g, "%20")}` : ""}`, {
-    headers: { "x-amz-date": amzDate, "x-amz-content-sha256": hex(""), authorization: auth },
+  return fetch(`${endpoint}${fullPath}${search ? `?${search.replace(/\+/g, "%20")}` : ""}`, {
+    method,
+    headers: { ...opts.headers, "x-amz-date": amzDate, "x-amz-content-sha256": payloadHash, authorization: auth },
+    ...(opts.body ? { body: opts.body } : {}),
   });
+}
+
+async function request(cfg: R2Config, path: string, query: Record<string, string> = {}): Promise<Response> {
+  const res = await send(cfg, "GET", path, { query });
   if (!res.ok) throw new Error(`R2 ${res.status} for ${path}`);
   return res;
 }
@@ -113,6 +132,36 @@ export async function listKeys(cfg: R2Config, prefix: string): Promise<string[]>
   return keys;
 }
 
-export async function getObject(cfg: R2Config, key: string): Promise<Uint8Array> {
+export async function getObject(cfg: R2Config, key: string): Promise<Uint8Array<ArrayBuffer>> {
   return new Uint8Array(await (await request(cfg, keyPath(key))).arrayBuffer());
+}
+
+export interface ObjectHead {
+  size: number;
+  /** Without quotes. For an object stored in one piece it is the MD5 of its bytes, in hex. */
+  etag: string;
+  contentType: string;
+}
+
+/** What R2 knows about an object, or null when there is none. */
+export async function headObject(cfg: R2Config, key: string): Promise<ObjectHead | null> {
+  const res = await send(cfg, "HEAD", keyPath(key));
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`R2 ${res.status} for ${keyPath(key)}`);
+  return {
+    size: Number(res.headers.get("content-length") ?? "NaN"),
+    etag: (res.headers.get("etag") ?? "").replaceAll('"', ""),
+    contentType: res.headers.get("content-type") ?? "application/octet-stream",
+  };
+}
+
+/** Stores the bytes under the key. R2 itself would replace an object already there: callers look first. */
+export async function putObject(
+  cfg: R2Config,
+  key: string,
+  body: Uint8Array<ArrayBuffer>,
+  contentType: string,
+): Promise<void> {
+  const res = await send(cfg, "PUT", keyPath(key), { body, headers: { "content-type": contentType } });
+  if (!res.ok) throw new Error(`R2 ${res.status} for ${keyPath(key)}`);
 }

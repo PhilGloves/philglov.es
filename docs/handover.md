@@ -269,3 +269,17 @@ look inside `<svg>`, so anything checked with it needs the SVG text read separat
 checklist at the end of the report (rulesets and environments to narrow where the App and the deploy token reach,
 Access session and login method, the commit email, the live restore, the dashboard items). A `wrangler dev` left from an
 earlier session was holding port 8787 (Playwright reuses whatever answers there); stopped with the owner's approval.
+
+## Fourth opinion — 2026-11-17
+
+Decision [0031](decisions/0031-photos-at-launch.md), `TICKETS.md` F1–F3. Every point of `FOURTH-OPINION.md` was checked
+against the code before acting; all held. Docs: README "On Windows", `docs/owner-playbook.md`, setup.md corrected, the
+restore script writes its own file (PowerShell 5.1's `>` writes UTF-16, which D1 refuses; checked end to end with a
+local D1), `tests/unit/docs.test.ts` (fences, `bash -n`, no `&&` in PowerShell). Removed three unused exports. Photos
+at launch: a one-time copy, staging bucket → production's, tested against `tests/unit/r2-stand-in.ts` (a local S3
+stand-in that checks signatures and token scopes), and `PHOTO_UPLOADS` to stop uploads on staging and preview.
+Found on the way: Dependabot secrets lack `CLOUDFLARE_ACCOUNT_ID`; Dependabot builds passed only because of the
+originals cache deleted in 0030, so the next one stops at `check-originals` until the owner adds it. The launch gate
+does not catch `[city]`, `[launch date]` or `[your contact email]` (its pattern is `[placeholder…]`/`[segnaposto…]`).
+Lessons: a heredoc or a JSON string turns `\n` in a documented command into a line break (how step 8b broke); write
+such edits with an editor tool and test the blocks. On Windows, Git for Windows puts only `git` on PATH, not `bash`.

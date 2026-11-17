@@ -1,6 +1,7 @@
 /**
- * Downloads the photo originals the site needs from the private R2 bucket
- * (philglov-originals) into the git-ignored src/.originals/, so Astro can
+ * Downloads the photo originals the site needs from the private R2 bucket the
+ * builds read (R2_BUCKET: philglov-originals-staging until launch, then
+ * philglov-originals, decision 0031) into the git-ignored src/.originals/, so Astro can
  * optimise them as local files. Files already there are skipped (a laptop
  * keeps them). CI never caches them, so every run downloads them all: in a
  * public repository a fork's pull request can read main's Actions caches, and
@@ -12,31 +13,14 @@
  * pages then draw the tone placeholders. `--force` downloads everything again.
  * RAW files never leave the owner's drives; the bucket holds JPEG/PNG only.
  */
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { entryKeys, seriesKeys } from "./lib/photo-keys.ts";
+import { contentKeys } from "./lib/photo-keys.ts";
 import { isStandIn } from "./lib/standins.ts";
 import { getObject, type R2Config } from "./lib/r2.ts";
 
 const root = new URL("../src/", import.meta.url);
-
-function neededKeys(): string[] {
-  const series: Record<string, string> = {};
-  const dir = new URL("content/photos/", root);
-  for (const e of readdirSync(dir, { withFileTypes: true })) {
-    const file = new URL(`${e.name}/photos.json`, dir);
-    if (e.isDirectory() && existsSync(file)) series[e.name] = readFileSync(file, "utf8");
-  }
-  const keys = seriesKeys(series);
-  const journal = new URL("content/journal/", root);
-  for (const lang of readdirSync(journal)) {
-    for (const f of readdirSync(new URL(`${lang}/`, journal))) {
-      if (f.endsWith(".md")) keys.push(...entryKeys(readFileSync(new URL(`${lang}/${f}`, journal), "utf8")));
-    }
-  }
-  return [...new Set(keys)].sort();
-}
 
 const env = process.env;
 const [accountId, accessKeyId, secretAccessKey, bucket] = [
@@ -46,7 +30,7 @@ const [accountId, accessKeyId, secretAccessKey, bucket] = [
   env["R2_BUCKET"],
 ];
 const force = process.argv.includes("--force");
-const keys = neededKeys();
+const keys = contentKeys(root);
 const local = (key: string) => new URL(`.originals/${key}`, root);
 // A grey stand-in from a build with ALLOW_MISSING_ORIGINALS=1 is not an original: it is replaced like a missing file.
 const have = (key: string) => existsSync(local(key)) && !isStandIn(fileURLToPath(new URL(".originals/", root)), key);

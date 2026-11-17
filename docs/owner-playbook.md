@@ -130,6 +130,9 @@ secret put` for preview). With a new form key, a form already open in someone's 
    out its other sessions (My Profile _(not checked)_), revoke the laptop's R2 token (list 3), and check GitHub →
    Settings → **Sessions**.
 
+The two tokens made for the launch copy of the photos are deleted straight after it (`docs/setup.md`, step 12b,
+step 7).
+
 ## A Dependabot pull request
 
 Every week Dependabot opens pull requests that update a package (`Bump astro from 7.4.8 to 7.4.12`) or a GitHub
