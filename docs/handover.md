@@ -251,3 +251,20 @@ is the test). Also the ruleset's undocumented `require_extra_approval_for_unattr
 request waits for a review. `pnpm build` locally needs the photo of the test entry `foto` (in R2 only; `pnpm
 photos:fetch` with the R2 variables, or any JPEG at `src/.originals/foto/1000029179-9gp7.jpg`) and exiftool for the
 last steps.
+
+## Security audit (agent 8) — 2026-11-17
+
+Guide prompt 8 and the brief's additions a–i, decision [0030](decisions/0030-security-audit.md), `SECURITY-REPORT.md`
+(findings by severity with reproduction, fix and re-test, then the owner checklist). Tested only locally (build,
+Worker in vitest and through `pnpm preview`, CI scripts against throwaway repositories) plus read-only GitHub API calls
+about settings and caches. Fixed: photo originals (some with GPS) were in Actions caches a fork pull request can read
+(no longer cached; the 11 `photos-*` caches deleted with the owner's approval); the build now refuses HTML in a page
+that could redirect, embed, collect or run anything (`scripts/lib/page-check.ts` in `postbuild`); the publisher guard
+also covers the App's pushes to other branches and plain files only; report paths that collapse to `//host`, `//host`
+requests, `mailto:` parameters, the notification's quoted path, upload overwrites, IPv6 rate limiting; a restore script
+for the weekly backups; `/.well-known/security.txt`; overrides for the two Dependabot alerts. Lessons: a stand-in that
+says yes to everything (the e2e R2 `head`) hides a new rule, so make stand-ins remember state; html-validate does not
+look inside `<svg>`, so anything checked with it needs the SVG text read separately. Waiting for the owner: the
+checklist at the end of the report (rulesets and environments to narrow where the App and the deploy token reach,
+Access session and login method, the commit email, the live restore, the dashboard items). A `wrangler dev` left from an
+earlier session was holding port 8787 (Playwright reuses whatever answers there); stopped with the owner's approval.

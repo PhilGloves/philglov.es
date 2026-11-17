@@ -163,6 +163,18 @@ WAY OF WORKING
   other version for reference; an entry's form switches language with a dropdown (Switch without JavaScript), keeping
   the typed text; `?edit=1&slug=&lang=` opens the newest server draft of that version when there is one; drafts have a
   `twin` column (migration 0003). The owner's how-to is `docs/publishing-from-the-phone.md`.
+- 2026-11-17: security audit ([0030](docs/decisions/0030-security-audit.md), `SECURITY-REPORT.md`, `TICKETS.md` S1–S11):
+  **photo originals are never cached in CI** (a fork's pull request can read main's caches; some originals carry GPS;
+  the old `photos-*` caches were deleted); **`postbuild` refuses HTML that could redirect, embed, collect or run
+  anything** (`scripts/lib/page-check.ts`: allow-listed elements, no meta refresh, frames, forms or scripts in the text,
+  links only relative/http(s)/mailto/tel, SVG drawing only; owner decision "text HTML only"); the publisher guard also
+  runs for the App's pushes to other branches and takes plain files only (mode 100644), as does the content scope;
+  report paths that collapse to `//host` are refused and the asset address is built from the origin; `/admin` mailto:
+  links are percent-encoded; the notification calls a missing address "a missing address" (owner decision); upload keys
+  get their random end from the Worker, which never writes over a stored object; IPv6 is rate-limited per /64; backups
+  have a restore script (`README.md`); `/.well-known/security.txt` from `site.json` `contactEmail` (the launch gate fails
+  until it is real); minimatch and basic-ftp overridden (Dependabot, dev only). The owner checklist at the end of
+  `SECURITY-REPORT.md` is open. Commits from this checkout should use the GitHub no-reply address (L-10).
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -190,11 +202,14 @@ worker/migrations/            D1 migrations, applied by CI (migrations_dir in wr
 tests/worker/                 Vitest inside workerd (vitest.config.ts: test JWKS and a GitHub stand-in)
 scripts/check-originals.ts      before the build: entry photos present, or the opt-in's grey stand-ins (lib/standins.ts)
 scripts/lib/content-check.ts    the build check; scripts/lib/new-entry.ts the `pnpm new` template
+scripts/lib/page-check.ts       what a built page may contain; postbuild fails on anything else (0030)
+scripts/restore-backup.ts       a weekly backup back into SQL (lib/backup-restore.ts; README "Restoring", 0030)
 scripts/                      build helpers, run with plain `node` (type stripping); build-fonts.py by hand
 tests/unit/ tests/e2e/        node:test unit tests; Playwright e2e (admin-worker.ts: the real Worker behind a test
                               Access, for /admin in a browser, 0020)
 tests/e2e/qa/                 the QA suites, one file per suite of the QA brief; lib.ts has the page list and settle() (0022)
 docs/qa/                      bug-reports.md, manual-checklist.md; QA-REPORT.md at the root is the coverage report
+SECURITY-REPORT.md            security audit findings and the owner checklist (0030)
 docs/guide.md docs/design/    owner's guide and prototypes — never edit
 docs/decisions/               one record per architectural decision
 docs/setup.md                 steps only the owner can do
@@ -230,6 +245,7 @@ pnpm test:lighthouse:seo         Lighthouse SEO ≥ 95 (worst of 3 runs) against
 pnpm new <slug> --lang it|en     new entry, or the other-language version of one (ticket C4)
 pnpm check:content               cross-file content check (twins, slugs, folders, alt); runs first in pnpm build (C2)
 node scripts/contrast.ts         every colour pair with its measured contrast (unit tests enforce the floors)
+node scripts/restore-backup.ts <backup.json> > restore.sql   a backup as SQL for wrangler d1 execute (README)
 python scripts/build-fonts.py    rebuild the fonts from the pinned sources (by hand, only when they change)
 ```
 
@@ -277,6 +293,12 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
   `sizes` from `src/lib/photo-sizes.ts` and `priority` on the first image of a page only. Per-photo colours are
   generated classes (`.c-<hex>`), never inline styles. Every output image gets rights metadata and must carry no GPS:
   `scripts/photo-rights.ts` fails the build otherwise. Originals never enter git (0019).
+- Security audit rules (0030): CI never caches `src/.originals` (fork pull requests read main's caches;
+  `tests/unit/ci-workflow.test.ts`). Raw HTML in content is limited by `scripts/lib/page-check.ts`: to allow a new
+  element or attribute, change its allow-list there with a test, never by skipping the check. The publisher guard
+  and the content scope take plain files (mode 100644) only. An address a visitor chose (report path, email) is
+  never a link off-site, a redirect, a mailto: parameter or text in the owner's email. Upload keys get their random
+  end from the Worker, which never writes over a stored object. Rate limits key IPv6 by /64 (`addressKey`).
 - Never log names, emails, comment text or IP addresses. The Worker logs only through `worker/src/log.ts` (fixed
   event names). Never put personal data in a URL: Workers Logs record URLs.
 - Worker output: text into pages only via `Parts`/HTMLRewriter `html: false`; admin markup only via the escaping

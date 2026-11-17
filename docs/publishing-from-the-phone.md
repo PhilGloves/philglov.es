@@ -9,7 +9,9 @@ How to write, edit and publish an entry from `/admin/write`. The rules behind it
 1. Open `/admin/write` and sign in with the one-time code (Cloudflare Access).
 2. Write the title. The slug is suggested from it; change it if you like (it is the address: `/slug`, `/it/slug`).
 3. Pick the language you are writing in, then the description (one sentence) and the text, in Markdown. The cheat
-   sheet under the text box lists what you can use.
+   sheet under the text box lists what you can use. Plain HTML for text (`<abbr>`, `<kbd>`, `<details>`, a table)
+   is fine; anything that could redirect, embed, collect or run something (a `<meta>`, `<iframe>`, `<form>`,
+   `<script>`, `<style>`, a `javascript:` link) fails the checks, and the pull request says which (decision 0030).
 4. Photos (JavaScript needed): pick them, and they upload one at a time, retrying by themselves. Write each one's alt
    text (what is in it and why it matters) and, if you like, a caption. While a photo is still uploading, Publish and
    Save draft wait for it and say so.

@@ -10,9 +10,10 @@ a translation script, CI job, `translate`/`review` command, AI or translation AP
 
 ## Open owner questions — do not guess these
 
-| #   | Question                                                                                                                                                                                            | Blocks      | Default until answered                                  |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------- |
-| O1  | **Placeholders:** contact email (guide suggests `phil@philglov.es`), city, launch date, partita IVA (only if any), the list of profiles for `sameAs`, a real photo for About, the 2–3 sentence bio. | F6a, F1, C5 | visible `[placeholder]` text; QA fails it before launch |
+| #   | Question                                                                                                                                                                                                                                                                                                          | Blocks      | Default until answered                                  |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------- |
+| O1  | **Placeholders:** contact email (guide suggests `phil@philglov.es`), city, launch date, partita IVA (only if any), the list of profiles for `sameAs`, a real photo for About, the 2–3 sentence bio.                                                                                                               | F6a, F1, C5 | visible `[placeholder]` text; QA fails it before launch |
+| O6  | **Security checklist** (end of `SECURITY-REPORT.md`): narrow where the GitHub App can push and where the deploy token is available (a ruleset and environments), the `/admin` Access session (24 hours recommended, not 7 days) and login method, the commit email, the live backup restore, the dashboard items. | launch      | as today; the code-side fixes are in (0030)             |
 
 Settled by the owner on 2026-11-13 (publishing): O5, the admin CSP stays as it is; when a background request on
 `/admin` finds the Access login expired, the page reloads so Access can sign in again. Publish goes live by itself
@@ -258,11 +259,16 @@ every page × en/it × light/dark × 1440/1024/768/390/320 × JS on/off in Chrom
 
 ## 8 · Security audit (S) — Opus, xhigh — runs last
 
-- [ ] S1–S11 as in the guide's prompt 8 (headers and CSP on every response type, form fuzzing, `/admin` path tricks,
+- [x] S1–S11 as in the guide's prompt 8 (headers and CSP on every response type, form fuzzing, `/admin` path tricks,
       dependencies and install scripts, secrets and history — no AI or translation API key exists anywhere — accounts,
       privacy, phone publishing, backup restore, data jurisdiction, Cloudflare dashboard extras). Public repository:
       also check that no secret or personal data is in any commit, branch or pull request. _Done when:
-      `SECURITY-REPORT.md` with ranked findings, each re-tested after its fix._
+      `SECURITY-REPORT.md` with ranked findings, each re-tested after its fix._ Done 2026-11-17
+      ([0030](docs/decisions/0030-security-audit.md)): 1 high, 3 medium, 10 low, 8 info. Fixed: originals out of the CI
+      cache (H-1), the build refuses active HTML in content (M-1), the publisher guard (M-2), L-1 to L-9 (report paths,
+      `//host`, mailto, the email title, uploads, IPv6, backup restore, security.txt, Dependabot). Open for the owner:
+      M-3 and L-10 and the checklist (O6). No secret in any commit; the owner's personal email is the author of 107
+      commits (L-10).
 
 ## 9 · Simplification pass (2026-11-15, owner decision, [0023](docs/decisions/0023-simplification-pass.md))
 
