@@ -33,7 +33,7 @@
     "qa:production": "node scripts/qa.ts production"
   },
   "dependencies": {
-    "astro": "7.4.8",
+    "astro": "7.4.12",
     "jose": "6.2.17",
     "sharp": "0.35.5"
   },
