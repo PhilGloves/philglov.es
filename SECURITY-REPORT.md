@@ -3,6 +3,10 @@
 Security audit (docs/guide.md, prompt 8; TICKETS.md S1–S11 and the additions a–i of the brief), 2026-11-17, branch
 `security/audit` from `main` at `10b6a3b`. Decision record: [0030](docs/decisions/0030-security-audit.md).
 
+**Follow-up, 2026-11-17** (branch `security/invocation-logs`): the owner checked items 6 and 15 of the checklist.
+Item 15 found visitors' IP addresses in Workers Logs on staging; that is M-4, fixed in `wrangler.jsonc`. Item 6 as
+first written would have broken the Test job; it is corrected below.
+
 **How it was tested.** Only against this checkout: the local build (`pnpm build`), the real Worker inside the Workers
 runtime (`pnpm test:worker`, Miniflare with the repository's stand-ins for Access and GitHub) and through
 `pnpm preview` on 127.0.0.1 (Playwright, Chromium with JavaScript on and off), the CI workflow's own scripts run against
@@ -15,7 +19,7 @@ party, and no secret value was read or printed.
 | Severity | Found | Fixed in this pull request | Waits for the owner                   |
 | -------- | ----- | -------------------------- | ------------------------------------- |
 | High     | 1     | H-1                        | re-check the caches after merge       |
-| Medium   | 3     | M-1, M-2                   | M-2 residual and M-3 (settings)       |
+| Medium   | 4     | M-1, M-2, M-4              | M-2 residual, M-3, M-4 re-check       |
 | Low      | 10    | L-1 to L-9                 | L-10 (git email), live backup restore |
 | Info     | 8     | I-3 (superseded)           | I-5, I-6 optional                     |
 
@@ -105,6 +109,34 @@ by design, accepted, or hardening only.
   links; it does not stop a defacement.
 - **Fix:** not code. Owner checklist item 10: a 24-hour session (as staging) and, if possible, a login method protected
   by a passkey rather than the email PIN.
+
+### M-4 — Workers Logs kept every visitor's IP address (found by the owner on staging, 2026-11-17)
+
+- **Where:** `wrangler.jsonc`, `"observability": { "enabled": true }`, which turns on Workers Logs with their
+  invocation logs, one per request.
+- **Problem:** the owner opened an invocation log on staging (owner checklist item 15): it showed the visitor's IP
+  address in clear (request headers `cf-connecting-ip` and `x-real-ip`), the user agent and the country. Cloudflare
+  redacts the Access headers and cookies; there was no form text. The privacy notice says the site keeps only "a salted
+  hash of your IP address (not the address itself)" and that the owner sees "only traffic totals and technical error
+  logs". The audit had checked the Worker's own lines (`worker/src/log.ts`, fixed event names) but could not see what
+  Cloudflare adds around them, and listed it for the owner instead.
+- **Fix:** `"observability": { "enabled": true, "logs": { "invocation_logs": false } }` at the top level of
+  `wrangler.jsonc`. `observability` is an inheritable key in wrangler (an environment without its own takes the
+  top-level block whole), and none sets its own, so staging, preview and production all resolve to it. Workers Logs stay
+  on for the Worker's own lines (retention, backup, errors). Logs already written expire with Workers Logs' retention.
+- **Re-test:** `tests/unit/wrangler-config.test.ts` resolves every environment with wrangler's own reader
+  (`unstable_readConfig`). Before the change wrangler resolved all four (top level, staging, preview, production) to
+  `{ "enabled": true }` and the test failed; after it, all four have `invocation_logs: false` and it passes.
+  `wrangler deploy --dry-run` accepts each environment with no new warning. Live: owner checklist item 15.
+- **What remains open:** the Worker writes some of its own lines during a visitor's request: on a form post
+  `comment stored`, `report stored`, `spam rejected`, `rate limited` and `notification skipped` (or `sent`,
+  `failed`); on a page view only when something fails (`rewrite failed`, `comments unavailable`, `config missing`);
+  `access denied` for a request to `/admin` that reaches the Worker without a valid token. A normal page view writes
+  nothing. The text of each line is a fixed event name. Cloudflare's documentation does not say whether such a line's
+  event also carries the request's metadata (its query builder groups by `$workers.event.request.path` and
+  `cf.country`, so some events do), and that cannot be seen from the repository. If the re-check finds request headers
+  on these lines, the next step is to stop logging during requests and keep only the scheduled jobs' lines and errors,
+  a code change.
 
 ### L-1 — A report could name `//another.host`, stored, linked in `/admin` and redirected to
 
@@ -235,19 +267,19 @@ by design, accepted, or hardening only.
 
 ## The guide's eleven checks
 
-| #   | Check                                                     | Result                                                                                                                                                                                                                                                                                                                                                                       |
-| --- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Headers and CSP on every response type; injection blocked | Pass. Pages, 404, redirects (now also the `//host` 307), API 303/400/403/405/422/429 and JSON, admin 403, feeds, sitemap, robots, tdmrep, security.txt, fonts, images (`tests/e2e/qa/security.spec.ts`, `ops.test.ts`). Chromium blocks an injected inline script, a third-party script, image and request, each with a `securitypolicyviolation` (same suite, run locally). |
-| 2   | Forms: fuzz, rate limit, replay, CSRF on /admin/action    | Pass after L-6. 16 payload kinds in every field of both forms, no 5xx, stored text = cleaned input, no line break in an address (`audit.test.ts`); limit shared by both forms; replay I-1; CSRF bound to the Access user, form and CSRF tokens not interchangeable.                                                                                                          |
-| 3   | /admin unreachable without a valid Access JWT             | Pass. 28 spellings (case, `%2f`, `%61`, dot segments, `//`, `\`, `.html`, `;`, `%00`) and every method end at 403 or a page with nothing of /admin; forged, wrong-audience and empty tokens 403. Local `pnpm preview` answers 403 too (no bypass).                                                                                                                           |
-| 4   | Dependencies                                              | Pass after L-9. 3 runtime dependencies; install scripts only for `esbuild` and `workerd` (both allowed; other packages' `prepare` scripts do not run from the registry); 818 packages from the registry with integrity hashes; lockfile committed; every CI job uses `--frozen-lockfile`.                                                                                    |
-| 5   | Secrets                                                   | Pass. None in the tree or in any commit of any branch (pattern scan of all 145 commits; the only hit is AWS's documented example key in the SigV4 test vector). `.env*` and `.dev.vars` ignored. HMAC key, salt and App key read from Worker secrets; R2 and Cloudflare keys only as GitHub secrets (names checked). No AI or translation key anywhere.                      |
-| 6   | Accounts                                                  | Owner checklist 1–4, 21. `security.txt` present (L-8).                                                                                                                                                                                                                                                                                                                       |
-| 7   | Privacy                                                   | Pass. No raw IP stored or logged (tests); retention job tested; the notice matches (IPv6 /64 stores less). Workers Logs' own fields: owner checklist 15.                                                                                                                                                                                                                     |
-| 8   | Phone publishing                                          | Fixed M-1, M-2, L-5; uploads fuzzed (signature, size, slug, name, CSRF); the token request asks for this repository and Contents/Pull requests only. App settings, R2 privacy: owner checklist 9, 12.                                                                                                                                                                        |
-| 9   | Backups restore                                           | Fixed L-7 (local restore of a real export, row for row). Live restore: owner checklist 17.                                                                                                                                                                                                                                                                                   |
-| 10  | Data and rights                                           | Delete removes the comment with name and email (`admin.test.ts`); logs carry fixed events only; robots, tdmrep and headers refuse AI-training crawlers and allow search engines (QA rights suite, production mode in CI). EU jurisdiction: in config for R2 (staging, preview); D1 and the dashboard, owner checklist 12–13.                                                 |
-| 11  | Cloudflare dashboard                                      | Owner checklist 16. In config: production `workers_dev: false`, `preview_urls: false`.                                                                                                                                                                                                                                                                                       |
+| #   | Check                                                     | Result                                                                                                                                                                                                                                                                                                                                                                                |
+| --- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Headers and CSP on every response type; injection blocked | Pass. Pages, 404, redirects (now also the `//host` 307), API 303/400/403/405/422/429 and JSON, admin 403, feeds, sitemap, robots, tdmrep, security.txt, fonts, images (`tests/e2e/qa/security.spec.ts`, `ops.test.ts`). Chromium blocks an injected inline script, a third-party script, image and request, each with a `securitypolicyviolation` (same suite, run locally).          |
+| 2   | Forms: fuzz, rate limit, replay, CSRF on /admin/action    | Pass after L-6. 16 payload kinds in every field of both forms, no 5xx, stored text = cleaned input, no line break in an address (`audit.test.ts`); limit shared by both forms; replay I-1; CSRF bound to the Access user, form and CSRF tokens not interchangeable.                                                                                                                   |
+| 3   | /admin unreachable without a valid Access JWT             | Pass. 28 spellings (case, `%2f`, `%61`, dot segments, `//`, `\`, `.html`, `;`, `%00`) and every method end at 403 or a page with nothing of /admin; forged, wrong-audience and empty tokens 403. Local `pnpm preview` answers 403 too (no bypass).                                                                                                                                    |
+| 4   | Dependencies                                              | Pass after L-9. 3 runtime dependencies; install scripts only for `esbuild` and `workerd` (both allowed; other packages' `prepare` scripts do not run from the registry); 818 packages from the registry with integrity hashes; lockfile committed; every CI job uses `--frozen-lockfile`.                                                                                             |
+| 5   | Secrets                                                   | Pass. None in the tree or in any commit of any branch (pattern scan of all 145 commits; the only hit is AWS's documented example key in the SigV4 test vector). `.env*` and `.dev.vars` ignored. HMAC key, salt and App key read from Worker secrets; R2 and Cloudflare keys only as GitHub secrets (names checked). No AI or translation key anywhere.                               |
+| 6   | Accounts                                                  | Owner checklist 1–4, 21. `security.txt` present (L-8).                                                                                                                                                                                                                                                                                                                                |
+| 7   | Privacy                                                   | Fixed M-4. The site stores no raw IP (tests) and its own log lines are fixed event names, but Workers Logs' invocation logs kept every visitor's IP, user agent and country (found by the owner on staging, 2026-11-17): now off in every environment, to be re-checked on staging (owner checklist 15). Retention job tested; the notice matches (IPv6 /64 stores less).             |
+| 8   | Phone publishing                                          | Fixed M-1, M-2, L-5; uploads fuzzed (signature, size, slug, name, CSRF); the token request asks for this repository and Contents/Pull requests only. App settings, R2 privacy: owner checklist 9, 12.                                                                                                                                                                                 |
+| 9   | Backups restore                                           | Fixed L-7 (local restore of a real export, row for row). Live restore: owner checklist 17.                                                                                                                                                                                                                                                                                            |
+| 10  | Data and rights                                           | Delete removes the comment with name and email (`admin.test.ts`); the Worker's own log lines carry fixed events only, and invocation logs are off (M-4); robots, tdmrep and headers refuse AI-training crawlers and allow search engines (QA rights suite, production mode in CI). EU jurisdiction: in config for R2 (staging, preview); D1 and the dashboard, owner checklist 12–13. |
+| 11  | Cloudflare dashboard                                      | Owner checklist 16. In config: production `workers_dev: false`, `preview_urls: false`.                                                                                                                                                                                                                                                                                                |
 
 ## The additions to the brief
 
@@ -291,10 +323,16 @@ Each item: where to look, and what must be there. Items marked _launch_ are for 
    `dependabot/**`; rules **Restrict creations**, **Restrict updates**, **Restrict deletions**; bypass list
    **Repository admin**. "Protect main" stays as verified today: required check `Test` from GitHub Actions, no bypass,
    no force push, no deletion, 0 approvals.
-6. **Secrets scoped to where they deploy (M-2)** — Settings → Environments → `staging` (and `production` at launch):
-   Deployment branches **Selected branches → `main`**. Move `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` from
-   repository secrets into the `staging` and `production` environments, and give `preview` its own copy. Today all four
-   secrets are repository secrets and no environment has a rule.
+6. **The deploy token only where it deploys (M-2)** — Settings → Environments. `staging` (and `production` at
+   launch): Deployment branches **Selected branches → `main`**. `preview`: no branch rule (pull request branches
+   deploy there). Add `CLOUDFLARE_API_TOKEN` as an environment secret of `staging`, `preview` and `production`, then
+   delete the repository secret. **Everything else stays a repository secret:** `CLOUDFLARE_ACCOUNT_ID` (an identifier,
+   not a key) is read as `R2_ACCOUNT_ID` by the Test job and the full QA run after a publish, which have no environment,
+   to fetch the originals; the same jobs read `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY` (read-only, item 12); the
+   live check reads `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET`. Only the three deploy jobs read the deploy
+   token, and each names its environment, so no workflow change is needed; `tests/unit/ci-workflow.test.ts` fails if a
+   job without an environment starts reading it. _Corrected 2026-11-17: the first version also moved
+   `CLOUDFLARE_ACCOUNT_ID`, which would have broken the Test job (found by the owner)._
 7. **Actions settings** — Settings → Actions → General: fork pull request workflows "Require approval for all external
    contributors" (**on**, verified); Workflow permissions "Read repository contents" (verified); "Allow GitHub Actions to
    create and approve pull requests" **off** (verified). Recommended: Actions permissions "Allow PhilGloves, and select
@@ -323,9 +361,14 @@ Each item: where to look, and what must be there. Items marked _launch_ are for 
 13. **D1** — Workers & Pages → D1 → `philglov-staging`, `philglov-preview` (and `philglov` at launch): jurisdiction **EU**.
 14. **CI deploy token** — My Profile → API Tokens → the CI token: Workers Scripts Edit and D1 Edit on this account only;
     no zone until launch (setup.md step 12). It can deploy any Worker in the account, which is why items 5 and 6 matter.
-15. **Workers Logs** — Workers & Pages → philglov-staging → Observability → Logs: open one invocation. It must show no
-    visitor IP address, no `Cf-Access-Jwt-Assertion` and no form text. If it shows the IP or request headers, set
-    `"observability": { "enabled": true, "logs": { "invocation_logs": false } }` (a change in `wrangler.jsonc`).
+15. **Workers Logs** — _Checked by the owner on staging, 2026-11-17:_ an invocation log showed the visitor's IP address
+    (`cf-connecting-ip`, `x-real-ip`), user agent and country; Access headers and cookies redacted; no form text.
+    Fixed in `wrangler.jsonc` (M-4: invocation logs off in every environment). **Re-check after the deploy of that
+    change:** Workers & Pages → philglov-staging → Observability → Logs, from the deploy's time on: (a) no invocation
+    events (the request's own entry, with its headers) appear for new requests; (b) send a comment on staging and open
+    the `comment stored` and `notification skipped` lines: neither carries `cf-connecting-ip`, `x-real-ip`, a user
+    agent or other request headers; (c) the next daily `retention done` line still arrives. Repeat once on the preview
+    Worker, and on production after launch. If (b) shows request headers, see M-4, "What remains open".
 16. **Cloudflare zone** (_launch_) — Scrape Shield: Email Address Obfuscation **off**; Security: Bot Fight Mode **off**,
     AI training crawlers **blocked**; Web Analytics automatic setup **off**; Speed: Speed Brain **off**, Rocket Loader
     **off**; Zaraz **off**; Cloudflare Fonts **off**; DNS: **DNSSEC on**, DS record at the registrar. Workers & Pages →
@@ -345,7 +388,10 @@ Each item: where to look, and what must be there. Items marked _launch_ are for 
 ## What could not be tested from here
 
 - Anything live: Access on staging and preview URLs, the App's real permissions and installation, R2 public access and
-  jurisdiction, D1 jurisdiction, the Cloudflare dashboard toggles, Workers Logs' contents, the notification email (off).
+  jurisdiction, D1 jurisdiction, the Cloudflare dashboard toggles, Workers Logs' contents (the owner checked them:
+  M-4), the notification email (off).
+- Whether a line the Worker writes during a request carries the request's metadata in Workers Logs (M-4): Cloudflare's
+  documentation does not say; owner checklist item 15 (b).
 - A real fork pull request reading the caches (H-1) and a real App push to another branch (M-2): reasoned from GitHub's
   documented cache scope and the workflow; the guard's script was run locally against real merge commits.
 - The new guard condition and the content scope on a GitHub runner (same script, run locally in Git Bash).

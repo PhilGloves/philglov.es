@@ -55,3 +55,38 @@ test("no trigger runs a fork's code with this repository's secrets or write toke
 test("the grey stand-ins for missing originals are never asked for on GitHub", () => {
   for (const w of workflows) assert.doesNotMatch(w.text, /ALLOW_MISSING_ORIGINALS/, w.name);
 });
+
+/** Each secret the workflow reads, with the jobs that read it and the environment each job names ("" for none). */
+function secretUse(text: string): Map<string, { job: string; environment: string }[]> {
+  const use = new Map<string, { job: string; environment: string }[]>();
+  let job = "";
+  let environment = "";
+  for (const line of text.split("\n")) {
+    const j = /^ {2}([a-z-]+):$/.exec(line);
+    if (j?.[1]) [job, environment] = [j[1], ""];
+    const e = /^ {4}environment: (\S+)/.exec(line);
+    if (e?.[1]) environment = e[1];
+    for (const m of line.matchAll(/secrets\.([A-Z0-9_]+)/g))
+      use.set(m[1] ?? "", [...(use.get(m[1] ?? "") ?? []), { job, environment }]);
+  }
+  return use;
+}
+
+// Owner checklist item 6 (SECURITY-REPORT.md): CLOUDFLARE_API_TOKEN can move into the staging, preview and production
+// environments only because no job without an environment reads it. CLOUDFLARE_ACCOUNT_ID (an identifier) and the R2
+// keys are read by the Test job, which has none, so they stay repository secrets; so does the live check's Access pair.
+test("the deploy token is read only by jobs that name an environment; the Test job needs repository secrets only", () => {
+  const use = secretUse(ci);
+  const token = use.get("CLOUDFLARE_API_TOKEN") ?? [];
+  assert.ok(token.length > 0);
+  for (const { job, environment } of token) assert.notEqual(environment, "", `${job} reads the deploy token`);
+  const plain = [...use].filter(([, jobs]) => jobs.some((j) => j.environment === "")).map(([name]) => name);
+  assert.deepEqual(plain.sort(), [
+    "CF_ACCESS_CLIENT_ID",
+    "CF_ACCESS_CLIENT_SECRET",
+    "CLOUDFLARE_ACCOUNT_ID",
+    "R2_ACCESS_KEY_ID",
+    "R2_SECRET_ACCESS_KEY",
+  ]);
+  assert.ok(use.get("CLOUDFLARE_ACCOUNT_ID")?.some((j) => j.job === "test" && j.environment === ""));
+});
