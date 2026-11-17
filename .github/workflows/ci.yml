@@ -44,22 +44,26 @@ jobs:
       # Publisher pull requests auto-merge (decision 0021), so this job, the required check, proves they change
       # entry files and nothing else. Written inline on purpose: the GitHub App has no Workflows permission and
       # cannot change this file. On a pull request the checkout is the merge commit; its first parent is main, so
-      # the diff below is exactly what merging would change. Other pull requests skip it and wait for the owner.
+      # the diff below is exactly what merging would change. The App can also push to another author's branch
+      # (Contents: write), so the step runs too when the App made the push or the re-run (decision 0030). Every
+      # change must be a plain file (mode 100644): a symbolic link at an entry's path would make the build read
+      # another file. Other pull requests skip it and wait for the owner.
       - name: Publisher pull requests change entry files only
-        if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'philglov-publisher[bot]'
+        if: github.event_name == 'pull_request' && (github.event.pull_request.user.login == 'philglov-publisher[bot]' || github.actor == 'philglov-publisher[bot]' || github.triggering_actor == 'philglov-publisher[bot]')
         run: |
           git fetch --no-tags --quiet --depth=2 origin "$GITHUB_SHA"
-          changes="$(git diff --name-status --no-renames HEAD^1 HEAD)"
+          changes="$(git diff --raw --no-abbrev --no-renames HEAD^1 HEAD)"
           if [ -z "$changes" ]; then
             echo "::error::A publisher pull request must change an entry file."
             exit 1
           fi
           bad=0
-          while IFS=$'\t' read -r status path; do
-            if [[ "$status" =~ ^[AM]$ && "$path" =~ ^src/content/journal/(en|it)/[a-z0-9]+(-[a-z0-9]+)*\.md$ ]]; then
+          while IFS=$'\t' read -r meta path; do
+            read -r _ mode _ _ status <<< "$meta"
+            if [[ "$status" =~ ^[AM]$ && "$mode" == 100644 && "$path" =~ ^src/content/journal/(en|it)/[a-z0-9]+(-[a-z0-9]+)*\.md$ ]]; then
               echo "ok: $status $path"
             else
-              echo "::error::Publisher pull requests may only add or change src/content/journal/{en,it}/<slug>.md, not: $status $path"
+              echo "::error::Publisher pull requests may only add or change src/content/journal/{en,it}/<slug>.md as plain files, not: $status $mode $path"
               bad=1
             fi
           done <<< "$changes"
@@ -73,8 +77,9 @@ jobs:
         run: |
           scope=full
           if git fetch --no-tags --quiet --depth=2 origin "$GITHUB_SHA" 2>/dev/null; then
-            files="$(git diff --name-only --no-renames HEAD^1 HEAD 2>/dev/null || true)"
-            if [ -n "$files" ] && ! printf '%s\n' "$files" | grep -qvE '^src/content/journal/(en|it)/[a-z0-9]+(-[a-z0-9]+)*\.md$'; then
+            # One line per change, "<new mode> <path>": only plain files (100644) at an entry's path are content.
+            files="$(git diff --raw --no-abbrev --no-renames HEAD^1 HEAD 2>/dev/null | sed -E 's/^:[0-7]+ ([0-7]+) [^\t]*\t/\1 /' || true)"
+            if [ -n "$files" ] && ! printf '%s\n' "$files" | grep -qvE '^100644 src/content/journal/(en|it)/[a-z0-9]+(-[a-z0-9]+)*\.md$'; then
               scope=content
             fi
           fi
@@ -104,16 +109,15 @@ jobs:
         if: steps.scope.outputs.scope == 'full'
         run: pnpm typecheck
 
-      # Photo originals come from the private R2 bucket; resized outputs are
-      # cached by file hash so build time grows only with new photos.
-      - name: Restore photo caches
+      # Photo originals come from the private R2 bucket on every run and are never cached: in a public repository a
+      # fork's pull request can read main's caches, and originals are full size and may carry GPS (decision 0030).
+      # Only Astro's resized outputs (no metadata) are cached, keyed by the content they come from.
+      - name: Restore resized-image cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            src/.originals
-            node_modules/.astro
-          key: photos-${{ hashFiles('src/content/photos/**/photos.json', 'src/content/journal/**/*.md') }}
-          restore-keys: photos-
+          path: node_modules/.astro
+          key: astro-${{ hashFiles('src/content/photos/**/photos.json', 'src/content/journal/**/*.md') }}
+          restore-keys: astro-
       - name: Fetch photo originals from R2
         if: ${{ hashFiles('scripts/fetch-originals.ts') != '' }}
         env:
@@ -249,14 +253,13 @@ jobs:
           node-version-file: .node-version
       - run: npm install -g "pnpm@$PNPM_VERSION"
       - run: pnpm install --frozen-lockfile
-      - name: Restore photo caches
+      # Originals are fetched, never cached (see the Test job, decision 0030).
+      - name: Restore resized-image cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            src/.originals
-            node_modules/.astro
-          key: photos-${{ hashFiles('src/content/photos/**/photos.json', 'src/content/journal/**/*.md') }}
-          restore-keys: photos-
+          path: node_modules/.astro
+          key: astro-${{ hashFiles('src/content/photos/**/photos.json', 'src/content/journal/**/*.md') }}
+          restore-keys: astro-
       - name: Fetch photo originals from R2
         if: ${{ hashFiles('scripts/fetch-originals.ts') != '' }}
         env:
@@ -441,14 +444,13 @@ jobs:
           node-version-file: .node-version
       - run: npm install -g "pnpm@$PNPM_VERSION"
       - run: pnpm install --frozen-lockfile
-      - name: Restore photo caches
+      # Originals are fetched, never cached (see the Test job, decision 0030).
+      - name: Restore resized-image cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            src/.originals
-            node_modules/.astro
-          key: photos-${{ hashFiles('src/content/photos/**/photos.json', 'src/content/journal/**/*.md') }}
-          restore-keys: photos-
+          path: node_modules/.astro
+          key: astro-${{ hashFiles('src/content/photos/**/photos.json', 'src/content/journal/**/*.md') }}
+          restore-keys: astro-
       - name: Fetch photo originals from R2
         if: ${{ hashFiles('scripts/fetch-originals.ts') != '' }}
         env:
