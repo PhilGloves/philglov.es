@@ -68,6 +68,28 @@ describe("with a valid Access token", () => {
     expect(html).toMatch(/<link rel="stylesheet" href="\/_assets\/[^"]+\.css"/);
   });
 
+  // Security audit (decision 0030): an address the form accepts can carry ?cc=…&body=…, which a mail client reads as
+  // extra recipients and text; and a report's page address is text the visitor chose.
+  test("addresses a visitor typed become plain mailto: links and same-site links only", async () => {
+    const { slug } = await twinEntry();
+    await insertComment({ slug, status: "pending", email: "x@b.co?cc=y%40evil.example&body=hi" });
+    await env.DB.prepare(
+      "INSERT INTO reports (page_url, message, email, created_at, status) VALUES ('/missing', 'x', 'r@b.co?bcc=z%40evil.example', 1, 'open')",
+    ).run();
+    // A row stored before sitePath refused such paths is shown as text, never as a link to another host.
+    await env.DB.prepare(
+      "INSERT INTO reports (page_url, message, created_at, status) VALUES ('//evil.example/x', 'y', 2, 'open')",
+    ).run();
+    const html = await (await adminFetch("/admin")).text();
+    const mailtos = [...html.matchAll(/href="mailto:([^"]*)"/g)].map((m) => m[1] ?? "");
+    expect(mailtos.length).toBeGreaterThanOrEqual(2);
+    for (const to of mailtos) expect(to).not.toMatch(/[?&#]/);
+    expect(mailtos).toContain("x@b.co%3Fcc=y%2540evil.example%26body=hi");
+    expect(html).toContain('<a href="/missing">/missing</a>');
+    expect(html).toContain("//evil.example/x");
+    expect(html).not.toMatch(/href="\/\/evil\.example/);
+  });
+
   test("a change needs the CSRF token of this user", async () => {
     const { slug } = await twinEntry();
     const id = await insertComment({ slug, status: "pending" });

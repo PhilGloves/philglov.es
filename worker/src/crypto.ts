@@ -49,10 +49,32 @@ export async function sha256Hex(text: string): Promise<string> {
   return Array.from(digest, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** The visitor's address as a salted hash; the raw IP is never stored or logged. */
+/**
+ * The part of an address that names one connection: an IPv4 address whole; for IPv6 its first 64 bits, because a
+ * home or cloud connection is given a whole /64 and can change the rest at will, which would reset the rate limit on
+ * every request (security audit, decision 0030). An IPv4-mapped IPv6 address is its IPv4 address.
+ */
+export function addressKey(ip: string): string {
+  const address = ip.trim().toLowerCase().split("%")[0] ?? "";
+  if (!address.includes(":")) return address;
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(address);
+  if (mapped?.[1]) return mapped[1];
+  const halves = address.split("::");
+  if (halves.length > 2) return address;
+  const left = halves[0] ? halves[0].split(":") : [];
+  const right = halves[1] ? halves[1].split(":") : [];
+  const missing = halves.length === 2 ? Math.max(0, 8 - left.length - right.length) : 0;
+  const groups = [...left, ...Array<string>(missing).fill("0"), ...right];
+  return `${groups
+    .slice(0, 4)
+    .map((g) => g.replace(/^0+(?=.)/, ""))
+    .join(":")}::/64`;
+}
+
+/** The visitor's address (its /64 for IPv6) as a salted hash; the raw IP is never stored or logged. */
 export function ipHash(request: Request, salt: string): Promise<string> {
   const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
-  return sha256Hex(`${salt}:${ip}`);
+  return sha256Hex(`${salt}:${addressKey(ip)}`);
 }
 
 export function randomId(): string {

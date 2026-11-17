@@ -325,7 +325,8 @@ export const WRITE_SCRIPT = String.raw`"use strict";
     Array.prototype.forEach.call(e.target.files, function (file) {
       if (file.size > maxSize) { say(file.name + " is over 25 MB."); return; }
       var base = file.name.replace(/\.[a-z0-9]{1,5}$/i, "");
-      add({ file: file, slug: slug.value, name: slugify(base || "photo") + "-" + Math.random().toString(36).slice(2, 6) });
+      // The Worker adds the random end and never replaces a stored photo (decision 0030).
+      add({ file: file, slug: slug.value, name: slugify(base || "photo") });
     });
     e.target.value = "";
     next();

@@ -8,7 +8,7 @@
 import { ipHash } from "./crypto.ts";
 import { log } from "./log.ts";
 import { withHeaders } from "./headers.ts";
-import { entryFor, langOfPath, manifest, pathFor, type Lang } from "./manifest.ts";
+import { entryFor, langOfPath, manifest, pathFor, type Lang, type Manifest } from "./manifest.ts";
 import { notify } from "./notify.ts";
 import {
   failureReply,
@@ -160,7 +160,8 @@ export async function handleReport(request: Request, env: Env, ctx: ExecutionCon
   if (!pagePath) return plain(env, 400, "Bad request");
   // A report may come from any page; a path we cannot serve falls back to that language's home.
   const site = await manifest(env);
-  const known = await env.ASSETS.fetch(new Request(new URL(pagePath, request.url), { method: "HEAD" }));
+  const origin = new URL(request.url).origin;
+  const known = await env.ASSETS.fetch(new Request(`${origin}${pagePath}`, { method: "HEAD" }));
   const path = known.ok ? pagePath : langOfPath(pagePath) === "it" ? "/it" : "/";
 
   const input = readReport(form);
@@ -193,7 +194,16 @@ export async function handleReport(request: Request, env: Env, ctx: ExecutionCon
     .bind(pagePath, input.message, input.email || null, Date.now(), hash)
     .run();
   log("report stored");
-  const title = site.entries.find((e) => e.path === pagePath)?.title ?? pagePath;
-  ctx.waitUntil(notify(env, "report", title));
+  ctx.waitUntil(notify(env, "report", reportTitle(site, pagePath, known.ok)));
   return done(request, env, form, path, "report");
+}
+
+/**
+ * What the notification calls the page a report is about: an entry's title, or the address of a page the site has.
+ * A missing address is text the visitor chose (up to 300 characters), so the email never quotes it: the brief allows
+ * only the page title there, and /admin shows the address (security audit, owner decision 2026-11-17, 0030).
+ */
+export function reportTitle(site: Manifest, pagePath: string, exists: boolean): string {
+  if (!exists) return "a missing address";
+  return site.entries.find((e) => e.path === pagePath)?.title ?? pagePath;
 }

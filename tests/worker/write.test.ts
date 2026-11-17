@@ -47,14 +47,32 @@ describe("photo upload", () => {
     expect(sniff(new TextEncoder().encode("<svg onload=alert(1)>"))).toBeNull();
   });
 
-  test("a JPEG goes to philglov-originals/<slug>/ with a safe name", async () => {
+  test("a JPEG goes to philglov-originals/<slug>/ with a safe name and a random end", async () => {
     const res = await put("alps", "IMG 2041 (1).HEIC.jpg", JPEG);
     expect(res.status).toBe(200);
     const { key } = await res.json<{ key: string }>();
-    expect(key).toBe("alps/img-2041-1-heic.jpg");
+    expect(key).toMatch(/^alps\/img-2041-1-heic-[a-z0-9]{4}\.jpg$/);
     const object = await env.ORIGINALS.get(key);
     expect(object?.httpMetadata?.contentType).toBe("image/jpeg");
     expect(new Uint8Array((await object?.arrayBuffer()) ?? new ArrayBuffer(0))).toEqual(JPEG);
+  });
+
+  // Security audit (decision 0030): the name comes from the request, so a chosen name must never replace a photo
+  // already stored, such as one a published entry shows (it would change on the next build, with no pull request).
+  test("an upload never replaces a stored photo, whatever name it asks for", async () => {
+    await env.ORIGINALS.put("alps/published.jpg", JPEG);
+    const keys = new Set<string>();
+    for (const name of ["published.jpg", "published", "published.jpg"]) {
+      const res = await put("alps", name, PNG);
+      expect(res.status).toBe(200);
+      const { key } = await res.json<{ key: string }>();
+      expect(key).not.toBe("alps/published.jpg");
+      expect(key).toMatch(/^alps\/published-[a-z0-9]{4}\.png$/);
+      keys.add(key);
+    }
+    expect(keys.size).toBe(3);
+    const kept = await env.ORIGINALS.get("alps/published.jpg");
+    expect(new Uint8Array((await kept?.arrayBuffer()) ?? new ArrayBuffer(0))).toEqual(JPEG);
   });
 
   test("a GIF named .jpg is refused", async () => {
