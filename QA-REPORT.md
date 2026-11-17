@@ -4,6 +4,30 @@ Written 2026-11-15 by the QA agent, on the build of `main` at the merge of pull 
 run against the local Worker (`pnpm preview`) on Windows 11. How the suites are built and run: decision
 [0022](docs/decisions/0022-qa-matrix.md). The bugs, in the brief's format: [docs/qa/bug-reports.md](docs/qa/bug-reports.md).
 
+## Update, 2026-11-17 (round 3 follow-up: two tests that could not be trusted)
+
+Tests only; the site is unchanged. Decision [0022](docs/decisions/0022-qa-matrix.md), "Round 3, follow-up".
+
+- **The prefers-contrast check on the Send button** (`/lisbona`, 1440 px, 6.71:1) failed once in a full run. Cause, reproduced
+  at 9 of 144 loads: on some loads a style update runs before the stylesheet is applied, and the button, the inputs and the
+  header controls then ease from the browser's grey to their colours over 150 ms (the body over 250 ms); axe read a frame of the
+  ease. Fixed by emulating reduced motion in the two prefers-contrast tests (**9 of 144 failures became 0 of 144** on the same
+  stress) and by `transitionsDone`, which waits for running transitions and is also used in the body-text and print-background
+  checks; the helper has a control test. The helper alone still missed 0 to 5 of 144 in my stress probe, so reduced motion is
+  what makes it deterministic. The site's own behaviour (a visitor may see a 150 ms fade from grey) is recorded as OBS-1 in
+  `docs/qa/bug-reports.md` and not changed.
+- **The write page's "does not scroll sideways" phone test could not fail** (it compared with `innerWidth`, which widens with
+  the content under phone emulation). It compares with the 390 px the test set, in both places. With a 900 px table put into
+  the admin page on purpose, the test fails (526 px too wide); a control test keeps the proof (a 700 px element is seen by the
+  new measure and not by the old).
+- **Totals, three runs in a row, Chromium JavaScript on and off, final code: 768 passed, 0 failed, 0 flaky, 96 skipped by
+  design each (6.2, 6.2 and 6.7 minutes).** Round 3 ended at 761; two of the seven added are the control tests here, the other
+  five came in with `main` since. Worker tests 200 passed, unit 149 passed, lint, format, typecheck and html-validate clean.
+- **Disclosed:** the first full run of this round had one failure, a click in `forms.spec.ts` that reported 3.5 hours and
+  timed out at 60 s: the machine stalled (it has done so before, see the update below). It is not one of the three runs
+  counted above, it was not retried quietly, and I cannot prove the stall was the only cause. Firefox cannot start on this
+  machine (the same 8 smoke tests fail here as before and run in CI); WebKit passes.
+
 ## Update, 2026-11-16 (round 3: the tests themselves)
 
 An independent review found tests that could not fail, budgets with no assertion and requirements with no test

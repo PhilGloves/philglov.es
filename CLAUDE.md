@@ -152,6 +152,11 @@ WAY OF WORKING
   Lighthouse SEO ≥ 95 on the production build (`pnpm test:lighthouse:seo`) are asserted; AAA on all of `<main>`; 44 px
   navigation, focus at 390/1024/1440, `prefers-contrast` are tested; visual baselines regenerated and compared **exactly**;
   no expected-failure marker remains; `/404` answering 200 is accepted (BUG-8). Matrix: 761 passed, 3 runs in a row.
+- 2026-11-17: round 3 follow-up ([0022](docs/decisions/0022-qa-matrix.md) "Round 3, follow-up"): a test that reads a drawn
+  colour after `goto` must call `transitionsDone(page)` (`tests/e2e/qa/lib.ts`), and the prefers-contrast checks emulate
+  reduced motion, because the buttons, inputs and header controls can still be easing from the browser's grey (150 ms) when
+  the page has loaded (OBS-1 in `docs/qa/bug-reports.md`); the phone "nothing scrolls sideways" check compares with the
+  set viewport width, never `innerWidth`. Matrix: 768 passed, 3 runs in a row.
 - 2026-11-16: the other language from the phone ([0029](docs/decisions/0029-write-the-other-language.md), `TICKETS.md`
   W1–W5): `/admin/write` lists one row per entry, a missing language being "Write the Italian version"; that form has
   the slug fixed, the same photos by the same keys (alt text and captions empty, the other version's as hints) and the

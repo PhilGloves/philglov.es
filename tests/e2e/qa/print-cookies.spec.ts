@@ -7,7 +7,7 @@
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { builtPages, readBuilt } from "./lib.ts";
+import { builtPages, readBuilt, transitionsDone } from "./lib.ts";
 
 const entries = ["en", "it"].flatMap((l) =>
   readdirSync(new URL(`../../../src/content/journal/${l}/`, import.meta.url))
@@ -26,6 +26,7 @@ for (const path of entries) {
     await expect(page.locator("h1")).toBeVisible();
     const text = await page.locator("main").innerText();
     expect(text.length, "the entry text prints").toBeGreaterThan(100);
+    await transitionsDone(page);
     const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     expect(
       ["rgb(255, 255, 255)", "rgba(0, 0, 0, 0)", "rgb(251, 251, 248)"],

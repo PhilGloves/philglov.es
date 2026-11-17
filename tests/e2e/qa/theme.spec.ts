@@ -9,6 +9,7 @@
  * Without JavaScript there is no toggle and no stored choice: the system preference is all there is.
  */
 import { expect, test, type Page } from "@playwright/test";
+import { transitionsDone } from "./lib.ts";
 
 /** Background colours from the tokens (docs/design, tokens.css): near-white and #141513. */
 const BG = { light: "rgb(251, 251, 248)", dark: "rgb(20, 21, 19)" } as const;
@@ -223,6 +224,7 @@ test("text keeps its contrast in both themes: body text in the page is AAA again
   for (const scheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme: scheme });
     await page.goto("/lisbona");
+    await transitionsDone(page); // the body eases its colours over 250 ms; read what it settles on
     const ratio = await page.evaluate(() => {
       const channel = (v: number) => {
         const s = v / 255;

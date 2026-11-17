@@ -6,7 +6,7 @@
  * tested (the sitemap suite then fails for it). Run `pnpm build` first.
  */
 import { readdirSync, readFileSync } from "node:fs";
-import type { Page, Request, Response } from "@playwright/test";
+import { expect, type Page, type Request, type Response } from "@playwright/test";
 
 export const dist = new URL("../../../dist/", import.meta.url);
 
@@ -164,6 +164,27 @@ export async function settle(page: Page, seen: Watch): Promise<string[]> {
       if (img.currentSrc !== "" && img.complete && img.naturalWidth === 0) out.push(`image broken: ${img.currentSrc}`);
     return out;
   });
+}
+
+/**
+ * Wait until no CSS transition is running, so a colour read from the page is the colour the page settles on.
+ *
+ * Why (round 3 follow-up, decision 0022): on some loads, mostly on a busy machine, a style update happens before the
+ * stylesheet has been applied, so the Send button, the inputs and the header controls first have the browser's own grey
+ * (`rgb(240, 240, 240)`) and then ease to their real colour over 150 ms (`--dur-fast`), the body over 250 ms. A test that
+ * read a colour right after `goto` (axe's AAA contrast rule did, on the Send button at 1440 px: 6.71:1 against #4d6027,
+ * a frame of the ease from grey to #4a5d23) failed once in 860 and passed alone. Call this after `goto` and before any test
+ * that reads a drawn colour. It polls from the test, not from the page, so it also works with JavaScript off; it waits on
+ * the transitions themselves, never for a fixed time, and fails (it does not skip) if one never ends.
+ */
+export async function transitionsDone(page: Page): Promise<void> {
+  await expect
+    .poll(() => page.evaluate(() => document.getAnimations().filter((a) => a instanceof CSSTransition).length), {
+      message: "a CSS transition is still running",
+      intervals: [25, 50, 100],
+      timeout: 5_000,
+    })
+    .toBe(0);
 }
 
 /** Horizontal overflow of the page in px (0 or less is fine). */

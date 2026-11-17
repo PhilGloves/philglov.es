@@ -33,6 +33,17 @@ test.afterEach(async () => {
 
 const write = (page: Page) => page.goto(`${admin.origin}/admin/write`);
 
+/**
+ * How far the page is wider than the phone, in px (0 or less is fine). It compares with the viewport the test set, 390 px,
+ * not with `innerWidth`: with `isMobile` the layout viewport widens to fit the content, so `scrollWidth - innerWidth` is 0
+ * for a page of any width and the check could not fail (round 3 follow-up, decision 0022).
+ */
+const sidewaysOverflow = async (page: Page) => {
+  const width = page.viewportSize()?.width ?? 0;
+  expect(width, "the phone's width is known").toBeGreaterThan(0);
+  return (await page.evaluate(() => document.documentElement.scrollWidth)) - width;
+};
+
 test("without Access the page, the upload and a post answer 403 (the real Worker, no token)", async ({
   request,
   baseURL,
@@ -55,11 +66,27 @@ test("without Access the page, the upload and a post answer 403 (the real Worker
   }
 });
 
+test("the sideways check can fail: a page made too wide on purpose is caught, and `innerWidth` would not have caught it", async ({
+  page,
+}) => {
+  await write(page);
+  expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
+  await page.evaluate(() => {
+    const wide = document.createElement("div");
+    wide.style.inlineSize = "700px";
+    wide.style.blockSize = "1px";
+    document.body.append(wide);
+  });
+  expect(await sidewaysOverflow(page), "the new measure sees a 700 px element").toBeGreaterThan(300);
+  // The old measure: the layout viewport widened with the content, so it stayed at 0 or less.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+});
+
 test("every control works by touch, reaches by keyboard, is at least 24 px, and nothing scrolls sideways", async ({
   page,
 }, testInfo) => {
   await write(page);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+  expect(await sidewaysOverflow(page), "the write page is wider than the phone").toBeLessThanOrEqual(0);
   const controls = page.locator(
     "main form#write-form input:not([type=hidden]), main form#write-form textarea, main form#write-form select, main form#write-form button",
   );
@@ -389,7 +416,7 @@ test("the other-language version, from the entry's row: its own file, the same p
   await expect(page.locator("#reference pre")).toContainText("lang: en");
   // The reference text has long lines (the photo paths): they wrap, so the page stays 390 px wide (with isMobile the
   // layout viewport would widen to fit, so innerWidth is no measure).
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  expect(await sidewaysOverflow(page), "the reference text widens the page").toBeLessThanOrEqual(0);
   await page.fill("#w-title", "Foto, in italiano");
   await page.fill("#w-desc", "La mia versione.");
   await page.fill("#w-body", "Testo scritto a mano.");

@@ -8,7 +8,7 @@
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
-import { builtPages, readBuilt, THEMES } from "./lib.ts";
+import { builtPages, readBuilt, THEMES, transitionsDone } from "./lib.ts";
 
 const axeSource = readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 
@@ -70,13 +70,15 @@ for (const theme of THEMES) {
     const problems: string[] = [];
     for (const path of CONTRAST_PAGES) {
       // Without the preference the tokens differ (so the check below is not vacuous) ...
-      await page.emulateMedia({ colorScheme: theme, contrast: "no-preference" });
+      await page.emulateMedia({ colorScheme: theme, contrast: "no-preference", reducedMotion: "reduce" });
       await page.goto(path);
+      await transitionsDone(page);
       const normal = await tokens(page);
       expect(normal.muted, `${path} ${theme}: muted differs from text normally`).not.toBe(normal.text);
       expect(normal.rule, `${path} ${theme}: rule differs from text normally`).not.toBe(normal.text);
       // ... and with it they are the text colour, and what is drawn follows.
-      await page.emulateMedia({ colorScheme: theme, contrast: "more" });
+      await page.emulateMedia({ colorScheme: theme, contrast: "more", reducedMotion: "reduce" });
+      await transitionsDone(page);
       const more = await tokens(page);
       if (more.muted !== more.text) problems.push(`${path}: --muted ${more.muted} is not --text ${more.text}`);
       if (more.rule !== more.text) problems.push(`${path}: --rule ${more.rule} is not --text ${more.text}`);
@@ -103,7 +105,10 @@ for (const theme of THEMES) {
     test.skip(!javaScriptEnabled, "axe-core runs on timers, which do not fire with JavaScript off");
     test.setTimeout(90_000);
     const found: string[] = [];
-    await page.emulateMedia({ colorScheme: theme, contrast: "more" });
+    // Reduced motion: the ease on the Send button, the inputs and the body (150 and 250 ms) is 0 ms, so axe never reads a frame
+    // of it. Measured: 9 of 144 loads of /lisbona at 1440 px read the button at 5.9 to 6.7:1 without it, 0 of 144 with it.
+    // The settled colours are the same; `transitionsDone` below is the second guard, and the tokens test says they are.
+    await page.emulateMedia({ colorScheme: theme, contrast: "more", reducedMotion: "reduce" });
     for (const path of CONTRAST_PAGES) {
       for (const width of [1440, 390]) {
         await page.setViewportSize({ width, height: 900 });
@@ -152,6 +157,30 @@ for (const theme of THEMES) {
     ).not.toBe("none");
   });
 }
+
+// Control for `transitionsDone`: it must wait for a real transition, or the wait above proves nothing. A theme change starts
+// the Send button's 150 ms ease; a colour read at once is a frame of it, and the one read after the wait is the final one.
+test("transitionsDone waits for a running colour transition, and the colour read after it is the settled one", async ({
+  page,
+  javaScriptEnabled,
+}) => {
+  test.skip(!javaScriptEnabled, "the theme switch is set by a script here");
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/lisbona");
+  await transitionsDone(page);
+  const send = page.locator("#comment-form button[type=submit]");
+  const colour = () => send.evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(await colour()).toBe("rgb(74, 93, 35)"); // --accent, light
+  // Start the ease and read in the same turn: no frame has passed, but the transition is registered.
+  const started = await page.evaluate(() => {
+    document.documentElement.dataset["theme"] = "dark";
+    return document.getAnimations().filter((a) => a instanceof CSSTransition).length;
+  });
+  expect(started, "a transition started").toBeGreaterThan(0);
+  await transitionsDone(page);
+  expect(await colour(), "after the wait: --accent, dark").toBe("rgb(169, 191, 120)");
+});
 
 // BUG-8, the `/404` half, closed as ACCEPTED by the owner (round 3, decision 0022): a request for `/404` itself answers
 // 200 with the not-found page. It is not a soft 404 that search engines can find: the page says noindex in its markup and

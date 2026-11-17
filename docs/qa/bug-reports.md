@@ -169,3 +169,17 @@ until the owner answers O1 (visible `[placeholder]` text on the pages, `sameAs` 
   wording or message still fails. The WebKit smoke tests leave out only that message (`ignoreConsole` in `qa/lib.ts`).
 - **Related, not a bug:** WebKit upgrades subresources of an `http` page to `https` even on `127.0.0.1` (CSP
   `upgrade-insecure-requests`), so `pnpm preview` shows no styles in Safari; production is `https`.
+
+## OBS-1 · At load, form controls and header controls may ease in from the browser's grey — OBSERVATION, not changed (round 3 follow-up)
+
+- **Seen:** while finding why the prefers-contrast check on the Send button failed once (decision 0022, "Round 3,
+  follow-up"). On some loads, mostly under load, the page gets a style update before the stylesheet is applied, and when it
+  is, `transitionrun` fires at about 60 ms (document still `interactive`) for the `.btn` background (from `rgb(240, 240, 240)`),
+  the inputs' and textareas' borders, the header controls' colour and the body. They ease over 150 and 250 ms.
+- **Measured:** 9 of 144 loads of `/lisbona` (12 browsers at once, 1440 px after a 390 px page, both themes).
+- **Not known:** whether a person would see it. Chromium holds the first paint until the stylesheet is in, so the first
+  frame may already be a frame of the ease. Not checked by eye; the tests only read colours.
+- **Why it is not a bug here:** the brief for this round is tests only. If the owner wants it gone, one option is to let these
+  transitions apply only after load (a class added once the page has loaded) or only on `:hover` and `:focus-visible`;
+  either is a site change.
+- **Test side:** fixed (reduced motion in the contrast checks, and `transitionsDone`).
