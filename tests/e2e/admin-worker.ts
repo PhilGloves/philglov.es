@@ -9,10 +9,13 @@
  * database: the real migrations on Node's built-in SQLite (node:sqlite) behind the few D1 calls the admin makes.
  * GitHub (for /admin/write) is a small stand-in like the one in vitest.config.ts: it reads entry files from this
  * checkout, records what the Worker writes, and lists the open pull requests a test sets. R2 is a stand-in that has
- * every photo. The stylesheet and entries.json come from dist/, so run `pnpm build` first.
+ * the photos the checkout's entries show and what the Worker uploads during the test (the upload endpoint never writes
+ * over a stored key, decision 0030, so a stand-in that had every key would leave it no free name). The stylesheet and
+ * entries.json come from dist/, so run `pnpm build` first.
  */
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
+import { entryKeys } from "../../scripts/lib/photo-keys.ts";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
@@ -180,6 +183,15 @@ export async function serveAdmin(): Promise<Admin> {
     .sort())
     db.exec(readFileSync(new URL(file, migrations), "utf8"));
   github = { pulls: [], calls: [] };
+  // What the originals bucket holds at the start: every photo an entry in this checkout shows.
+  const journal = new URL("../../src/content/journal/", import.meta.url);
+  const stored = new Set(
+    readdirSync(journal).flatMap((lang) =>
+      readdirSync(new URL(`${lang}/`, journal))
+        .filter((file) => file.endsWith(".md"))
+        .flatMap((file) => entryKeys(readFileSync(new URL(`${lang}/${file}`, journal), "utf8"))),
+    ),
+  );
   const env = {
     SITE_ENV: "local",
     ACCESS_TEAM_DOMAIN: TEAM,
@@ -190,10 +202,11 @@ export async function serveAdmin(): Promise<Admin> {
     DB: d1(db),
     ASSETS: { fetch: async (request: Request) => fromDist(new URL(request.url).pathname) },
     ORIGINALS: {
-      head: async () => ({}),
-      // The upload endpoint streams the photo into R2; read it all, as R2 would, and keep nothing.
-      put: async (_key: string, body: ReadableStream | null) => {
+      head: async (key: string) => (stored.has(key) ? {} : null),
+      // The upload endpoint streams the photo into R2; read it all, as R2 would, and keep only its key.
+      put: async (key: string, body: ReadableStream | null) => {
         if (body) await new Response(body).arrayBuffer();
+        stored.add(key);
         return {};
       },
     },
