@@ -30,7 +30,12 @@
       "!/.well-known/*",
     ],
   },
-  "observability": { "enabled": true },
+  // Workers Logs keep the Worker's own lines (worker/src/log.ts: fixed event names, never request data). Invocation
+  // logs are off: on staging they held the visitor's IP address (cf-connecting-ip, x-real-ip), user agent and country,
+  // which the privacy notice rules out (decision 0030, SECURITY-REPORT.md item 15). Every environment inherits this
+  // block whole; an environment that sets its own `observability` must repeat `invocation_logs: false`
+  // (tests/unit/wrangler-config.test.ts).
+  "observability": { "enabled": true, "logs": { "invocation_logs": false } },
   // keep_names off: nothing relies on Function.name, and it keeps the bundle small.
   "keep_names": false,
   // Daily retention at 03:00 UTC, weekly backup on Monday 04:00 UTC (B6, B9). Not inherited: repeated per env.

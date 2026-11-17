@@ -399,7 +399,10 @@ back to philglov.es (docs/guide.md, "Off-site checklist").
 ### 18. Uptime and alerts
 
 A free external checker (UptimeRobot or similar) loads `/` and one entry every 5 minutes. Workers Logs are on
-(`observability` in `wrangler.jsonc`) and hold only fixed event names from `worker/src/log.ts`, never form data.
+(`observability` in `wrangler.jsonc`) for the Worker's own lines, fixed event names from `worker/src/log.ts`, never form
+data. Their invocation logs (one per request, with the request's headers) are off in every environment: on staging they
+held visitors' IP addresses (decision 0030, `SECURITY-REPORT.md` M-4). After the deploy, re-check as in the report's
+owner checklist item 15.
 
 Error alert (B10): dashboard → **Notifications** → Add, and pick the alert type for Worker errors that your plan lists,
 for the `philglov` Worker. The backend agent could not check from the repository which types the Free plan offers;

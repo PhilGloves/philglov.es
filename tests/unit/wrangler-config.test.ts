@@ -25,3 +25,19 @@ test("notifications stay off and Access stays unconfigured until the owner sets 
     assert.match(env.vars["ACCESS_TEAM_DOMAIN"] ?? "", /^[a-z0-9-]+\.cloudflareaccess\.com$/, name);
   }
 });
+
+// Owner checklist item 15 (SECURITY-REPORT.md, decision 0030): Workers Logs' invocation logs on staging held the
+// visitor's IP address (cf-connecting-ip, x-real-ip), user agent and country, which the privacy notice rules out.
+// They are off; the Worker's own lines (worker/src/log.ts) stay. Each environment is resolved with wrangler's own
+// reader, so an environment that sets its own `observability` (which replaces the top-level one whole) is caught.
+test("every environment keeps Workers Logs for the Worker's own lines and has invocation logs off", async () => {
+  const { unstable_readConfig } = await import("wrangler");
+  const path = new URL("../../wrangler.jsonc", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+  for (const env of [undefined, ...Object.keys(config().env)]) {
+    const resolved = unstable_readConfig({ config: path, env }, { hideWarnings: true });
+    const name = env ?? "top level";
+    assert.equal(resolved.observability?.enabled, true, `${name}: the Worker's own log lines are kept`);
+    assert.equal(resolved.observability?.logs?.invocation_logs, false, `${name}: invocation logs are off`);
+  }
+  assert.deepEqual(Object.keys(config().env).sort(), ["preview", "production", "staging"]);
+});

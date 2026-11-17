@@ -65,6 +65,22 @@ holds what changed and why. The owner decided four points on 2026-11-17 (marked 
     Remove each override once the packages that bring them ask for a fixed version (get-uri 8.0.2 already does, but was
     younger than `minimumReleaseAge`).
 
+## Follow-up after the owner's checks (2026-11-17)
+
+11. **Invocation logs off** (owner request). On staging, Workers Logs' invocation logs held the visitor's IP address
+    (`cf-connecting-ip`, `x-real-ip`), user agent and country, which the privacy notice rules out (M-4 in the report).
+    `wrangler.jsonc` now has `"observability": { "enabled": true, "logs": { "invocation_logs": false } }` at the top
+    level. `observability` is inheritable: an environment without its own takes the top-level block whole, and none has
+    its own, so staging, preview and production all get it; an environment that ever sets its own must repeat the line.
+    `tests/unit/wrangler-config.test.ts` resolves each environment with wrangler's reader. The Worker's own lines stay;
+    some are written during a visitor's request (form outcomes, failures), and whether Cloudflare attaches request
+    metadata to them is for the owner's re-check on staging. If it does, the next step is to log during requests no
+    more (a code change, a new decision).
+12. **Owner checklist item 6 corrected** (no code change). Only `CLOUDFLARE_API_TOKEN` moves into the `staging`,
+    `preview` and `production` environments. `CLOUDFLARE_ACCOUNT_ID` stays a repository secret: the Test job and the full
+    QA run read it as `R2_ACCOUNT_ID` and have no environment. `tests/unit/ci-workflow.test.ts` pins that only jobs naming
+    an environment read the deploy token.
+
 ## Accepted as they are (reasons in SECURITY-REPORT.md)
 
 A form token can be sent again within 24 hours (0004: stateless; the rate limit and pre-moderation bound it). A form

@@ -175,6 +175,9 @@ WAY OF WORKING
   have a restore script (`README.md`); `/.well-known/security.txt` from `site.json` `contactEmail` (the launch gate fails
   until it is real); minimatch and basic-ftp overridden (Dependabot, dev only). The owner checklist at the end of
   `SECURITY-REPORT.md` is open. Commits from this checkout should use the GitHub no-reply address (L-10).
+- 2026-11-17: follow-up to the audit (0030, items 11–12): Workers Logs' invocation logs are off in every environment
+  (the owner found visitors' IP addresses in them on staging, M-4; re-check on staging after the deploy, checklist
+  item 15); checklist item 6 corrected: only `CLOUDFLARE_API_TOKEN` moves into environments.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -298,7 +301,11 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
   element or attribute, change its allow-list there with a test, never by skipping the check. The publisher guard
   and the content scope take plain files (mode 100644) only. An address a visitor chose (report path, email) is
   never a link off-site, a redirect, a mailto: parameter or text in the owner's email. Upload keys get their random
-  end from the Worker, which never writes over a stored object. Rate limits key IPv6 by /64 (`addressKey`).
+  end from the Worker, which never writes over a stored object. Rate limits key IPv6 by /64 (`addressKey`). Workers
+  Logs' invocation logs stay off (`observability.logs.invocation_logs: false`; they held visitors' IP addresses): an
+  environment that sets its own `observability` replaces the top-level block and must repeat it. Only
+  `CLOUDFLARE_API_TOKEN` may move into GitHub environments; the Test job reads `CLOUDFLARE_ACCOUNT_ID` and the R2 keys
+  as repository secrets (`tests/unit/wrangler-config.test.ts`, `ci-workflow.test.ts`).
 - Never log names, emails, comment text or IP addresses. The Worker logs only through `worker/src/log.ts` (fixed
   event names). Never put personal data in a URL: Workers Logs record URLs.
 - Worker output: text into pages only via `Parts`/HTMLRewriter `html: false`; admin markup only via the escaping
