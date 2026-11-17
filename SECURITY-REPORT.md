@@ -332,7 +332,11 @@ Each item: where to look, and what must be there. Items marked _launch_ are for 
    live check reads `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET`. Only the three deploy jobs read the deploy
    token, and each names its environment, so no workflow change is needed; `tests/unit/ci-workflow.test.ts` fails if a
    job without an environment starts reading it. _Corrected 2026-11-17: the first version also moved
-   `CLOUDFLARE_ACCOUNT_ID`, which would have broken the Test job (found by the owner)._
+   `CLOUDFLARE_ACCOUNT_ID`, which would have broken the Test job (found by the owner)._ _Done for staging and preview,
+   2026-11-17 (read from the repository settings): the token is a secret of those two environments only, narrowed to
+   Workers Scripts Edit and D1 Edit, and `staging` deploys from `main` only. Production at launch gets a token of its
+   own (`docs/setup.md`, steps 12 and 16). Dependabot secrets still lack `CLOUDFLARE_ACCOUNT_ID`, which a Dependabot
+   pull request's build needs to fetch the originals (`docs/setup.md`, step 5)._
 7. **Actions settings** — Settings → Actions → General: fork pull request workflows "Require approval for all external
    contributors" (**on**, verified); Workflow permissions "Read repository contents" (verified); "Allow GitHub Actions to
    create and approve pull requests" **off** (verified). Recommended: Actions permissions "Allow PhilGloves, and select

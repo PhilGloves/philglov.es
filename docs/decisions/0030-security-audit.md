@@ -56,7 +56,9 @@ holds what changed and why. The owner decided four points on 2026-11-17 (marked 
 8. **Backups can be restored.** There was no tool or procedure. `scripts/restore-backup.ts` turns a backup into SQL for
    `wrangler d1 execute` (rows checked against the schema first, one statement per line, every value a literal,
    `ON CONFLICT (id) DO NOTHING`); `README.md` has the steps, including that a comment deleted on request after the
-   backup comes back and must be deleted again. `tests/worker/ops.test.ts` restores a real backup into an empty database.
+   backup comes back and must be deleted again. _Amended 2026-11-17 (fourth opinion, A-02): the script writes the SQL
+   file itself, `node scripts/restore-backup.ts <backup.json> <restore.sql>`, as UTF-8 without a byte-order mark; a
+   `>` redirect in Windows PowerShell 5.1 wrote UTF-16, which D1 refused (`tests/unit/restore-backup.test.ts`)._ `tests/worker/ops.test.ts` restores a real backup into an empty database.
 9. **`/.well-known/security.txt`** (the guide's rules). Built from `site.json` `contactEmail`, the O1 placeholder until
    the owner answers, so one answer fills the privacy page and this file; `Expires` is 360 days after the build. The
    launch gate fails while the contact is a placeholder or `Expires` is less than 30 days ahead.

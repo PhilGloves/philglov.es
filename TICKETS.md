@@ -324,7 +324,8 @@ Three rounds, one pull request each, from `QA-REPORT.md`, `docs/qa/bug-reports.m
   - [x] TO-02 Main navigation links are 44 × 44 px on phones, words unmoved.
   - [ ] TO-03 `site.json` `portrait` (owner: the real portrait); the Person data carries it as its image and the launch
         gate fails until it is set. Code done; waits for the photograph (with O1).
-- [ ] R3 Round 3 (scope set by the owner).
+- [x] R3 Round 3, scope set by the owner: the tests themselves. _Done (decision 0022, "Round 3" and "Round 3,
+      follow-up")._
 
 ## 11 · The other language from the phone (owner request 2026-11-16, [0029](docs/decisions/0029-write-the-other-language.md))
 
