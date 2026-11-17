@@ -191,11 +191,12 @@ WAY OF WORKING
   exports removed; **photos at launch**: `scripts/copy-originals.ts` copies once what the content uses from staging's
   bucket to production's, never over an object; then `R2_ORIGINALS_BUCKET` and the read keys point at production's
   bucket, and staging and preview get `PHOTO_UPLOADS: "off"` (setup.md step 12b).
-- 2026-11-17: the launch gate sees every placeholder ([0022](docs/decisions/0022-qa-matrix.md) "Round 4"):
-  `scripts/lib/placeholders.ts` flags any bracket with "placeholder" or "segnaposto" in it and the field names
-  `[city]`, `[launch date]`, `[your contact email]`, `[la tua email di contatto]`, `[ photo ]` … in both languages, on
-  every built page (not only the sources); `pnpm test:launch` names the page and the text. Still informational on CI
-  until O1. A new placeholder shape is added to that list with a test, never as a looser pattern.
+- 2026-11-17: the launch gate sees the site's own gaps ([0022](docs/decisions/0022-qa-matrix.md) "Round 4"):
+  `scripts/lib/placeholders.ts` flags the field names (`[city]`, `[launch date]`, `[your contact email]`, `[la tua email di
+contatto]` …) and a bracket starting with "Placeholder"/"Segnaposto" on the built pages of `src/content/pages` and
+  the home page's "Based in [City]" line; `pnpm test:launch` names the page and the text. **Never journal entries, photo
+  series or their listings** (owner ruling): text an owner writes is never a gap. Still informational on CI until O1. A new
+  kind of gap is added to that list with a test, never as a looser pattern.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -258,7 +259,7 @@ pnpm validate:html               html-validate on dist/
 pnpm test:unit | test:e2e        node:test | Playwright, Chromium with JavaScript on and off (needs a build)
 E2E_SCOPE=core pnpm test:e2e       only the core suite (no tests/e2e/qa): what CI runs for entry-only changes (0022)
 pnpm test:cross | test:visual     Firefox + WebKit smoke | full-page screenshots, exact pixels, against local baselines (0022)
-pnpm test:launch                 the launch gate: fails until the owner answers O1 (every bracketed placeholder, sameAs)
+pnpm test:launch                 the launch gate: fails until the owner answers O1 (unfilled gaps on the pages and in site.json, sameAs)
 pnpm test:live                   suite 15 against LIVE_URL (CF_ACCESS_CLIENT_ID/_SECRET while staging is behind Access)
 pnpm qa | qa:production          the whole QA run (3 e2e repeats, Firefox, WebKit) | SEO, rights and launch gate on a
                                  SITE_ENV=production build; both refuse to start while port 8787 is taken

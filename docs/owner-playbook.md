@@ -200,18 +200,19 @@ JSON's rules: text in double quotes, a comma between items and none after the la
 | `portrait`      | `null` until there is a real portrait. It needs the photo file as well; ask an agent (TICKETS.md, TO-03). |
 
 The launch gate (`pnpm test:launch`, and the informational step on CI) fails while `contactEmail` is not a real
-address, `sameAs` is empty or `portrait` is `null`, **and while any page still shows a bracketed gap**: `[city]`,
-`[contact email]`, `[launch date]`, `[your contact email]`, `[città]`, `[data di lancio]`, `[la tua email di
-contatto]`, any bracket with the word "placeholder" or "segnaposto" in it, and the grey `[ photo ]` frame. Each line of
-its failure names the page and the bracketed text, so you can search for that text in the repository. Where the gaps are:
+address, `sameAs` is empty or `portrait` is `null`, **and while a page of the site still has a bracketed gap**. It reads
+About, Now, Privacy and Rights (both languages) and the home page; each line of its failure names the page and the
+bracketed text, so you can search for that text in the repository. The gaps it counts:
 
-- `src/content/pages/en/privacy.md` and `it/privacy.md`: launch date, city, contact email; `rights.md` (both languages):
-  contact email;
-- `src/data/site.json`: `contactEmail` and `city` (the About page);
-- `src/i18n/en.json` and `it.json`, the line `heroBased`: the home page's "Based in [City]" (a second place for the
-  city; replace it with the same word);
-- About, Now, the sample entries and the sample photo series: the "Placeholder" / "Segnaposto" texts, which you replace
-  by writing the real ones.
+- `[launch date]`, `[city]`, `[your contact email]` and their Italian twins `[data di lancio]`, `[città]`, `[la tua email
+di contatto]`, in `src/content/pages/en/privacy.md` and `it/privacy.md`; `[your contact email]` in `rights.md` (both
+  languages);
+- `[contact email]` and `[city]`, which come from `contactEmail` and `city` in `src/data/site.json` (the About page);
+- `Based in [City]` / `Vivo a [città]` on the home page: the line `heroBased` in `src/i18n/en.json` and `it.json` (a second
+  place for the city; replace it with the same word);
+- a bracket that starts with "Placeholder" or "Segnaposto" on About or Now: the sample bio and Now texts, which you
+  replace by writing the real ones.
 
-A bracket you write on purpose in an entry (a `[sic]`) passes; only those words and field names count (decision 0022,
+It does **not** read journal entries or photo series: a bracket you write in an entry (`[sic]`) is never a gap, and the
+sample entries and sample photo series are for you to replace or delete, not something the gate checks (decision 0022,
 "Round 4").

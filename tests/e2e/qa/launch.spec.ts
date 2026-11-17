@@ -1,20 +1,23 @@
 /**
  * The launch gate (project `launch`, `pnpm test:launch`). Not part of the staging run: these fail until the owner has
- * answered O1 (TICKETS.md): no bracketed placeholder anywhere (scripts/lib/placeholders.ts), a filled sameAs list, real descriptions. Run it
- * against a production build (`pnpm qa:production`) so it also proves no page is noindex.
+ * answered O1 (TICKETS.md): no unfilled gap on the pages or in site.json (scripts/lib/placeholders.ts), a filled sameAs
+ * list, real descriptions. Run it against a production build (`pnpm qa:production`) so it also proves no page is
+ * noindex.
  */
 import { expect, test } from "@playwright/test";
-import { findPlaceholders } from "../../../scripts/lib/placeholders.ts";
+import { findPlaceholders, gapPages } from "../../../scripts/lib/placeholders.ts";
 import { builtPages, readBuilt } from "./lib.ts";
 
-// Which bracketed gaps count, and why: scripts/lib/placeholders.ts (decision 0022, "Round 4"). It lists the words
-// `placeholder` and `segnaposto` inside any bracket, and the field names `[city]`, `[launch date]`, `[your contact
-// email]`, `[la tua email di contatto]` … so the privacy and rights pages, About and Home cannot slip through.
-test("no page has unfilled placeholder text, in the body, the title or the description", () => {
+// The site's own gaps only, read from the built pages: About, Now, Privacy and Rights in both languages (what
+// site.json puts on About included), and the home page's "Based in …" line. Never a journal entry, a photo series or a
+// listing of them. Which brackets count, and why: scripts/lib/placeholders.ts (decision 0022, "Round 4").
+const pagesDir = new URL("../../../src/content/pages/", import.meta.url);
+
+test("no page of the site has an unfilled gap left, in the body, the title or the description", () => {
   const found: string[] = [];
-  for (const p of builtPages()) {
-    if (p.file === "styleguide.html") continue;
-    for (const text of findPlaceholders(readBuilt(p.file))) found.push(`${p.path}: ${text}`);
+  for (const p of gapPages(pagesDir)) {
+    for (const text of findPlaceholders(readBuilt(p.file), { markers: p.markers }))
+      found.push(`${p.file === "index.html" ? "/" : `/${p.file.replace(/\.html$/, "")}`}: ${text}`);
   }
   expect(found, "every line is a page and the bracketed text the owner still has to replace (O1)").toEqual([]);
 });
