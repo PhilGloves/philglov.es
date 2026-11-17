@@ -36,11 +36,24 @@ function step(name = STEP): { condition: string; script: string; job: string } {
   return { condition, script: body.join("\n"), job: job ?? "" };
 }
 
+// core.fileMode=true everywhere, as on the Linux runner: Git for Windows ignores the executable bit by default, which
+// once hid a difference between the index and the working tree that only CI saw.
 const git = (cwd: string, ...args: string[]) =>
-  execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.test", "-c", "commit.gpgsign=false", ...args], {
-    cwd,
-    encoding: "utf8",
-  }).trim();
+  execFileSync(
+    "git",
+    [
+      "-c",
+      "user.name=t",
+      "-c",
+      "user.email=t@example.test",
+      "-c",
+      "commit.gpgsign=false",
+      "-c",
+      "core.fileMode=true",
+      ...args,
+    ],
+    { cwd, encoding: "utf8" },
+  ).trim();
 
 /** What a test may do on the pull request branch. `symlink` and `executable` change the index, as the Git API can. */
 interface Change {
@@ -87,7 +100,9 @@ function guard(change: (c: Change) => void, name = STEP) {
     git(dir, "add", "-A");
     for (const step of later) step();
     git(dir, "commit", "--quiet", "--allow-empty", "-m", "change");
-    git(dir, "switch", "--quiet", "main");
+    // The links and the executable bit were written to the index only, so the working tree differs from the commit;
+    // only the commits matter here.
+    git(dir, "switch", "--quiet", "--discard-changes", "main");
     write("README.md", "main moved on\n");
     git(dir, "add", ".");
     git(dir, "commit", "--quiet", "-m", "main moves on");
