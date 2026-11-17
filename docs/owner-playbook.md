@@ -200,6 +200,18 @@ JSON's rules: text in double quotes, a comma between items and none after the la
 | `portrait`      | `null` until there is a real portrait. It needs the photo file as well; ask an agent (TICKETS.md, TO-03). |
 
 The launch gate (`pnpm test:launch`, and the informational step on CI) fails while `contactEmail` is not a real
-address, `sameAs` is empty or `portrait` is `null`. It does **not** notice `[city]`, nor the bracketed gaps in the
-privacy and rights pages (`[launch date]`, `[your contact email]`, `[città]` … in `src/content/pages/*/privacy.md`
-and `rights.md`): look for `[` on those pages yourself before launch.
+address, `sameAs` is empty or `portrait` is `null`, **and while any page still shows a bracketed gap**: `[city]`,
+`[contact email]`, `[launch date]`, `[your contact email]`, `[città]`, `[data di lancio]`, `[la tua email di
+contatto]`, any bracket with the word "placeholder" or "segnaposto" in it, and the grey `[ photo ]` frame. Each line of
+its failure names the page and the bracketed text, so you can search for that text in the repository. Where the gaps are:
+
+- `src/content/pages/en/privacy.md` and `it/privacy.md`: launch date, city, contact email; `rights.md` (both languages):
+  contact email;
+- `src/data/site.json`: `contactEmail` and `city` (the About page);
+- `src/i18n/en.json` and `it.json`, the line `heroBased`: the home page's "Based in [City]" (a second place for the
+  city; replace it with the same word);
+- About, Now, the sample entries and the sample photo series: the "Placeholder" / "Segnaposto" texts, which you replace
+  by writing the real ones.
+
+A bracket you write on purpose in an entry (a `[sic]`) passes; only those words and field names count (decision 0022,
+"Round 4").

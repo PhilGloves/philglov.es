@@ -1,23 +1,22 @@
 /**
  * The launch gate (project `launch`, `pnpm test:launch`). Not part of the staging run: these fail until the owner has
- * answered O1 (TICKETS.md): no visible [placeholder] text anywhere, a filled sameAs list, real descriptions. Run it
+ * answered O1 (TICKETS.md): no bracketed placeholder anywhere (scripts/lib/placeholders.ts), a filled sameAs list, real descriptions. Run it
  * against a production build (`pnpm qa:production`) so it also proves no page is noindex.
  */
 import { expect, test } from "@playwright/test";
+import { findPlaceholders } from "../../../scripts/lib/placeholders.ts";
 import { builtPages, readBuilt } from "./lib.ts";
 
-const PLACEHOLDER = /\[(placeholder|segnaposto)[^\]]*\]/i;
-
+// Which bracketed gaps count, and why: scripts/lib/placeholders.ts (decision 0022, "Round 4"). It lists the words
+// `placeholder` and `segnaposto` inside any bracket, and the field names `[city]`, `[launch date]`, `[your contact
+// email]`, `[la tua email di contatto]` … so the privacy and rights pages, About and Home cannot slip through.
 test("no page has unfilled placeholder text, in the body, the title or the description", () => {
   const found: string[] = [];
   for (const p of builtPages()) {
     if (p.file === "styleguide.html") continue;
-    const html = readBuilt(p.file);
-    const visible = html.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ");
-    const m = PLACEHOLDER.exec(visible) ?? PLACEHOLDER.exec(html);
-    if (m) found.push(`${p.path}: ${m[0]}`);
+    for (const text of findPlaceholders(readBuilt(p.file))) found.push(`${p.path}: ${text}`);
   }
-  expect(found).toEqual([]);
+  expect(found, "every line is a page and the bracketed text the owner still has to replace (O1)").toEqual([]);
 });
 
 test("Person JSON-LD has a sameAs list of https profiles (home and About, both languages)", () => {
@@ -59,7 +58,7 @@ test("security.txt names a real contact and has not expired", () => {
   expect(contact, "site.json contactEmail is still the placeholder (O1)").toMatch(
     /^(mailto:[^\s@[\]]+@[^\s@[\]]+|https:\/\/\S+)$/,
   );
-  expect(PLACEHOLDER.test(text)).toBe(false);
+  expect(findPlaceholders(text)).toEqual([]);
   expect(expires).toBeGreaterThan(Date.now() + 30 * 86_400_000);
 });
 
