@@ -1,23 +1,25 @@
 /**
  * The launch gate (project `launch`, `pnpm test:launch`). Not part of the staging run: these fail until the owner has
- * answered O1 (TICKETS.md): no visible [placeholder] text anywhere, a filled sameAs list, real descriptions. Run it
- * against a production build (`pnpm qa:production`) so it also proves no page is noindex.
+ * answered O1 (TICKETS.md): no unfilled gap on the pages or in site.json (scripts/lib/placeholders.ts), a filled sameAs
+ * list, real descriptions. Run it against a production build (`pnpm qa:production`) so it also proves no page is
+ * noindex.
  */
 import { expect, test } from "@playwright/test";
+import { findPlaceholders, gapPages } from "../../../scripts/lib/placeholders.ts";
 import { builtPages, readBuilt } from "./lib.ts";
 
-const PLACEHOLDER = /\[(placeholder|segnaposto)[^\]]*\]/i;
+// The site's own gaps only, read from the built pages: About, Now, Privacy and Rights in both languages (what
+// site.json puts on About included), and the home page's "Based in …" line. Never a journal entry, a photo series or a
+// listing of them. Which brackets count, and why: scripts/lib/placeholders.ts (decision 0022, "Round 4").
+const pagesDir = new URL("../../../src/content/pages/", import.meta.url);
 
-test("no page has unfilled placeholder text, in the body, the title or the description", () => {
+test("no page of the site has an unfilled gap left, in the body, the title or the description", () => {
   const found: string[] = [];
-  for (const p of builtPages()) {
-    if (p.file === "styleguide.html") continue;
-    const html = readBuilt(p.file);
-    const visible = html.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ");
-    const m = PLACEHOLDER.exec(visible) ?? PLACEHOLDER.exec(html);
-    if (m) found.push(`${p.path}: ${m[0]}`);
+  for (const p of gapPages(pagesDir)) {
+    for (const text of findPlaceholders(readBuilt(p.file), { markers: p.markers }))
+      found.push(`${p.file === "index.html" ? "/" : `/${p.file.replace(/\.html$/, "")}`}: ${text}`);
   }
-  expect(found).toEqual([]);
+  expect(found, "every line is a page and the bracketed text the owner still has to replace (O1)").toEqual([]);
 });
 
 test("Person JSON-LD has a sameAs list of https profiles (home and About, both languages)", () => {
@@ -59,7 +61,7 @@ test("security.txt names a real contact and has not expired", () => {
   expect(contact, "site.json contactEmail is still the placeholder (O1)").toMatch(
     /^(mailto:[^\s@[\]]+@[^\s@[\]]+|https:\/\/\S+)$/,
   );
-  expect(PLACEHOLDER.test(text)).toBe(false);
+  expect(findPlaceholders(text)).toEqual([]);
   expect(expires).toBeGreaterThan(Date.now() + 30 * 86_400_000);
 });
 

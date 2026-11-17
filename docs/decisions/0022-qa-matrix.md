@@ -144,3 +144,35 @@ Tests only; the site is unchanged.
   900 px wide put into the admin page, the test fails (526 px too wide); the old measure stayed at 0 on the same page (it passed
   its sideways line; the test then timed out later, on a control the wide table had pushed off screen). A control test keeps
   this: it adds a 700 px element, expects the new measure to see it and the old one not to.
+
+## Round 4 (2026-11-17): the launch gate sees the site's own gaps
+
+Tests only; the site is unchanged, and no text of the owner's was touched.
+
+- **The gap.** The launch gate's first test looked only for `[placeholder…]` and `[segnaposto…]`. The review of PR #35 found
+  it let through `[launch date]`, `[city]` and `[your contact email]` on the privacy page, their Italian twins,
+  `[your contact email]` on the rights pages, and site.json's `[contact email]` and `[city]` on About, while setup.md's
+  launch blocker 3 relied on it.
+- **Scope: the site's own gaps, never what the owner writes in an entry** (owner ruling, same day). The gate reads the
+  built pages of `src/content/pages` (About, Now, Privacy, Rights, both languages; one per file in the folder, so a new page
+  is covered at once; what site.json puts on About comes with them) and the two home pages, for the home line "Based in
+  [City]" / "Vivo a [città]" (`heroBased` in `src/i18n`), which carries the same city. It does not read journal entries,
+  the journal index, photo series or any other listing: a bracket there is text (`[sic]`, a quoted `[city]`), and the
+  sample entries' and photo series' `[Placeholder…]` texts are not the gate's business. A first version read every page
+  and also flagged those; it was narrowed.
+- **The rule** (`scripts/lib/placeholders.ts`, `findPlaceholders`): two kinds of bracket count. A _sample-text marker_,
+  a bracket that starts with `placeholder` or `segnaposto` (`[Placeholder]`, `[Segnaposto: due o tre frasi …]`): on the
+  pages of `src/content/pages` only. A _field name_, a bracket whose whole text is `city`, `città`, `launch date`, `data di
+lancio`, `contact email`, `your contact email` or `la tua email di contatto` (case, spacing and line breaks ignored):
+  on those pages and the home pages. `<script>`, `<style>`, `<code>` and `<pre>` are left out first. The About portrait's
+  label (`[Portrait … placeholder until …]`) and the `[ photo ]` frame are not counted: they belong to the portrait
+  (TO-03), which its own test already fails until the photograph exists, and to the photo originals. A new kind of gap
+  gets a line in the list and a test, never a looser pattern.
+- **The proof.** `tests/unit/placeholders.test.ts`: the pages read are exactly the ten files, and no entry or listing is
+  among them; each gap of the review is found; entry-like and photo-like brackets are not; a fully filled page passes; over
+  the current build only known gaps are found. Run by hand, not committed: `pnpm test:launch` on today's build fails with
+  22 lines (`/privacy: [launch date]`, `/it/rights: [la tua email di contatto]`, `/about: [city]`, `/: [City]`, `/now:
+[Placeholder]` …, none in an entry); with every gap in pages, site.json and `heroBased` replaced by real-looking text
+  and the site rebuilt, that test passes (the other launch tests, sameAs, portrait and noindex, still fail on a staging
+  build as they should), while the sample entries and photo series stayed as they are.
+- **On CI** the gate is still informational (`continue-on-error` in `ci.yml`) until owner question O1 is answered.
