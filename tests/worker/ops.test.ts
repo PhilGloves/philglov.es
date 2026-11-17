@@ -120,6 +120,72 @@ describe("backups", () => {
     expect(listed.objects.map((o) => o.key)).not.toContain("backups/2026-01-01.json");
   });
 
+  // Security audit, check 9 (decision 0030): a backup is only as good as its restore. Last week's export goes back
+  // into an empty database and every comment and report comes back as it was, text the visitor chose included.
+  test("a backup restores into an empty database, row for row, and never over rows already there", async () => {
+    const { restoreSql } = await import("../../scripts/lib/backup-restore.ts");
+    const { slug } = await twinEntry();
+    const tricky = "It's \"quoted\";\nline two\r\n'); DROP TABLE comments; --\n\u{1F989} caffè";
+    await insertComment({ slug, name: "O'Brien", body: tricky, status: "approved", reply_body: "Grazie\n\nPhil" });
+    await insertComment({ slug, lang: "it", status: "pending", reply_body: null });
+    await env.DB.prepare(
+      "INSERT INTO reports (page_url, message, email, created_at, status, done_at) VALUES ('/it/x', ?1, NULL, 5, 'done', 6)",
+    )
+      .bind(tricky)
+      .run();
+    const columns = "id, slug, lang, name, email, body, status, created_at, reply_body";
+    const before = (await env.DB.prepare(`SELECT ${columns} FROM comments ORDER BY id`).all()).results;
+    const reportsBefore = (
+      await env.DB.prepare("SELECT id, page_url, message, email, created_at, status, done_at FROM reports").all()
+    ).results;
+    const key = await backup(env, new Date(NOW));
+    const exported = await (await env.BACKUPS.get(key))?.json<Parameters<typeof restoreSql>[0]>();
+    if (!exported) throw new Error("no backup");
+
+    await resetDb();
+    const sql = restoreSql(exported);
+    // One statement per line, so `wrangler d1 execute --file` and D1's exec() read it the same way.
+    for (const line of sql.split("\n").filter((l) => l.trim() && !l.startsWith("--"))) await env.DB.prepare(line).run();
+    expect((await env.DB.prepare(`SELECT ${columns} FROM comments ORDER BY id`).all()).results).toEqual(before);
+    expect(
+      (await env.DB.prepare("SELECT id, page_url, message, email, created_at, status, done_at FROM reports").all())
+        .results,
+    ).toEqual(reportsBefore);
+
+    // Run again over the restored rows, after one was changed: nothing is overwritten.
+    await env.DB.prepare("UPDATE comments SET body = 'changed since' WHERE name = 'O''Brien'").run();
+    for (const line of sql.split("\n").filter((l) => l.trim() && !l.startsWith("--"))) await env.DB.prepare(line).run();
+    expect(await env.DB.prepare("SELECT body FROM comments WHERE name = 'O''Brien'").first("body")).toBe(
+      "changed since",
+    );
+  });
+
+  test("a restore refuses a file that is not a backup of this schema", async () => {
+    const { restoreSql } = await import("../../scripts/lib/backup-restore.ts");
+    const ok = { exported_at: "2026-11-12T00:00:00.000Z", schema: "worker/migrations", comments: [], reports: [] };
+    expect(restoreSql(ok)).toMatch(/0 comments, 0 reports/);
+    const comment = {
+      id: 1,
+      slug: "x",
+      lang: "en",
+      name: "n",
+      email: "e@x.it",
+      body: "b",
+      status: "approved",
+      created_at: 1,
+      reply_body: null,
+    };
+    for (const bad of [
+      { ...ok, schema: "other" },
+      { ...ok, comments: [{ ...comment, lang: "de" }] },
+      { ...ok, comments: [{ ...comment, status: "spam" }] },
+      { ...ok, comments: [{ ...comment, id: "1; DROP TABLE comments" }] },
+      { ...ok, comments: [{ ...comment, created_at: "yesterday" }] },
+      { ...ok, comments: [{ ...comment, extra: 1 }] },
+    ])
+      expect(() => restoreSql(bad as never)).toThrow();
+  });
+
   test("the crons in wrangler.jsonc reach the right job", async () => {
     const { slug } = await twinEntry();
     await insertComment({ slug, status: "rejected", created_at: Date.now() - 40 * DAY });

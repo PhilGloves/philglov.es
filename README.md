@@ -97,5 +97,34 @@ pnpm exec wrangler rollback --env staging
 `wrangler rollback` without an ID goes back one version; pass a version ID from the list to pick one. Use
 `--env production` after launch. Then fix forward properly: revert the bad pull request on GitHub (**Revert** button),
 let CI go green, and merge. A rollback does not undo D1 migrations; migrations must stay backward-compatible for one
-release so a rolled-back Worker still runs. Comments and reports can be restored from the weekly R2 backup _(ticket
-B9)_.
+release so a rolled-back Worker still runs. Comments and reports come back from the weekly backup (next section).
+
+## Restoring comments and reports
+
+Every Monday the Worker writes `backups/YYYY-MM-DD.json` to the backups bucket and keeps the newest 12. To put one
+back (decision 0030), use the staging names now and the production ones after launch.
+
+1. Pick the date (newest first) and download that file. The bucket is in the EU jurisdiction.
+
+```bash
+pnpm exec wrangler r2 object get philglov-backups-staging/backups/2026-11-16.json --jurisdiction eu --remote --file backup.json
+```
+
+2. Turn it into SQL. The script refuses a file that is not a backup of this database's schema.
+
+```bash
+node scripts/restore-backup.ts backup.json > restore.sql
+```
+
+3. Run it. Rows still in the database are left as they are; only missing ones come back.
+
+```bash
+pnpm exec wrangler d1 execute DB --env staging --remote --file restore.sql
+```
+
+4. Delete `backup.json` and `restore.sql`: they hold visitors' names and email addresses.
+
+A backup cannot know what was deleted after it was taken: a comment deleted on request since that Monday comes back.
+Delete it again in `/admin` (search by its email address). The daily clean-up removes anything a restore brings back
+that is past its retention time. `tests/worker/ops.test.ts` restores a real backup into an empty database in every
+full CI run.
