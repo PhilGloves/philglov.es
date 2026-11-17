@@ -15,7 +15,5 @@ export const records: Record<string, PhotoRecord> = Object.values(found)[0] ?? {
 /** Loaders for the originals themselves: Astro optimises only imported local files. */
 export const originals = import.meta.glob<{ default: ImageMetadata }>("/src/.originals/**/*.{jpg,jpeg,png}");
 
-export const hasOriginal = (key: string): boolean => key in records && `/src/.originals/${key}` in originals;
-
 // The colour classes (scripts/photo-meta.ts). Eager, so Vite adds the file to the page's stylesheet when it exists.
 import.meta.glob("../styles/photo-colours.generated.css", { eager: true });

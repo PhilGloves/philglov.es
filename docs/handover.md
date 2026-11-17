@@ -108,7 +108,8 @@ code in the system monospace; interface arrows as one inline SVG; 16 px grid gap
   or `--auto` for the single-photo page) and the nearest `.tone-N`. Do not set `aspect-ratio` on the `<img>`.
 - _Backend (B4/B8):_ admin pages use `class="admin"` on `<body>` and the classes shown in the styleguide's Admin
   section (`admin-bar`, `admin-main`, `card`, `queue`, `actions`, `badge`, `alert`, `notice`, `upload`).
-- _Content:_ `shareImageSvg(title)` fills the share template; it is pure and tested.
+- _Content:_ `fillShareTemplate(title, template)` (`src/assets/brand/share-image.ts`) fills the share template; it is
+  pure and tested. (Its wrapper `shareImageSvg` was never called and was removed, fourth opinion B-04.)
 - Do not rebuild the fonts casually: `scripts/build-fonts.py` pins the source commit and checks hashes. Crimson Pro
   reserves no font name; if a font ever does, the subset must be renamed (the unit test checks).
 - _Frontend:_ never type an arrow character in a template or an Italian/English string that is not rendered through
