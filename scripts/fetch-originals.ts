@@ -1,8 +1,10 @@
 /**
  * Downloads the photo originals the site needs from the private R2 bucket
  * (philglov-originals) into the git-ignored src/.originals/, so Astro can
- * optimise them as local files. Files already there are skipped, so the CI
- * cache means build time grows with new photos, not with the archive.
+ * optimise them as local files. Files already there are skipped (a laptop
+ * keeps them). CI never caches them, so every run downloads them all: in a
+ * public repository a fork's pull request can read main's Actions caches, and
+ * originals are full size and may carry GPS (decision 0030).
  *
  *   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET
  *

@@ -50,6 +50,19 @@ test("Person JSON-LD has the portrait as its image (home and About, both languag
   expect(problems).toEqual([]);
 });
 
+// The guide asks for /.well-known/security.txt (security audit, decision 0030). Its Contact is site.json contactEmail,
+// a placeholder until O1 is answered, so this fails until then; Expires must be ahead, as RFC 9116 requires.
+test("security.txt names a real contact and has not expired", () => {
+  const text = readBuilt(".well-known/security.txt");
+  const contact = /^Contact: (.+)$/m.exec(text)?.[1] ?? "";
+  const expires = Date.parse(/^Expires: (.+)$/m.exec(text)?.[1] ?? "");
+  expect(contact, "site.json contactEmail is still the placeholder (O1)").toMatch(
+    /^(mailto:[^\s@[\]]+@[^\s@[\]]+|https:\/\/\S+)$/,
+  );
+  expect(PLACEHOLDER.test(text)).toBe(false);
+  expect(expires).toBeGreaterThan(Date.now() + 30 * 86_400_000);
+});
+
 test("production: no page or image says noindex", async ({ request }) => {
   const problems: string[] = [];
   for (const p of builtPages().filter((x) => x.indexable)) {

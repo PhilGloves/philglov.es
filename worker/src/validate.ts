@@ -97,14 +97,16 @@ export function validateReport(input: ReportInput): Errors {
 
 /**
  * The page a report is about: a path on this site, nothing else. Returns the
- * path without query or fragment, or null for anything that could point away.
+ * path without query or fragment, or null for anything that could point away,
+ * including a path whose dot segments collapse to two leading slashes
+ * ("/.//host"), which a browser reads as another host (security audit, 0030).
  */
 export function sitePath(value: string | null): string | null {
   const text = (value ?? "").trim();
   if (!text.startsWith("/") || text.startsWith("//") || text.includes("\\") || text.length > 300) return null;
   try {
     const url = new URL(text, "https://philglov.es");
-    if (url.origin !== "https://philglov.es") return null;
+    if (url.origin !== "https://philglov.es" || url.pathname.startsWith("//")) return null;
     return url.pathname;
   } catch {
     return null;

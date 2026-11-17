@@ -5,6 +5,7 @@
  */
 import { env, SELF } from "cloudflare:test";
 import { beforeEach, describe, expect, test } from "vitest";
+import type { Manifest } from "../../worker/src/manifest.ts";
 import type { FormReply } from "../../worker/src/page.ts";
 import { required } from "../../worker/src/secrets.ts";
 import { checkFormToken } from "../../worker/src/tokens.ts";
@@ -375,5 +376,87 @@ describe("a report sent from a missing address", () => {
     expect(await (await SELF.fetch(`${ORIGIN}/404`)).text()).toContain('name="url" value="/404"');
     const long = `/${"x".repeat(400)}`;
     expect(await (await SELF.fetch(`${ORIGIN}${long}`)).text()).toContain('name="url" value="/404"');
+  });
+});
+
+// Security audit (decision 0030): the address a visitor asked for is text they chose. A path that starts with two
+// slashes (or collapses to one) is another host to a browser; it must never be redirected to, linked or reported.
+describe("addresses that start with two slashes", () => {
+  const report = async (url: string) =>
+    post("/api/report", { message: "Broken.", email: "", url, lang: "en", website: "", token: await agedToken() });
+
+  test("a report naming one is refused, and nothing redirects to it", async () => {
+    for (const url of ["/.//evil.example", "/a/..//evil.example/x"]) {
+      const res = await report(url);
+      expect(res.status).toBe(400);
+      expect(res.headers.get("Location")).toBeNull();
+    }
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM reports").first("n")).toBe(0);
+  });
+
+  test("asking for one leads to this site's own path, never to that host's home page", async () => {
+    // Before 0030 the Worker built the asset address with new URL("//evil.example", url), which made evil.example the
+    // host and served this site's home page with 200. The asset server answers repeated slashes with a redirect to
+    // the single-slash path, which stays on this site.
+    for (const [asked, location] of [
+      ["//evil.example", "/evil.example"],
+      ["//evil.example/x/", "/evil.example/x/"],
+      ["//journal/", "/journal"],
+    ]) {
+      const res = await SELF.fetch(`${ORIGIN}${asked}`, { redirect: "manual" });
+      expect(res.status).toBe(307);
+      expect(res.headers.get("Location")).toBe(location);
+      expect(res.headers.get("Content-Security-Policy")).toMatch(/^default-src 'self'/);
+    }
+    const followed = await SELF.fetch(`${ORIGIN}//evil.example`);
+    expect(followed.status).toBe(404);
+    expect(await followed.text()).toContain('name="url" value="/evil.example"');
+  });
+});
+
+describe("the notification's page title", () => {
+  test("a real page by its title or address; a missing address never by the text the visitor typed", async () => {
+    const { reportTitle } = await import("../../worker/src/forms.ts");
+    const { en } = await twinEntry();
+    const site = await (await env.ASSETS.fetch("https://assets.local/_assets/entries.json")).json<Manifest>();
+    const entry = site.entries.find((e) => e.path === en);
+    expect(reportTitle(site, en, true)).toBe(entry?.title);
+    expect(reportTitle(site, "/about", true)).toBe("/about");
+    expect(reportTitle(site, "/Your-account-is-locked-call-this-number", false)).toBe("a missing address");
+  });
+});
+
+describe("rate limit over IPv6", () => {
+  test("the key of an address: IPv4 whole, IPv6 its /64, however it is written", async () => {
+    const { addressKey } = await import("../../worker/src/crypto.ts");
+    expect(addressKey("203.0.113.7")).toBe("203.0.113.7");
+    expect(addressKey("2001:db8:1:2::7")).toBe("2001:db8:1:2::/64");
+    expect(addressKey("2001:0DB8:0001:0002:0000:0000:0000:0007")).toBe("2001:db8:1:2::/64");
+    expect(addressKey("2001:db8::1")).toBe("2001:db8:0:0::/64");
+    expect(addressKey("::1")).toBe("0:0:0:0::/64");
+    expect(addressKey("fe80::1%eth0")).toBe("fe80:0:0:0::/64");
+    expect(addressKey("::ffff:198.51.100.23")).toBe("198.51.100.23");
+  });
+
+  test("one connection's /64 counts as one address", async () => {
+    const { slug } = await twinEntry();
+    // A home or cloud connection gets a whole /64: changing the last 64 bits must not reset the limit.
+    for (let i = 1; i <= 5; i++) {
+      const ip = { "CF-Connecting-IP": `2001:db8:1:2:${i.toString(16)}::${i}` };
+      expect((await post("/api/comment", await commentFields(slug, "en"), ip)).status).toBe(303);
+    }
+    const sixth = await post("/api/comment", await commentFields(slug, "en"), {
+      "CF-Connecting-IP": "2001:db8:1:2::ffff",
+    });
+    expect(sixth.status).toBe(429);
+    // The same /64 written in full, or in capitals, is the same connection.
+    const full = await post("/api/comment", await commentFields(slug, "en"), {
+      "CF-Connecting-IP": "2001:0DB8:0001:0002:0000:0000:0000:0007",
+    });
+    expect(full.status).toBe(429);
+    // Another /64 is not affected.
+    expect(
+      (await post("/api/comment", await commentFields(slug, "en"), { "CF-Connecting-IP": "2001:db8:1:3::1" })).status,
+    ).toBe(303);
   });
 });

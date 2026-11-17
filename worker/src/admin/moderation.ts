@@ -79,6 +79,18 @@ function hidden(csrf: string, id: number): Safe {
   return html`<input type="hidden" name="csrf" value="${csrf}" /><input type="hidden" name="id" value="${id}" />`;
 }
 
+/**
+ * An address a visitor typed, as a mailto: link that names only that address. The form accepts "?", "&", "#" and "%"
+ * in an address, which a mail client would read as extra recipients or text (?cc=…&body=…), so they are
+ * percent-encoded (security audit, decision 0030).
+ */
+const mailto = (address: string): Safe =>
+  html`<a href="mailto:${address.replace(/[%?&#]/g, (c) => encodeURIComponent(c))}">${address}</a>`;
+
+/** A report's page as a link only when it is a path on this site; anything else (stored before 0030) as text. */
+const pageLink = (path: string): Safe | string =>
+  /^\/(?![/\\])/.test(path) ? html`<a href="${path}">${path}</a>` : path;
+
 function entryLink(site: Manifest, slug: string, lang: Lang): Safe {
   const entry = site.entries.find((e) => e.slug === slug && e.lang === lang);
   return html`<a href="${pathFor(slug, lang)}">${entry?.title ?? slug}</a>`;
@@ -90,7 +102,7 @@ function commentCard(c: CommentRow, csrf: string, site: Manifest): Safe {
     <h3>${c.name} <span class="${badge}">${c.status}</span></h3>
     <p class="fine muted">
       ${when(c.created_at)} UTC · ${entryLink(site, c.slug, c.lang)} · written on the
-      ${c.lang === "en" ? "English" : "Italian"} page · <a href="mailto:${c.email}">${c.email}</a>
+      ${c.lang === "en" ? "English" : "Italian"} page · ${mailto(c.email)}
     </p>
     <p class="body" lang="${c.lang}">${multiline(c.body)}</p>
     <div class="c-reply" data-reply${hiddenIf(!c.reply_body)}>
@@ -141,9 +153,9 @@ ${c.reply_body ?? ""}</textarea>
 
 function reportCard(r: ReportRow, csrf: string): Safe {
   return html`<li class="card" data-row="report-${r.id}">
-    <h3><a href="${r.page_url}">${r.page_url}</a> <span class="badge">open</span></h3>
+    <h3>${pageLink(r.page_url)} <span class="badge">open</span></h3>
     <p class="fine muted">
-      ${when(r.created_at)} UTC${r.email ? html` · <a href="mailto:${r.email}">${r.email}</a>` : " · no email"}
+      ${when(r.created_at)} UTC${r.email ? html` · ${mailto(r.email)}` : " · no email"}
     </p>
     <p class="body">${multiline(r.message)}</p>
     <form method="post" action="/admin/action" class="actions">

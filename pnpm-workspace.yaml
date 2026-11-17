@@ -2,3 +2,9 @@ allowBuilds:
   esbuild: true
   workerd: true
 minimumReleaseAge: 1440
+# Security audit (decision 0030): Dependabot alerts in dev tooling, neither reachable here (SECURITY-REPORT.md).
+# minimatch (GHSA-g3hv-75wg-m249) through ESLint and typescript-eslint; basic-ftp (GHSA-5pm8-86m8-9m6r and others)
+# through Lighthouse CI's proxy agent. Remove each line once the packages that bring them ask for a fixed version.
+overrides:
+  "minimatch@>=7.0.0 <11.0.1": "^11.0.1"
+  "basic-ftp@<6.2.4": "^6.2.4"

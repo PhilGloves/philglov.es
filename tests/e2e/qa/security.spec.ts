@@ -56,6 +56,7 @@ test("every kind of response carries the security headers", async ({ request }) 
   await get("/sitemap.xml", "sitemap");
   await get("/robots.txt", "robots");
   await get("/.well-known/tdmrep.json", "tdmrep");
+  await get("/.well-known/security.txt", "security.txt");
   await get("/_assets/fonts/crimson-pro.woff2", "font");
   await get("/_assets/share/default.png", "image");
 

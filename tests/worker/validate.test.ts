@@ -98,6 +98,17 @@ describe("report form", () => {
     "page path %s is refused",
     (input) => expect(sitePath(input)).toBeNull(),
   );
+  // Security audit (decision 0030): dot segments collapse to a path that starts with two slashes, which a browser
+  // reads as another host (the thank-you redirect, the link in /admin).
+  test.each([
+    "/.//evil.example",
+    "/..//evil.example/x",
+    "/a/..//evil.example",
+    "/%2e//evil.example",
+    "/./%2e//evil.example",
+  ])("page path %s, another host once its dots are resolved, is refused", (input) =>
+    expect(sitePath(input)).toBeNull(),
+  );
 });
 
 describe("normalising input", () => {

@@ -2,6 +2,8 @@
 
 Status: Accepted · 2026-11-16 · Owner request (fix round 1 of 3) · Amends 0017, 0018, 0021 and 0023
 
+_Amended by [0030](0030-security-audit.md): the 404 report form takes only an address a report accepts (never `//host`), and the notification calls a missing address "a missing address" instead of quoting it._
+
 **Context.** An independent second opinion on the QA branch (SO-01 to SO-10, outside the repository) and the QA bug
 list (`docs/qa/bug-reports.md`) found six backend problems the owner put in this round: SO-01 (front matter rejected
 by the content check or silently changed by `/admin/write`), SO-02 (with JavaScript on, a form refused for an expired

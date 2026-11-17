@@ -3,6 +3,8 @@
 Status: Accepted · 2026-11-13 · Owner decisions · Amends [0017](0017-backend-worker.md) (B8, `/admin/write`),
 [0020](0020-background-moderation.md) (O5) and [0014](0014-design-system.md) (view transitions)
 
+_Amended by [0030](0030-security-audit.md): the guard also runs when the App made the push or the re-run of another author's pull request, and every change must be a plain file (mode 100644); the fast content scope takes plain entry files only. Entry HTML that could redirect, embed, collect or run anything fails the build._
+
 ## Owner decisions (2026-11-13)
 
 1. **Publish goes live by itself.** Pressing Publish opens the pull request as before and turns on GitHub auto-merge, so

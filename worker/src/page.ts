@@ -17,7 +17,7 @@ import { entryAt, langOfPath, manifest, type Lang } from "./manifest.ts";
 import scriptHashes from "./script-hashes.json" with { type: "json" };
 import { fieldLabel, fieldMessage, formMessage, t, type FormError } from "./strings.ts";
 import { formToken } from "./tokens.ts";
-import type { Errors, Field } from "./validate.ts";
+import { sitePath, type Errors, type Field } from "./validate.ts";
 
 export type FormName = "comment" | "report";
 
@@ -124,8 +124,9 @@ export async function servePage(
   const method = options.path ? "GET" : request.method;
   const assetHeaders = new Headers(request.headers);
   for (const name of ["If-None-Match", "If-Modified-Since", "If-Match", "If-Range", "Range"]) assetHeaders.delete(name);
+  // Built from the origin as text: new URL("//host", url) would take "host" as the host and serve its "/" (0030).
   const asset = await env.ASSETS.fetch(
-    new Request(new URL(path + (options.path ? "" : url.search), url), {
+    new Request(`${url.origin}${path}${options.path ? "" : url.search}`, {
       method,
       headers: assetHeaders,
       redirect: "manual",
@@ -146,8 +147,9 @@ export async function servePage(
   let body = original;
   try {
     // A missing address is answered with the one built 404 page, whose report form says "/404": it should say the
-    // address the visitor asked for, so the report names it (SO-09).
-    const missing = !options.path && asset.status === 404 ? url.pathname : undefined;
+    // address the visitor asked for, so the report names it (SO-09). Only an address a report accepts (sitePath):
+    // "//host" stays "/404" (0030).
+    const missing = !options.path && asset.status === 404 ? (sitePath(url.pathname) ?? undefined) : undefined;
     const rewriter = await buildRewriter(env, ctx, path, url, options, missing);
     body = await rewriter.transform(new Response(original, { headers: { "Content-Type": "text/html" } })).text();
   } catch (error) {

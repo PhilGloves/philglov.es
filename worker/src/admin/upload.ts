@@ -5,10 +5,29 @@
  * at most 25 MB; streamed to R2 without buffering: the first chunk is checked,
  * then it and the rest flow through a FixedLengthStream, so R2 receives the
  * exact length the browser declared or the upload fails.
- * Stored as philglov-originals/<slug>/<name>.jpg|png.
+ * Stored as philglov-originals/<slug>/<name>-<4 random>.jpg|png. The Worker picks the random end and never writes
+ * over a stored object: the name comes from the request, and replacing a photo a published entry shows would change
+ * the site on its next build with no pull request (security audit, decision 0030).
  */
 import { photoName, SLUG } from "../entry-file.ts";
 import { log } from "../log.ts";
+
+const ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+/** Four random lowercase letters or digits. */
+function randomEnd(): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => ALPHABET[b % ALPHABET.length]).join("");
+}
+
+/** A key in the slug's folder that no stored object has yet, or null after a few tries. */
+async function freshKey(bucket: R2Bucket, slug: string, name: string, ext: "jpg" | "png"): Promise<string | null> {
+  const base = photoName(name, ext).slice(0, -(ext.length + 1));
+  for (let i = 0; i < 5; i++) {
+    const key = `${slug}/${base}-${randomEnd()}.${ext}`;
+    if (!(await bucket.head(key))) return key;
+  }
+  return null;
+}
 
 export const MAX_PHOTO = 25 * 1024 * 1024;
 
@@ -54,7 +73,12 @@ export async function upload(request: Request, env: Env): Promise<Response> {
     return json(415, { error: "Only JPEG and PNG photos." });
   }
 
-  const key = `${slug}/${photoName(url.searchParams.get("name") ?? "", ext)}`;
+  const key = await freshKey(env.ORIGINALS, slug, url.searchParams.get("name") ?? "", ext);
+  if (!key) {
+    await reader.cancel();
+    log("photo rejected");
+    return json(409, { error: "Could not find a free name for this photo. Try again." });
+  }
   const { readable, writable } = new FixedLengthStream(size);
   const pump = (async () => {
     const writer = writable.getWriter();

@@ -4,6 +4,8 @@ Status: Accepted · 2026-11-12 · Backend agent · Source: docs/guide.md (prompt
 "Operations", "What the build must do so the notice stays true"), TICKETS.md B1–B10, the form contract in
 [0016](0016-frontend-pages.md)
 
+_Amended by [0030](0030-security-audit.md): upload keys get their random end from the Worker, which never writes over a stored object; IPv6 addresses are rate-limited and hashed by their /64; `/admin` mailto: links are percent-encoded; backups have a restore script._
+
 **Shape.** No framework. `worker/src/index.ts` routes; one small module per job (`forms`, `page`, `comments`,
 `validate`, `tokens`, `ratelimit`, `access`, `github`, `notify`, `scheduled`, `admin/*`). The only runtime dependency
 added is `jose` (Access JWT verification, GitHub App JWT signing). HMAC, SHA-256 and random IDs use WebCrypto.
