@@ -82,16 +82,23 @@ WAY OF WORKING
 
 ## Current state (update as it changes)
 
-- Build phase. No domain yet; deploy only to the private staging Worker on workers.dev. Repository is **public**.
+- **Today (2026-11-17):** build phase. No domain yet; the site deploys only to the private staging Worker on
+  workers.dev. Repository is **public**. Everything in `TICKETS.md` is built; what is left waits for the owner: the
+  real texts and photos (entries, Now, About and the one photo series are placeholders, O1, TO-03), the security
+  checklist (O6), Lighthouse on Windows (Q17), and launch (`docs/setup.md` Part 2). `docs/setup.md` Part 1 is done
+  except passkeys (owner to confirm) and two settings: `CLOUDFLARE_ACCOUNT_ID` as a Dependabot secret (step 5) and the
+  live-check service token (step 8b). Read [docs/handover.md](docs/handover.md) first; the owner's own how-to for
+  failures is [docs/owner-playbook.md](docs/owner-playbook.md).
 - `main` is protected (ruleset "Protect main", 2026-11-11): every change goes through a pull request, the `Test`
-  check must pass, no force pushes, no deletion, nobody can bypass. Read [docs/handover.md](docs/handover.md) first.
-- 2026-11-12: all public pages built in both languages (Frontend, [0016](docs/decisions/0016-frontend-pages.md));
-  content is placeholder (entries, Now, About, one photo series) until the owner writes the real texts. Backend,
-  photo pipeline and the Content checks are still open in `TICKETS.md`.
-- `docs/setup.md` Part 1 is done (2026-11-11) except passkeys (owner to confirm). The CI deploy token has no zone
-  access until launch (setup.md step 12). Steps 9 and 10 wait for the backend agent.
-- CI deploys: every pull request gets `pr-<n>-philglov-preview.philglov-es.workers.dev`; every merge to `main` deploys
-  `philglov-staging.philglov-es.workers.dev`. Both Workers are behind Cloudflare Access (team `gentle-hall-eae9`).
+  check must pass, no force pushes, no deletion, nobody can bypass.
+- CI deploys: every pull request **from a branch of this repository** gets
+  `pr-<n>-philglov-preview.philglov-es.workers.dev` (forks and Dependabot get none: they cannot read the deploy token);
+  every merge to `main` deploys `philglov-staging.philglov-es.workers.dev`. Both Workers are behind Cloudflare Access
+  (team `gentle-hall-eae9`). The deploy token (Workers Scripts and D1 Edit, no zone access) is a secret of the
+  `staging` and `preview` environments only; `CLOUDFLARE_ACCOUNT_ID` and the R2 read keys are repository secrets, and
+  Dependabot secrets too, so a Dependabot pull request can fetch the originals. Production gets its own token at
+  launch (setup steps 12 and 16).
+- 2026-11-12: all public pages built in both languages (Frontend, [0016](docs/decisions/0016-frontend-pages.md)).
 - 2026-11-11: AI translation dropped by the owner. Both languages are hand-written; there is no `translation`
   frontmatter field ([0012](docs/decisions/0012-hand-written-translations.md)).
 - 2026-11-12: design system built (D1–D12, [0014](docs/decisions/0014-design-system.md)). Typography changed on the owner's
@@ -178,6 +185,12 @@ WAY OF WORKING
 - 2026-11-17: follow-up to the audit (0030, items 11–12): Workers Logs' invocation logs are off in every environment
   (the owner found visitors' IP addresses in them on staging, M-4; re-check on staging after the deploy, checklist
   item 15); checklist item 6 corrected: only `CLOUDFLARE_API_TOKEN` moves into environments.
+- 2026-11-17: fourth opinion ([0031](docs/decisions/0031-photos-at-launch.md), `TICKETS.md` F1–F3): the docs let the
+  owner run the site alone on Windows (README "On Windows", [docs/owner-playbook.md](docs/owner-playbook.md), setup.md
+  steps 5–10 corrected; `restore-backup.ts` writes its own UTF-8 file; `tests/unit/docs.test.ts`); three unused
+  exports removed; **photos at launch**: `scripts/copy-originals.ts` copies once what the content uses from staging's
+  bucket to production's, never over an object; then `R2_ORIGINALS_BUCKET` and the read keys point at production's
+  bucket, and staging and preview get `PHOTO_UPLOADS: "off"` (setup.md step 12b).
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -207,6 +220,7 @@ scripts/check-originals.ts      before the build: entry photos present, or the o
 scripts/lib/content-check.ts    the build check; scripts/lib/new-entry.ts the `pnpm new` template
 scripts/lib/page-check.ts       what a built page may contain; postbuild fails on anything else (0030)
 scripts/restore-backup.ts       a weekly backup back into SQL (lib/backup-restore.ts; README "Restoring", 0030)
+scripts/copy-originals.ts       at launch, once: originals staging bucket → production's (lib/copy-originals.ts, 0031)
 scripts/                      build helpers, run with plain `node` (type stripping); build-fonts.py by hand
 tests/unit/ tests/e2e/        node:test unit tests; Playwright e2e (admin-worker.ts: the real Worker behind a test
                               Access, for /admin in a browser, 0020)
@@ -215,7 +229,8 @@ docs/qa/                      bug-reports.md, manual-checklist.md; QA-REPORT.md 
 SECURITY-REPORT.md            security audit findings and the owner checklist (0030)
 docs/guide.md docs/design/    owner's guide and prototypes — never edit
 docs/decisions/               one record per architectural decision
-docs/setup.md                 steps only the owner can do
+docs/setup.md                 steps only the owner can do (Git Bash)
+docs/owner-playbook.md        the owner's step lists when something breaks: red Test, failed deploy, leaked key …
 docs/publishing-from-the-phone.md  the owner's how-to for /admin/write (0029)
 docs/handover.md              state, open items and lessons, one section per finished agent
 ```
@@ -248,7 +263,8 @@ pnpm test:lighthouse:seo         Lighthouse SEO ≥ 95 (worst of 3 runs) against
 pnpm new <slug> --lang it|en     new entry, or the other-language version of one (ticket C4)
 pnpm check:content               cross-file content check (twins, slugs, folders, alt); runs first in pnpm build (C2)
 node scripts/contrast.ts         every colour pair with its measured contrast (unit tests enforce the floors)
-node scripts/restore-backup.ts <backup.json> > restore.sql   a backup as SQL for wrangler d1 execute (README)
+node scripts/restore-backup.ts <backup.json> <restore.sql>   a backup as SQL (UTF-8, no BOM) for wrangler d1 execute (README)
+node scripts/copy-originals.ts   at launch only: the originals to production's bucket (five R2_* variables, setup.md 12b)
 python scripts/build-fonts.py    rebuild the fonts from the pinned sources (by hand, only when they change)
 ```
 
@@ -296,6 +312,10 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
   `sizes` from `src/lib/photo-sizes.ts` and `priority` on the first image of a page only. Per-photo colours are
   generated classes (`.c-<hex>`), never inline styles. Every output image gets rights metadata and must carry no GPS:
   `scripts/photo-rights.ts` fails the build otherwise. Originals never enter git (0019).
+- Photo uploads (0031): the Worker stores one only when its var `PHOTO_UPLOADS` is `"on"`. Production always is;
+  staging and preview are until launch and then `"off"`, both the same (`tests/unit/wrangler-config.test.ts`). Never
+  bind staging or preview to production's bucket. The launch copy never writes over an object; tests of R2 code run
+  against `tests/unit/r2-stand-in.ts`, which checks signatures and each token's buckets.
 - Security audit rules (0030): CI never caches `src/.originals` (fork pull requests read main's caches;
   `tests/unit/ci-workflow.test.ts`). Raw HTML in content is limited by `scripts/lib/page-check.ts`: to allow a new
   element or attribute, change its allow-list there with a test, never by skipping the check. The publisher guard
@@ -306,6 +326,12 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
   environment that sets its own `observability` replaces the top-level block and must repeat it. Only
   `CLOUDFLARE_API_TOKEN` may move into GitHub environments; the Test job reads `CLOUDFLARE_ACCOUNT_ID` and the R2 keys
   as repository secrets (`tests/unit/wrangler-config.test.ts`, `ci-workflow.test.ts`).
+- The owner runs the docs' commands on Windows (fourth opinion, A-02 to A-15): README and `docs/owner-playbook.md` in
+  Windows PowerShell 5.1 (no `&&` or `||`, no `>` redirect into a file another tool reads: a script writes its own
+  output file, as `scripts/restore-backup.ts` does), `docs/setup.md` in Git Bash. Every fence in the owner's documents
+  closes, every `bash` block passes `bash -n`, no `powershell` block chains with `&&`/`||`
+  (`tests/unit/docs.test.ts`). Never put a backslash escape such as `\n` in a documented command; a secret is read
+  with `Read-Host` / `read -s`, never typed into a command line.
 - Never log names, emails, comment text or IP addresses. The Worker logs only through `worker/src/log.ts` (fixed
   event names). Never put personal data in a URL: Workers Logs record URLs.
 - Worker output: text into pages only via `Parts`/HTMLRewriter `html: false`; admin markup only via the escaping

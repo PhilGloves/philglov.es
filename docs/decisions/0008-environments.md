@@ -2,6 +2,8 @@
 
 Status: Accepted · 2026-11-11 · Source: brief rule 15; Lead prompt 1, 5 and 11
 
+_Amended by [0031](0031-photos-at-launch.md): at launch the originals the content uses are copied once from the staging bucket to production's, the builds switch to production's bucket, and staging and preview stop taking uploads (`PHOTO_UPLOADS`)._
+
 | Env        | Worker           | Address                                           | D1               | R2 buckets                                           | Indexed |
 | ---------- | ---------------- | ------------------------------------------------- | ---------------- | ---------------------------------------------------- | ------- |
 | local      | philglov-local   | `wrangler dev` only, never deployed               | local simulation | local simulation                                     | no      |

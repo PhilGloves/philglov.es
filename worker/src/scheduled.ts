@@ -13,7 +13,6 @@ export const IP_HASH_DAYS = 30;
 export const REJECTED_DAYS = 30;
 export const REPORT_DAYS = 365;
 export const BACKUPS_KEPT = 12;
-export const DAILY = "0 3 * * *";
 export const WEEKLY = "0 4 * * 1";
 
 export async function retention(db: D1Database, now = Date.now()): Promise<void> {

@@ -19,6 +19,18 @@ test("deployed environments do not list required secrets: wrangler would refuse 
   assert.ok(c.secrets?.required?.includes("FORM_HMAC_KEY"), "the local config still declares them for types");
 });
 
+// Decision 0031: photos are uploaded on staging until launch and on production after it, never both. Every
+// environment says which in PHOTO_UPLOADS (the Worker refuses an upload unless it is "on"); production always takes
+// them, and staging and preview turn "off" at launch (docs/setup.md, step 12b), together.
+test("PHOTO_UPLOADS: production always takes photos; staging and preview take them until launch, together", () => {
+  const c = config() as ReturnType<typeof config> & { vars: Record<string, string> };
+  assert.equal(c.vars["PHOTO_UPLOADS"], "on", "local and tests");
+  assert.equal(c.env["production"]?.vars["PHOTO_UPLOADS"], "on", "production");
+  const staging = c.env["staging"]?.vars["PHOTO_UPLOADS"];
+  assert.ok(staging === "on" || staging === "off", `staging: ${staging}`);
+  assert.equal(c.env["preview"]?.vars["PHOTO_UPLOADS"], staging, "preview follows staging");
+});
+
 test("notifications stay off and Access stays unconfigured until the owner sets them", () => {
   for (const [name, env] of Object.entries(config().env)) {
     assert.equal(env.vars["NOTIFY"], "off", name);

@@ -24,6 +24,11 @@ playwright-report/
 !.env.example
 .dev.vars
 .dev.vars.*
+*.pem
+
+# a backup being restored (README, "Restoring"): visitors' names and email addresses
+/backup*.json
+/restore*.sql
 
 # OS / editor
 .DS_Store

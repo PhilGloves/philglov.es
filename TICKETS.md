@@ -324,7 +324,8 @@ Three rounds, one pull request each, from `QA-REPORT.md`, `docs/qa/bug-reports.m
   - [x] TO-02 Main navigation links are 44 × 44 px on phones, words unmoved.
   - [ ] TO-03 `site.json` `portrait` (owner: the real portrait); the Person data carries it as its image and the launch
         gate fails until it is set. Code done; waits for the photograph (with O1).
-- [ ] R3 Round 3 (scope set by the owner).
+- [x] R3 Round 3, scope set by the owner: the tests themselves. _Done (decision 0022, "Round 3" and "Round 3,
+      follow-up")._
 
 ## 11 · The other language from the phone (owner request 2026-11-16, [0029](docs/decisions/0029-write-the-other-language.md))
 
@@ -338,3 +339,15 @@ Three rounds, one pull request each, from `QA-REPORT.md`, `docs/qa/bug-reports.m
 - [x] W4 After Publish the confirmation links to the other language (edit it, or write it).
 - [x] W5 A version written while the other is still on its way: the form works from its pull request; Publish waits
       until it is on `main`.
+
+## 12 · Fourth opinion (owner request 2026-11-17, [0031](docs/decisions/0031-photos-at-launch.md))
+
+- [x] F1 The owner can run the site alone on Windows (A-02 to A-15): `restore-backup.ts` writes its own UTF-8 file;
+      setup.md step 8b whole again and `tests/unit/docs.test.ts` guarding every block; README "On Windows" (Git Bash
+      on PATH, Chromium, ExifTool, stand-ins, `.cmd` shims, PowerShell 5.1 loops, originals on the laptop); setup.md
+      steps 5–10 and 12–16 corrected (previews, the narrow deploy token, production's own token, the App key, the first
+      deploy); README "Run what CI runs" with both scopes; CLAUDE.md state; `docs/owner-playbook.md`. _Owner:_ add
+      `CLOUDFLARE_ACCOUNT_ID` as a Dependabot secret (setup.md step 5) before the next Dependabot pull request.
+- [x] F2 Unused code removed (B-02 to B-04): `hasOriginal`, `DAILY`, `shareImageSvg`.
+- [x] F3 Photos at launch (A-01, B-01): `scripts/copy-originals.ts`, `PHOTO_UPLOADS`, setup.md step 12b; `listKeys`
+      kept and used. _Owner:_ step 12b at launch.

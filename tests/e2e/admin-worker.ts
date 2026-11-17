@@ -194,6 +194,7 @@ export async function serveAdmin(): Promise<Admin> {
   );
   const env = {
     SITE_ENV: "local",
+    PHOTO_UPLOADS: "on",
     ACCESS_TEAM_DOMAIN: TEAM,
     ACCESS_AUD: AUD,
     NOTIFY: "off",

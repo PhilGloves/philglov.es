@@ -75,6 +75,23 @@ describe("photo upload", () => {
     expect(new Uint8Array((await kept?.arrayBuffer()) ?? new ArrayBuffer(0))).toEqual(JPEG);
   });
 
+  // Decision 0031: from launch the builds read production's bucket, so staging and preview (PHOTO_UPLOADS "off")
+  // refuse a photo with a message instead of storing it where no build would find it.
+  test("with PHOTO_UPLOADS off an upload is refused with a clear message and nothing is stored", async () => {
+    const { upload } = await import("../../worker/src/admin/upload.ts");
+    const request = new Request("https://philglov.es/admin/upload?slug=after-launch&name=lake.jpg", {
+      method: "PUT",
+      headers: { "Content-Length": String(JPEG.length) },
+      body: JPEG,
+    });
+    const res = await upload(request, { ...env, PHOTO_UPLOADS: "off" } as unknown as Env);
+    expect(res.status).toBe(403);
+    expect((await res.json<{ error: string }>()).error).toMatch(/no longer stores photos.*philglov\.es\/admin\/write/);
+    expect((await env.ORIGINALS.list({ prefix: "after-launch/" })).objects).toEqual([]);
+    // The test environment itself (top level of wrangler.jsonc) takes uploads, as staging does until launch.
+    expect((await put("after-launch", "lake.jpg", JPEG)).status).toBe(200);
+  });
+
   test("a GIF named .jpg is refused", async () => {
     expect((await put("alps", "cat.jpg", GIF)).status).toBe(415);
   });
