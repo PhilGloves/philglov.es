@@ -89,9 +89,11 @@ const path = locale === "en" ? "/" : "/it";
               : tf(locale, "journalCount", { n: rows.length, year: firstYear })}
           </p>
         )}
-        <p class="small muted">
-          <Arrows text={t(locale, "markLegend")} />
-        </p>
+        {rows.length > 0 && (
+          <p class="small muted">
+            <Arrows text={t(locale, "markLegend")} />
+          </p>
+        )}
       </div>
       <div class="con">
         {latest ? (
@@ -125,11 +127,13 @@ const path = locale === "en" ? "/" : "/it";
           <p class="muted">{t(locale, "noEntries")}</p>
         )}
         {earlier.length > 0 && <EntryTable locale={locale} rows={earlier} caption={t(locale, "earlierEntries")} />}
-        <p class="idx-more">
-          <a class="go" href={journalPath(locale)}>
-            <Arrows text={t(locale, "fullIndex")} />
-          </a>
-        </p>
+        {rows.length > 0 && (
+          <p class="idx-more">
+            <a class="go" href={journalPath(locale)}>
+              <Arrows text={t(locale, "fullIndex")} />
+            </a>
+          </p>
+        )}
       </div>
     </div>
   </div>
