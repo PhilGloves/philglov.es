@@ -283,3 +283,15 @@ originals cache deleted in 0030, so the next one stops at `check-originals` unti
 does not catch `[city]`, `[launch date]` or `[your contact email]` (its pattern is `[placeholder…]`/`[segnaposto…]`).
 Lessons: a heredoc or a JSON string turns `\n` in a documented command into a line break (how step 8b broke); write
 such edits with an editor tool and test the blocks. On Windows, Git for Windows puts only `git` on PATH, not `bash`.
+
+## Owner text changes and test fixtures — 2026-11-18
+
+Two stacked pull requests. First, decision [0032](decisions/0032-owner-text-changes.md): no `jobTitle`, the home title
+"Filippo Guanti - just me" / "solo io", and no long dashes on the site (`tests/unit/no-long-dashes.test.ts`). Second,
+decision [0033](decisions/0033-test-fixtures.md): the sample entries and series moved to `tests/fixtures/content`; every
+suite runs on `pnpm build:fixtures` (generated photos, no R2); the owner's own build gets `pnpm test:site` and the
+launch gate; the site works empty. Lessons: a Vite `import.meta.glob` pattern must be a literal, so the folder switch is
+an alias (`@originals`); Astro's glob loader wants a root-relative `base`, not an absolute Windows path; a lazy glob
+copies every file it matches into `dist/_assets` even when no page uses it, so stale originals in a local
+`src/.originals` end up in a local build (CI fetches only what the content uses). Text written through this session's
+tool calls had JavaScript-style escapes (backslash, u, four hex digits) turned into the characters themselves: build such strings with `chr()`.
