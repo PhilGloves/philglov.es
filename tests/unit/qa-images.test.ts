@@ -1,7 +1,8 @@
 /**
  * QA suites 10 and 14 (the files): every image the build wrote carries no GPS position, and every photograph carries
  * the copyright, the creator, the web statement and the Data Mining reservation. Read with exiftool, independently
- * of scripts/photo-rights.ts, which wrote them. Needs a build (`pnpm build`) and exiftool (CI installs it).
+ * of scripts/photo-rights.ts, which wrote them. Needs a build and exiftool (CI installs it): it runs on the test build
+ * with the unit tests and on the site's own build with `pnpm test:site` (decision 0033).
  */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -26,8 +27,9 @@ function exiftool(files: string[]): Record<string, string>[] {
   return out;
 }
 
-test("the build has images to check, and exiftool is there to read them", () => {
-  assert.ok(images.length > 0, "dist/_assets has no images: run `pnpm build` first");
+// The site's own build may have no photograph yet (decision 0033), so a build is required, not an image.
+test("there is a build to check, and exiftool is there to read it", () => {
+  assert.ok(existsSync(assets), "dist/_assets does not exist: run `pnpm build` (or `pnpm build:fixtures`) first");
   try {
     execFileSync("exiftool", ["-ver"], { stdio: "ignore" });
   } catch {

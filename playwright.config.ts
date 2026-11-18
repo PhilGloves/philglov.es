@@ -2,7 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 /**
  * E2E tests run against the built site served by the real Worker
- * (`wrangler dev`, local D1/R2). Run `pnpm build` first.
+ * (`wrangler dev`, local D1/R2). Run `pnpm build:fixtures` first: the suites run on the test fixtures, never on the
+ * owner's content (decision 0033; global-setup.ts refuses any other build). The owner's own build has its smoke test
+ * and the launch gate in playwright.site.config.ts (`pnpm test:site`, `pnpm test:launch`).
  *
  * Projects (TICKETS.md, ticket Q; the QA matrix is in docs/qa/README.md):
  *  - chromium, chromium-no-js: every suite, JavaScript on and off. This is `pnpm test:e2e` and what CI runs.
@@ -16,15 +18,9 @@ import { defineConfig, devices } from "@playwright/test";
 const port = 8787;
 const production = process.env["QA_PROD"] === "1";
 const notDefault = /(cross-browser|visual|launch|live)\.spec\.ts$/;
-/**
- * `E2E_SCOPE=core` leaves out tests/e2e/qa (the QA matrix): the suite a publish from the phone waits for. Everything
- * else in tests/e2e is the core. CI sets it when a change only touches journal entries (.github/workflows/ci.yml).
- */
-const core = process.env["E2E_SCOPE"] === "core";
-const coreOnly: RegExp[] = core ? [/\/qa\//] : [];
-
 export default defineConfig({
   testDir: "tests/e2e",
+  globalSetup: "./tests/e2e/global-setup.ts",
   forbidOnly: !!process.env["CI"],
   retries: 0,
   // The runner has 4 CPUs; most of the QA matrix's time is waiting (pauses a person takes, network quiet), so use all 4.
@@ -33,16 +29,15 @@ export default defineConfig({
   snapshotPathTemplate: "{testDir}/__screenshots__/{projectName}-{platform}/{testFilePath}/{arg}{ext}",
   use: { baseURL: `http://127.0.0.1:${port}` },
   projects: [
-    { name: "chromium", testIgnore: [notDefault, ...coreOnly], use: { ...devices["Desktop Chrome"] } },
+    { name: "chromium", testIgnore: [notDefault], use: { ...devices["Desktop Chrome"] } },
     {
       name: "chromium-no-js",
-      testIgnore: [notDefault, ...coreOnly],
+      testIgnore: [notDefault],
       use: { ...devices["Desktop Chrome"], javaScriptEnabled: false },
     },
     { name: "firefox", testMatch: /cross-browser\.spec\.ts$/, use: { ...devices["Desktop Firefox"] } },
     { name: "webkit", testMatch: /cross-browser\.spec\.ts$/, use: { ...devices["Desktop Safari"] } },
     { name: "visual", testMatch: /visual\.spec\.ts$/, use: { ...devices["Desktop Chrome"] } },
-    { name: "launch", testMatch: /launch\.spec\.ts$/, use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {
     command: production ? "pnpm preview --var SITE_ENV:production" : "pnpm preview",

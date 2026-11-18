@@ -11,12 +11,14 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { builtPages, swapLang, type BuiltPage } from "./lib.ts";
+import { fixtureContent } from "../../fixtures/content.ts";
 
 type Lang = "en" | "it";
 const escapeRe = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const other = (l: Lang): Lang => (l === "en" ? "it" : "en");
 const ORIGIN = "https://philglov.es";
-const content = new URL("../../../src/content/", import.meta.url);
+// The fixtures the suites are built from (decision 0033).
+const content = fixtureContent;
 const ui = (l: Lang) =>
   JSON.parse(readFileSync(new URL(`../../../src/i18n/${l}.json`, import.meta.url), "utf8")) as Record<string, string>;
 
@@ -42,7 +44,7 @@ test("front matter is read the same with LF, CRLF and a byte-order mark (W-10)",
   expect(frontMatterBlock("no fences here")).toBe("");
 });
 
-/** slug → versions found in src/content/{journal,pages}/{en,it}/<slug>.md, by language. */
+/** slug → versions found in the fixtures' {journal,pages}/{en,it}/<slug>.md, by language. */
 function contentVersions(): Map<string, Partial<Record<Lang, Version>>> {
   const map = new Map<string, Partial<Record<Lang, Version>>>();
   for (const kind of ["journal", "pages"]) {

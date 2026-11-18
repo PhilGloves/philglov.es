@@ -12,6 +12,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { builtPages, readBuilt } from "./lib.ts";
+import { fixtureJournal } from "../../fixtures/content.ts";
 
 const ORIGIN = "https://philglov.es";
 const PROD = process.env["QA_PROD"] === "1";
@@ -19,7 +20,7 @@ const pages = builtPages();
 const indexable = pages.filter((p) => p.indexable);
 const journalSlugs = new Set(
   ["en", "it"].flatMap((l) =>
-    readdirSync(new URL(`../../../src/content/journal/${l}/`, import.meta.url))
+    readdirSync(new URL(`${l}/`, fixtureJournal))
       .filter((f) => f.endsWith(".md"))
       .map((f) => `${l === "it" ? "/it" : ""}/${f.replace(/\.md$/, "")}`),
   ),

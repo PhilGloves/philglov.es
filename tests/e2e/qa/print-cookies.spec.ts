@@ -8,9 +8,10 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { builtPages, readBuilt, transitionsDone } from "./lib.ts";
+import { fixtureJournal } from "../../fixtures/content.ts";
 
 const entries = ["en", "it"].flatMap((l) =>
-  readdirSync(new URL(`../../../src/content/journal/${l}/`, import.meta.url))
+  readdirSync(new URL(`${l}/`, fixtureJournal))
     .filter((f) => f.endsWith(".md"))
     .map((f) => `${l === "it" ? "/it" : ""}/${f.replace(/\.md$/, "")}`),
 );
