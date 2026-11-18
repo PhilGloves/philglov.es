@@ -44,7 +44,7 @@ test("every page carries the TDM meta tag and Open Graph tags with the share ima
 
 test("titles follow the guide: home, and '<page> · Filippo Guanti' elsewhere", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle("Filippo Guanti — photographs, software and a journal");
+  await expect(page).toHaveTitle("Filippo Guanti - just me");
   await expect(page.locator("h1")).toContainText("Filippo Guanti");
   await page.goto("/now");
   await expect(page).toHaveTitle("Now · Filippo Guanti");
