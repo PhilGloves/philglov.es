@@ -44,7 +44,16 @@ test("the site's own text has no en dash or em dash (journal entries and photo c
 });
 
 test("the check catches a dash in every form it can be written", () => {
-  for (const sample of ["a \u2014 b", "300\u2013400", "a &mdash; b", "a &ndash; b", "&#8212;", "&#x2013;", "\\u2014", "\\2013"]) {
+  for (const sample of [
+    "a \u2014 b",
+    "300\u2013400",
+    "a &mdash; b",
+    "a &ndash; b",
+    "&#8212;",
+    "&#x2013;",
+    "\\u2014",
+    "\\2013",
+  ]) {
     assert.match(sample, dash, sample);
   }
   for (const sample of ["a - b", "300-400", "a · b", "→"]) assert.doesNotMatch(sample, dash, sample);
