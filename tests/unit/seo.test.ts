@@ -6,11 +6,13 @@ import { robotsTxt, tdmrepJson } from "../../src/lib/robots.ts";
 import { blogPostingJsonLd, imageObjectJsonLd, jsonLdText, personJsonLd } from "../../src/lib/seo.ts";
 import { rssFeed, sitemapXml } from "../../src/lib/xml.ts";
 
-test("robots.txt is exactly the one in the guide", () => {
+// The guide's block with its long dashes as plain hyphens: the owner's rule "no long dashes on the site" (0032) is
+// the one change to the guide's texts.
+test("robots.txt is exactly the one in the guide, long dashes as hyphens", () => {
   const guide = readFileSync(new URL("../../docs/guide.md", import.meta.url), "utf8");
   const block = /```text\n(# philglov\.es — ©[\s\S]*?)\n```/.exec(guide)?.[1];
   assert.ok(block, "robots.txt block not found in docs/guide.md");
-  assert.equal(robotsTxt(), `${block}\n`);
+  assert.equal(robotsTxt(), `${block.replace(/[–—]/g, "-")}\n`);
 });
 
 test("robots.txt: search allowed, AI training refused, every bot from the data file, sitemap", () => {
@@ -26,14 +28,15 @@ test("tdmrep.json reserves the whole site (TDM Reservation Protocol)", () => {
   assert.deepEqual(JSON.parse(tdmrepJson()), [{ location: "/", "tdm-reservation": 1 }]);
 });
 
-test("Person JSON-LD names Filippo Guanti, both languages, and omits an empty sameAs", () => {
-  const person = personJsonLd("en");
+test("Person JSON-LD names Filippo Guanti, both languages, and omits an empty sameAs and any job title", () => {
+  const person = personJsonLd();
   assert.equal(person["@type"], "Person");
   assert.equal(person["name"], "Filippo Guanti");
   assert.deepEqual(person["knowsLanguage"], ["en", "it"]);
   assert.deepEqual(person["alternateName"], ["Phil Guanti", "philglov"]);
   assert.equal("sameAs" in person, false);
-  assert.equal(personJsonLd("it")["jobTitle"], "Fotografo e sviluppatore");
+  // The owner removed the job title (2026-11-18): no jobTitle in either language.
+  assert.equal("jobTitle" in person, false);
 });
 
 test("BlogPosting JSON-LD has author, date, language", () => {
@@ -113,11 +116,10 @@ test("Person JSON-LD carries the portrait as an absolute image URL once site.jso
   const data = {
     name: "Filippo Guanti",
     alternateName: [],
-    jobTitle: { en: "x", it: "y" },
     sameAs: [],
     portrait: "/_assets/portrait.jpg",
   };
-  assert.equal(personJsonLd("en", data)["image"], "https://philglov.es/_assets/portrait.jpg");
-  assert.equal("image" in personJsonLd("en", { ...data, portrait: null }), false);
-  assert.equal(personJsonLd("en", data, "/other.jpg")["image"], "https://philglov.es/other.jpg");
+  assert.equal(personJsonLd(data)["image"], "https://philglov.es/_assets/portrait.jpg");
+  assert.equal("image" in personJsonLd({ ...data, portrait: null }), false);
+  assert.equal(personJsonLd(data, "/other.jpg")["image"], "https://philglov.es/other.jpg");
 });
