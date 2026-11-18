@@ -16,11 +16,11 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
+import { originalsDir as originals } from "./lib/content-root.ts";
 import { colourCss, type PhotoRecord } from "./lib/photo-meta.ts";
 import { hasExiftool, readExif } from "./lib/photo-rights.ts";
 import { isStandIn } from "./lib/standins.ts";
 
-const originals = new URL("../src/.originals/", import.meta.url);
 const metaFile = new URL("meta.json", originals);
 const cssFile = new URL("../src/styles/photo-colours.generated.css", import.meta.url);
 

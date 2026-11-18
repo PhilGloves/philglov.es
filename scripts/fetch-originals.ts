@@ -30,7 +30,7 @@ const [accountId, accessKeyId, secretAccessKey, bucket] = [
   env["R2_BUCKET"],
 ];
 const force = process.argv.includes("--force");
-const keys = contentKeys(root);
+const keys = contentKeys(new URL("content/", root));
 const local = (key: string) => new URL(`.originals/${key}`, root);
 // A grey stand-in from a build with ALLOW_MISSING_ORIGINALS=1 is not an original: it is replaced like a missing file.
 const have = (key: string) => existsSync(local(key)) && !isStandIn(fileURLToPath(new URL(".originals/", root)), key);

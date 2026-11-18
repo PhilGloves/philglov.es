@@ -151,8 +151,9 @@ test("the stand-in refuses a request signed with the wrong secret, so the signat
   }
 });
 
-test("the copy takes its list from the content: every original the entries and series of this checkout use", () => {
-  const keys = contentKeys(new URL("../../src/", import.meta.url));
+// Read from the test fixtures (decision 0033): the owner's content may have no photo at all.
+test("the copy takes its list from the content: every original the entries and series use", () => {
+  const keys = contentKeys(new URL("../fixtures/content/", import.meta.url));
   assert.deepEqual(keys, [...new Set(keys)].sort());
   assert.ok(keys.length > 0);
   assert.ok(

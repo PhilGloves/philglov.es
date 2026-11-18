@@ -35,19 +35,20 @@ export function entryKeys(markdown: string): string[] {
 }
 
 /**
- * Every original the content under `src` uses (the series files, and the journal entries in both languages), sorted,
- * each once: what the build fetches (scripts/fetch-originals.ts) and what the launch copy moves to production
- * (scripts/copy-originals.ts, decision 0031).
+ * Every original a content folder uses (`content` holds photos/ and journal/: src/content, or the fixtures'; the series
+ * files, and the journal entries in both languages), sorted, each once: what the build fetches
+ * (scripts/fetch-originals.ts), what the launch copy moves to production (scripts/copy-originals.ts, decision 0031) and
+ * what the fixtures draw (scripts/fixture-photos.ts, decision 0033).
  */
-export function contentKeys(src: URL): string[] {
+export function contentKeys(content: URL): string[] {
   const series: Record<string, string> = {};
-  const dir = new URL("content/photos/", src);
+  const dir = new URL("photos/", content);
   for (const e of readdirSync(dir, { withFileTypes: true })) {
     const file = new URL(`${e.name}/photos.json`, dir);
     if (e.isDirectory() && existsSync(file)) series[e.name] = readFileSync(file, "utf8");
   }
   const keys = seriesKeys(series);
-  const journal = new URL("content/journal/", src);
+  const journal = new URL("journal/", content);
   for (const lang of readdirSync(journal)) {
     for (const f of readdirSync(new URL(`${lang}/`, journal))) {
       if (f.endsWith(".md")) keys.push(...entryKeys(readFileSync(new URL(`${lang}/${f}`, journal), "utf8")));
