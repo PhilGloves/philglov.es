@@ -8,7 +8,7 @@ tags: []
 comments: false
 ---
 
-Everything on this site — photographs, text, design — is © Filippo Guanti. All rights reserved.
+Everything on this site - photographs, text, design - is © Filippo Guanti. All rights reserved.
 
 **You're welcome to**
 

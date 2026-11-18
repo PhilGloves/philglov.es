@@ -75,7 +75,7 @@ test("JSON-LD: Person on home and About, BlogPosting on an entry, ImageObject on
 test("rights and privacy pages carry the guide's texts in both languages", async ({ page }) => {
   await page.goto("/rights");
   await expect(page.locator("main")).toContainText(
-    "Everything on this site — photographs, text, design — is © Filippo Guanti.",
+    "Everything on this site - photographs, text, design - is © Filippo Guanti.",
   );
   await expect(page.locator("main")).toContainText("Directive (EU) 2019/790");
   await page.goto("/it/rights");

@@ -3,7 +3,7 @@ import bots from "../data/ai-bots.json" with { type: "json" };
 
 export function robotsTxt(site = "https://philglov.es"): string {
   return [
-    "# philglov.es — © Filippo Guanti. All rights reserved.",
+    "# philglov.es - © Filippo Guanti. All rights reserved.",
     "# Text and data mining, including AI training, is expressly reserved",
     `# (Directive (EU) 2019/790, art. 4(3)). See ${site}/rights`,
     "",

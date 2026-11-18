@@ -10,7 +10,7 @@ comments: false
 
 Last updated: [launch date]
 
-**Who is responsible.** Filippo Guanti, [city], Italy — [your contact email]. This is a personal site with no ads, no analytics and no tracking.
+**Who is responsible.** Filippo Guanti, [city], Italy - [your contact email]. This is a personal site with no ads, no analytics and no tracking.
 
 **What this site does not do.** It sets no cookies, loads nothing from other companies and builds no profile of you. Your light or dark theme choice is saved only in your own browser.
 
@@ -25,6 +25,6 @@ Sending a form is optional. Comments and reports are never sent to AI services.
 
 **How long I keep it.** Published comments, with their email, stay until you ask me to remove them or I delete the entry. Rejected comments are deleted after 30 days, error reports within 12 months, and backups after 12 weeks.
 
-**Who else handles it.** Cloudflare, Inc. hosts the site and stores this data for me in its European Union data region, under a data-processing agreement. Cloudflare is a US company; where data leaves the EU, it relies on the EU–US Data Privacy Framework and standard contractual clauses. If I reply to you by email, my email provider handles that message. I share your data with no one else.
+**Who else handles it.** Cloudflare, Inc. hosts the site and stores this data for me in its European Union data region, under a data-processing agreement. Cloudflare is a US company; where data leaves the EU, it relies on the EU-US Data Privacy Framework and standard contractual clauses. If I reply to you by email, my email provider handles that message. I share your data with no one else.
 
 **Your rights.** You can ask me to see, correct or delete your data, to limit or object to its use, or to receive a copy, and you can withdraw your consent at any time: write to [your contact email]. You can also complain to the Italian data protection authority, the Garante per la protezione dei dati personali (garanteprivacy.it).

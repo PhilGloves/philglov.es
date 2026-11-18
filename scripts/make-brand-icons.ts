@@ -33,7 +33,7 @@ function chunk(type: string, data: Buffer): Buffer {
   return Buffer.concat([length, body, crc]);
 }
 
-/** Coverage (0–1) of pixel (x, y) by a rounded square of the given radius, 8×8 supersampled. */
+/** Coverage (0-1) of pixel (x, y) by a rounded square of the given radius, 8×8 supersampled. */
 function coverage(x: number, y: number, size: number, radius: number): number {
   const n = 8;
   let hit = 0;

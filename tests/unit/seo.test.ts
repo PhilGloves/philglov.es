@@ -10,9 +10,9 @@ import { rssFeed, sitemapXml } from "../../src/lib/xml.ts";
 // the one change to the guide's texts.
 test("robots.txt is exactly the one in the guide, long dashes as hyphens", () => {
   const guide = readFileSync(new URL("../../docs/guide.md", import.meta.url), "utf8");
-  const block = /```text\n(# philglov\.es — ©[\s\S]*?)\n```/.exec(guide)?.[1];
+  const block = /```text\n(# philglov\.es \u2014 ©[\s\S]*?)\n```/.exec(guide)?.[1];
   assert.ok(block, "robots.txt block not found in docs/guide.md");
-  assert.equal(robotsTxt(), `${block.replace(/[–—]/g, "-")}\n`);
+  assert.equal(robotsTxt(), `${block.replace(/[\u2013\u2014]/g, "-")}\n`);
 });
 
 test("robots.txt: search allowed, AI training refused, every bot from the data file, sitemap", () => {
