@@ -1,7 +1,7 @@
 /**
  * The `sizes` attribute for each place a photograph is drawn, measured against
  * the layout in site.css (phone ≤ 40rem: one column with a 1rem gutter; wider:
- * the content column of the 12-column grid). The browser picks the 480–2400 px
+ * the content column of the 12-column grid). The browser picks the 480-2400 px
  * file from these, so they decide how many bytes a phone downloads.
  */
 export const SIZES = {

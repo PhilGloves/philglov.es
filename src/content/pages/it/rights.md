@@ -8,7 +8,7 @@ tags: []
 comments: false
 ---
 
-Tutto ciò che trovi su questo sito — fotografie, testi, design — è © Filippo Guanti. Tutti i diritti riservati.
+Tutto ciò che trovi su questo sito - fotografie, testi, design - è © Filippo Guanti. Tutti i diritti riservati.
 
 **Puoi liberamente**
 

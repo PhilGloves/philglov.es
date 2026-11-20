@@ -10,7 +10,6 @@ const personId = `${SITE}/#person`;
 export interface PersonData {
   name: string;
   alternateName: string[];
-  jobTitle: Record<Locale, string>;
   sameAs: string[];
   /** Path of the real portrait on this site (e.g. "/_assets/portrait.jpg"), or null until the owner has one. */
   portrait: string | null;
@@ -21,7 +20,6 @@ export interface PersonData {
  * (TICKETS.md, O1; the launch gate fails on both). The placeholder frame on About is never used as the image (TO-03).
  */
 export function personJsonLd(
-  locale: Locale,
   data: PersonData = site,
   image: string | undefined = data.portrait ?? undefined,
 ): Record<string, unknown> {
@@ -33,7 +31,6 @@ export function personJsonLd(
     alternateName: data.alternateName,
     url: SITE,
     ...(image ? { image: absolute(image) } : {}),
-    jobTitle: data.jobTitle[locale],
     knowsLanguage: ["en", "it"],
     ...(data.sameAs.length > 0 ? { sameAs: data.sameAs } : {}),
   };

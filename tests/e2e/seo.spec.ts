@@ -44,7 +44,7 @@ test("every page carries the TDM meta tag and Open Graph tags with the share ima
 
 test("titles follow the guide: home, and '<page> · Filippo Guanti' elsewhere", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle("Filippo Guanti — photographs, software and a journal");
+  await expect(page).toHaveTitle("Filippo Guanti - just me");
   await expect(page.locator("h1")).toContainText("Filippo Guanti");
   await page.goto("/now");
   await expect(page).toHaveTitle("Now · Filippo Guanti");
@@ -75,7 +75,7 @@ test("JSON-LD: Person on home and About, BlogPosting on an entry, ImageObject on
 test("rights and privacy pages carry the guide's texts in both languages", async ({ page }) => {
   await page.goto("/rights");
   await expect(page.locator("main")).toContainText(
-    "Everything on this site — photographs, text, design — is © Filippo Guanti.",
+    "Everything on this site - photographs, text, design - is © Filippo Guanti.",
   );
   await expect(page.locator("main")).toContainText("Directive (EU) 2019/790");
   await page.goto("/it/rights");

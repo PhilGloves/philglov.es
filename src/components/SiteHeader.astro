@@ -33,7 +33,7 @@ const links = [
 // language name, in that language, plus the note when this page has no twin (the link then opens the other home page).
 const switchName =
   `${other.toUpperCase()}, ${t(locale, "otherLanguageName")}` +
-  (!hasTwin && !demo ? ` — ${t(locale, "switchNoTwin")}` : "");
+  (!hasTwin && !demo ? ` - ${t(locale, "switchNoTwin")}` : "");
 const Header = demo ? "div" : "header";
 const Nav = demo ? "div" : "nav";
 ---
