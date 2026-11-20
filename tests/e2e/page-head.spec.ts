@@ -110,13 +110,13 @@ async function intro(page: Page): Promise<Record<string, string | number>> {
   });
 }
 
-test("the intro sentence has one style on Journal, Photos, Now, About and Privacy", async ({ page }) => {
+test("the intro sentence has one style on Journal, Photos, About and Privacy", async ({ page }) => {
   for (const width of [390, 768, 1024, 1440]) {
     await open(page, "/journal", width);
     const reference = await intro(page);
     expect(reference["under"], "28 px under the title").toBe(28);
     expect(reference["fontSize"]).toBe(width > 640 ? "22px" : "20px");
-    for (const path of ["/photos", "/now", "/about", "/it/now"]) {
+    for (const path of ["/photos", "/about"]) {
       await open(page, path, width);
       expect(await intro(page), `${path} at ${width}px`).toEqual(reference);
     }
@@ -137,7 +137,7 @@ test("the text starts 52 / 68 / 80 px under the intro", async ({ page }) => {
     [1024, 68],
     [1440, 80],
   ] as const) {
-    for (const path of ["/now", "/rights", "/privacy", "/it/now"]) {
+    for (const path of ["/rights", "/privacy"]) {
       await open(page, path, width);
       const gap = await page.evaluate(() => {
         const lede = (document.querySelector("main .lede") as Element).getBoundingClientRect();
@@ -206,5 +206,25 @@ test("Home: no 'Photographer and developer'; the name stays inside the h1, hidde
     await expect(h1.locator("span.sr-only")).toHaveText(kick);
     // the hidden part takes no room: the visible title is the statement
     expect(await h1.locator("span.sr-only").evaluate((el) => el.getBoundingClientRect().width)).toBeLessThanOrEqual(1);
+  }
+});
+
+test("Now keeps its description in metadata and shows only the authored text", async ({ page }) => {
+  for (const path of ["/now", "/it/now"]) {
+    await page.goto(path);
+    const description = await page.locator('meta[name="description"]').getAttribute("content");
+    expect(description).toBeTruthy();
+    await expect(page.locator("main .lede")).toHaveCount(0);
+    await expect(page.locator("main .prose p").first()).toBeVisible();
+    await expect(page.locator('meta[property="og:description"]')).toHaveAttribute("content", description ?? "");
+    for (const width of widths) {
+      await page.setViewportSize({ width, height: 900 });
+      const gap = await page.evaluate(() => {
+        const title = document.querySelector("main h1")?.getBoundingClientRect();
+        const text = document.querySelector("main .prose")?.getBoundingClientRect();
+        return title && text ? text.top - title.bottom : Number.NaN;
+      });
+      expect(Math.abs(gap - 28), `${path} at ${width}px`).toBeLessThanOrEqual(1);
+    }
   }
 });
