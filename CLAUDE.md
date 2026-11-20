@@ -197,6 +197,9 @@ contatto]` …) and a bracket starting with "Placeholder"/"Segnaposto" on the bu
   the home page's "Based in [City]" line; `pnpm test:launch` names the page and the text. **Never journal entries, photo
   series or their listings** (owner ruling): text an owner writes is never a gap. Still informational on CI until O1. A new
   kind of gap is added to that list with a test, never as a looser pattern.
+- 2026-11-18: owner text changes ([0032](docs/decisions/0032-owner-text-changes.md)): **no `jobTitle`** (site.json and the
+  Person data, both languages; `personJsonLd()` takes no locale); home title "Filippo Guanti - just me" / "Filippo
+  Guanti - solo io", `heroKick` "Filippo Guanti"; **no long dashes on the site** (see the rule below).
 - 2026-11-20: the owner's texts, portrait and icon ([0034](docs/decisions/0034-owner-texts-portrait-icon.md)): Home,
   About and Now as the owner wrote them (never reword them); `site.json` has the city (Msida, Malta; the home line takes
   it as `{city}`), `phil@philglov.es`, three `sameAs` profiles; Privacy names Torino; the footer's rights line ends at
@@ -372,5 +375,9 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
 - Every `/admin` path verifies the Access JWT; there is no local or test bypass. Secrets only via `wrangler secret
 put`; non-secret config as per-env vars in `wrangler.jsonc` (`secrets.required` lists the names at the top level only: in an env it makes every deploy fail until the secret is set;
   `tests/unit/wrangler-config.test.ts`).
+- No long dashes (0032): the site's own text never contains an en dash or an em dash, as a character, entity or escape.
+  Use a plain hyphen: " - " between words, "300-400" in ranges. Arrows and "·" are fine. `tests/unit/no-long-dashes.test.ts`
+  reads every text file under `src`, `worker/src`, `scripts` and `public`, code comments included; the owner's journal
+  entries and photo series are his text and are not checked.
 - No translation tooling of any kind: no AI or translation API, script, CI job, key, secret or dependency. hreflang
   pairs only when both language versions exist (`hasTwin` in `BaseLayout.astro`).

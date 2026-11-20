@@ -49,8 +49,8 @@ test("every gap the pages and site.json carry is found, in either language and s
   const cases = [
     "Last updated: [launch date]",
     "Ultimo aggiornamento: [data di lancio]",
-    "Filippo Guanti, [city], Italy — [your contact email].",
-    "Filippo Guanti, [città], Italia — [la tua email di contatto].",
+    "Filippo Guanti, [city], Italy - [your contact email].",
+    "Filippo Guanti, [città], Italia - [la tua email di contatto].",
     "<li>[contact email]</li><li>[city]</li>",
     "<p>Based in [City]. Writing</p>",
     "<p>Vivo a [CITTÀ]. Scrivo</p>",
@@ -91,7 +91,7 @@ test("brackets that are not gaps are left alone", () => {
 
 test("a page with every gap filled passes", () => {
   const filled =
-    '<title>About</title><meta name="description" content="Two sentences."><p>Filippo Guanti, Bologna, Italy — ' +
+    '<title>About</title><meta name="description" content="Two sentences."><p>Filippo Guanti, Bologna, Italy - ' +
     '<a href="mailto:a@b.it">a@b.it</a>. Last updated: 1 December 2026.</p><p>Based in Bologna.</p>';
   assert.deepEqual(findPlaceholders(filled), []);
   assert.deepEqual(findPlaceholders(filled, { markers: false }), []);

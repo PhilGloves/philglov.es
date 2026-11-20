@@ -17,7 +17,7 @@ const page = (text: string, extra = ""): string =>
   `<link rel="canonical" href="https://philglov.es/x"><meta property="og:image" content="https://philglov.es/_assets/s.png">` +
   `<script type="application/ld+json">{"@type":"Person"}</script><script>document.documentElement.dataset.theme="x"</script>` +
   `</head><body><header><a href="/">Home</a><button type="button" data-theme-toggle>${ICON}</button></header>` +
-  `<main id="main"><div class="g"><div class="con"><div class="prose">${text}<p class="sign">— Filippo</p></div></div>` +
+  `<main id="main"><div class="g"><div class="con"><div class="prose">${text}<p class="sign">- Filippo</p></div></div>` +
   `<form class="form" method="post" action="/api/comment#comment-status" id="comment-form"><input type="hidden" name="token" value=""><textarea name="comment"></textarea><button type="submit">Send</button></form>` +
   `</div></main>${extra}<footer><form class="rform" method="post" action="/api/report#report-status"><input type="hidden" name="url" value="/x"><textarea name="message"></textarea><button type="submit">Send</button></form></footer>` +
   `<script type="module" src="/_assets/FormGuard.abc.js"></script></body></html>`;

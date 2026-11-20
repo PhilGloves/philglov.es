@@ -41,7 +41,7 @@ const isRealEmail = /^[^@\s[\]]+@[^@\s[\]]+\.[^@\s[\]]+$/.test(email);
   title={page.data.title}
   description={page.data.description}
   hasTwin={hasTwin}
-  jsonLd={isAbout ? [personJsonLd(locale, await portraitImage())] : []}
+  jsonLd={isAbout ? [personJsonLd(await portraitImage())] : []}
 >
   <article class="page">
     <div class="g top top--intro">

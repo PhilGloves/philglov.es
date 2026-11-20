@@ -193,8 +193,8 @@ test("a journal entry has no intro: the text keeps its distance under the title"
 
 test("Home: no 'Photographer and developer'; the name stays inside the h1, hidden from sight", async ({ page }) => {
   for (const [path, kick, based] of [
-    ["/", "Filippo Guanti — journal, photographs, notes", "Based in Msida, Malta. Writing in English and Italian."],
-    ["/it", "Filippo Guanti — diario, fotografie, appunti", "Vivo a Msida, Malta. Scrivo in inglese e in italiano."],
+    ["/", "Filippo Guanti", "Based in Msida, Malta. Writing in English and Italian."],
+    ["/it", "Filippo Guanti", "Vivo a Msida, Malta. Scrivo in inglese e in italiano."],
   ] as const) {
     await page.goto(path);
     const visible = await page.locator("body").innerText();

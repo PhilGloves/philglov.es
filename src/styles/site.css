@@ -1,5 +1,5 @@
 /*
- * philglov.es — the whole stylesheet. One file, built into one /_assets/*.css.
+ * philglov.es - the whole stylesheet. One file, built into one /_assets/*.css.
  * Budget: ≤ 20 KB compressed (tests/unit/css.test.ts). Visual spec: the two
  * approved prototypes in docs/design/ (Home.dc.html, Article.dc.html). Where this
  * file and a prototype differ, the prototype is right.
@@ -25,7 +25,7 @@
  *       content container .con and .cq, named "content": things that depend on
  *                         the room they have (journal table, photo grid, forms,
  *                         comments, previous/next).
- *     Page tiers: phone ≤ 40rem (640 px), tablet 40–65rem, desktop > 65rem
+ *     Page tiers: phone ≤ 40rem (640 px), tablet 40-65rem, desktop > 65rem
  *     (1040 px). Browsers without container queries (before Safari 16) get the
  *     phone layout at every width: readable, single column, no overflow.
  *     Grid gap: 16 px at 640 px and below, 32 px above (--col-gap).
@@ -54,7 +54,7 @@
 /* ---------------------------------------------------------------- fonts */
 /* Latin (English and Italian) plus Latin Extended-A, variable, subset by
  * scripts/build-fonts.py (pinned source, exact steps there). Two files, 64 KiB,
- * budget 80 KB. Upright: weight 300–600. Italic: weight 300–400. */
+ * budget 80 KB. Upright: weight 300-600. Italic: weight 300-400. */
 @font-face {
   font-family: "Crimson Pro";
   src: url("/_assets/fonts/crimson-pro.woff2") format("woff2");

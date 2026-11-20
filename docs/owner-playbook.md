@@ -192,7 +192,6 @@ JSON's rules: text in double quotes, a comma between items and none after the la
 | `name`          | "Filippo Guanti": header, titles, structured data, share images. Leave it.                               |
 | `alternateName` | Other names people search for you by, as a list: `["Phil Guanti", "philglov"]`. Structured data only.    |
 | `url`           | `https://philglov.es`. Never change it.                                                                  |
-| `jobTitle`      | One line per language, `"en"` and `"it"`. Structured data only (search engines).                         |
 | `contactEmail`  | Your public address: About page and `/.well-known/security.txt` (`phil@philglov.es`).                    |
 | `city`          | About page and the home line "Based in …" / "Vivo a …" (`"Msida, Malta"`).                               |
 | `partitaIva`    | `null`, or your number as text (`"01234567890"`): then the footer shows "P.IVA …". Only if you have one. |

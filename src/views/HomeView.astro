@@ -41,7 +41,7 @@ const path = locale === "en" ? "/" : "/it";
   fullTitle
   title={t(locale, "homeTitle")}
   description={t(locale, "homeDescription")}
-  jsonLd={[personJsonLd(locale, await portraitImage())]}
+  jsonLd={[personJsonLd(await portraitImage())]}
 >
   <div class="page">
     <div class="g hero">

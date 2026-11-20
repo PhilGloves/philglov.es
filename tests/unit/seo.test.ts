@@ -6,11 +6,13 @@ import { robotsTxt, tdmrepJson } from "../../src/lib/robots.ts";
 import { blogPostingJsonLd, imageObjectJsonLd, jsonLdText, personJsonLd } from "../../src/lib/seo.ts";
 import { rssFeed, sitemapXml } from "../../src/lib/xml.ts";
 
-test("robots.txt is exactly the one in the guide", () => {
+// The guide's block with its long dashes as plain hyphens: the owner's rule "no long dashes on the site" (0032) is
+// the one change to the guide's texts.
+test("robots.txt is exactly the one in the guide, long dashes as hyphens", () => {
   const guide = readFileSync(new URL("../../docs/guide.md", import.meta.url), "utf8");
-  const block = /```text\n(# philglov\.es — ©[\s\S]*?)\n```/.exec(guide)?.[1];
+  const block = /```text\n(# philglov\.es \u2014 ©[\s\S]*?)\n```/.exec(guide)?.[1];
   assert.ok(block, "robots.txt block not found in docs/guide.md");
-  assert.equal(robotsTxt(), `${block}\n`);
+  assert.equal(robotsTxt(), `${block.replace(/[\u2013\u2014]/g, "-")}\n`);
 });
 
 test("robots.txt: search allowed, AI training refused, every bot from the data file, sitemap", () => {
@@ -26,8 +28,8 @@ test("tdmrep.json reserves the whole site (TDM Reservation Protocol)", () => {
   assert.deepEqual(JSON.parse(tdmrepJson()), [{ location: "/", "tdm-reservation": 1 }]);
 });
 
-test("Person JSON-LD names Filippo Guanti, both languages, and the owner's profiles as sameAs", () => {
-  const person = personJsonLd("en");
+test("Person JSON-LD names Filippo Guanti, both languages, the owner's profiles as sameAs, and no job title", () => {
+  const person = personJsonLd();
   assert.equal(person["@type"], "Person");
   assert.equal(person["name"], "Filippo Guanti");
   assert.deepEqual(person["knowsLanguage"], ["en", "it"]);
@@ -37,12 +39,13 @@ test("Person JSON-LD names Filippo Guanti, both languages, and the owner's profi
     "https://github.com/PhilGloves",
     "https://www.linkedin.com/in/filippo-guanti-a6614520a/",
   ]);
-  assert.equal(personJsonLd("it")["jobTitle"], "Fotografo e sviluppatore");
+  // The owner removed the job title (2026-11-18): no jobTitle in either language.
+  assert.equal("jobTitle" in person, false);
 });
 
 test("Person JSON-LD omits an empty sameAs", () => {
-  const data = { name: "Filippo Guanti", alternateName: [], jobTitle: { en: "x", it: "y" }, sameAs: [] };
-  assert.equal("sameAs" in personJsonLd("en", undefined, data), false);
+  const data = { name: "Filippo Guanti", alternateName: [], sameAs: [] };
+  assert.equal("sameAs" in personJsonLd(undefined, data), false);
 });
 
 test("BlogPosting JSON-LD has author, date, language", () => {
@@ -121,9 +124,9 @@ test("sitemap carries hreflang alternates only where given", () => {
 // launch gate fails on it. The placeholder frame is never used.
 test("Person JSON-LD carries the portrait as an absolute image URL when there is one, and no image otherwise", () => {
   assert.equal(
-    personJsonLd("en", "/_assets/finisterre.Ab12Cd34.jpeg")["image"],
+    personJsonLd("/_assets/finisterre.Ab12Cd34.jpeg")["image"],
     "https://philglov.es/_assets/finisterre.Ab12Cd34.jpeg",
   );
-  assert.equal("image" in personJsonLd("en"), false);
-  assert.equal("image" in personJsonLd("en", undefined), false);
+  assert.equal("image" in personJsonLd(), false);
+  assert.equal("image" in personJsonLd(undefined), false);
 });

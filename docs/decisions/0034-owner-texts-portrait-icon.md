@@ -20,8 +20,7 @@ Status: Accepted · 2026-11-20 · Owner request · Answers O1 (all but the launc
    key in the photo bucket (`portrait/finisterre.jpg`), never a file in git. `contentKeys` includes it, so the build
    fetches it and the launch copy (0031) moves it to production. About draws it with `<Photo>` (`SIZES.portrait`,
    `priority`: it is the page's first image); the Person data on Home and About names a 1200 px JPEG made from it
-   (`portraitImage()`, `src/lib/portrait.ts`), so `personJsonLd(locale, image)` takes the image path instead of reading
-   `site.json`. Until the original has been fetched, About keeps the placeholder frame (with the real alt text) and
+   (`portraitImage()`, `src/lib/portrait.ts`), so `personJsonLd(image)` takes the image path instead of reading `site.json`. Until the original has been fetched, About keeps the placeholder frame (with the real alt text) and
    the Person data has no image, which the launch gate reports. The phone photo carried an exact GPS position: the
    copy uploaded to the bucket has its GPS and XMP blocks removed with exiftool (image data unchanged), and the build's
    outputs carry no metadata but the rights fields, which `scripts/photo-rights.ts` checks. `/imgs/` (the owner's

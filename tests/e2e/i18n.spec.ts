@@ -35,7 +35,7 @@ test("an English-only entry: no hreflang, switch goes to the Italian home and sa
   await expect(switchLink).toHaveAttribute("href", "/it");
   // The visible text is the code; the accessible name is the language and says what the link does here.
   await expect(switchLink).toHaveText("IT");
-  await expect(switchLink).toHaveAttribute("aria-label", /^IT, Italiano — This page is not available in Italian/);
+  await expect(switchLink).toHaveAttribute("aria-label", /^IT, Italiano - This page is not available in Italian/);
   await expect(page.locator("p.label")).toContainText("Not yet available in Italian");
 });
 

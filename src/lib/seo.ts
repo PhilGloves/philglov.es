@@ -10,7 +10,6 @@ const personId = `${SITE}/#person`;
 export interface PersonData {
   name: string;
   alternateName: string[];
-  jobTitle: Record<Locale, string>;
   sameAs: string[];
 }
 
@@ -19,11 +18,7 @@ export interface PersonData {
  * (TICKETS.md, O1; the launch gate fails on both). `image` is the path of the portrait's JPEG on this site, made by
  * the build (`portraitImage()` in src/lib/portrait.ts); the placeholder frame on About is never used (TO-03).
  */
-export function personJsonLd(
-  locale: Locale,
-  image: string | undefined = undefined,
-  data: PersonData = site,
-): Record<string, unknown> {
+export function personJsonLd(image: string | undefined = undefined, data: PersonData = site): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "Person",
@@ -32,7 +27,6 @@ export function personJsonLd(
     alternateName: data.alternateName,
     url: SITE,
     ...(image ? { image: absolute(image) } : {}),
-    jobTitle: data.jobTitle[locale],
     knowsLanguage: ["en", "it"],
     ...(data.sameAs.length > 0 ? { sameAs: data.sameAs } : {}),
   };
