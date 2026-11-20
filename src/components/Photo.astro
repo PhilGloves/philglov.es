@@ -41,14 +41,14 @@ const { tone, alt, ratio, src, art, sizes = "100vw", priority = false } = Astro.
 const WIDTHS = [480, 800, 1200, 1600, 2400];
 const QUALITY = { avif: 55, webp: 70, jpeg: 78 } as const;
 const record = src ? records[src] : undefined;
-const load = src ? originals[`/src/.originals/${src}`] : undefined;
+const load = src ? originals[src] : undefined;
 const meta = record && load ? (await load()).default : undefined;
 const seriesDir = src ? src.slice(0, src.lastIndexOf("/") + 1) : "";
 
 async function cropSource(crop: Crop | undefined) {
   if (!meta) return undefined;
   if (crop && "file" in crop) {
-    const other = originals[`/src/.originals/${seriesDir}${crop.file}`];
+    const other = originals[`${seriesDir}${crop.file}`];
     return other ? { image: (await other()).default, fit: undefined, position: undefined } : undefined;
   }
   if (crop) {

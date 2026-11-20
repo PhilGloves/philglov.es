@@ -200,12 +200,18 @@ contatto]` …) and a bracket starting with "Placeholder"/"Segnaposto" on the bu
 - 2026-11-18: owner text changes ([0032](docs/decisions/0032-owner-text-changes.md)): **no `jobTitle`** (site.json and the
   Person data, both languages; `personJsonLd()` takes no locale); home title "Filippo Guanti - just me" / "Filippo
   Guanti - solo io", `heroKick` "Filippo Guanti"; **no long dashes on the site** (see the rule below).
+- 2026-11-18: sample content removed, tests on fixtures ([0033](docs/decisions/0033-test-fixtures.md)): `src/content`
+  holds only what the owner writes (no entry and no photo series yet; Home, Journal and Photos say "Nothing here
+  yet."). The samples live in `tests/fixtures/content` with generated photos; **every suite runs on
+  `pnpm build:fixtures`**, the owner's build gets `pnpm test:site` (smoke test, photo rights) and the launch gate. CI:
+  the content scope builds and checks only the site; the full scope adds the test build with every suite and the
+  empty site. "Full QA matrix after a publish" and `E2E_SCOPE` are gone.
 - 2026-11-20: the owner's texts, portrait and icon ([0034](docs/decisions/0034-owner-texts-portrait-icon.md)): Home,
   About and Now as the owner wrote them (never reword them); `site.json` has the city (Msida, Malta; the home line takes
   it as `{city}`), `phil@philglov.es`, three `sameAs` profiles; Privacy names Torino; the footer's rights line ends at
   "All rights reserved". **The portrait is an original in the photo bucket** (`site.json` `portrait.file`, in
   `contentKeys`), drawn by `<Photo>` on About and named by the Person data through `portraitImage()`
-  (`src/lib/portrait.ts`); `/imgs/` is git-ignored. The icon is the owner's SVG and `site-icon.png`, from which
+  (`src/lib/portrait.ts`); the fixtures draw a stand-in for it (`SPECS` in `scripts/fixture-photos.ts`); `/imgs/` is git-ignored. The icon is the owner's SVG and `site-icon.png`, from which
   `scripts/make-brand-icons.ts` draws the two PNGs.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
@@ -241,6 +247,11 @@ scripts/                      build helpers, run with plain `node` (type strippi
 tests/unit/ tests/e2e/        node:test unit tests; Playwright e2e (admin-worker.ts: the real Worker behind a test
                               Access, for /admin in a browser, 0020)
 tests/e2e/qa/                 the QA suites, one file per suite of the QA brief; lib.ts has the page list and settle() (0022)
+tests/fixtures/               what every suite is built from (0033): content/ (sample entries, a series, pages), empty/
+                              (no entry, no series); .originals/ drawn by scripts/fixture-photos.ts (git-ignored);
+                              content.ts has the paths and assertFixtureBuild()
+tests/site/                   smoke.spec.ts: every page of the owner's own build (playwright.site.config.ts, 0033)
+scripts/lib/content-root.ts   which content a build reads (SITE_CONTENT unset = the site; fixtures; empty) (0033)
 docs/qa/                      bug-reports.md, manual-checklist.md; QA-REPORT.md at the root is the coverage report
 SECURITY-REPORT.md            security audit findings and the owner checklist (0030)
 docs/guide.md docs/design/    owner's guide and prototypes — never edit
@@ -260,20 +271,24 @@ pnpm photos:fetch                download the photo originals from R2 (R2_* env 
 pnpm build                       check-originals (a missing entry photo stops the build; ALLOW_MISSING_ORIGINALS=1
                                  draws a grey stand-in locally, never on CI) + photo-meta + astro build + share-image PNGs (needs Chromium) + photo rights
                                  (needs exiftool when photos exist) + CSP hash + dist/_headers
-                                 (SITE_ENV=production only at launch)
+                                 (SITE_ENV=production only at launch). The owner's content: what is deployed
+pnpm build:fixtures [empty]      the same build from tests/fixtures (generated photos, no R2): what every suite runs on;
+                                 `empty` builds the site with no entry and no series (0033)
 pnpm preview                     serve dist/ through the real Worker on http://127.0.0.1:8787 (writes a local
                                  .dev.vars, migrates the local D1; /admin is always 403 locally)
 pnpm lint | pnpm format          ESLint + Prettier
 pnpm typecheck                   wrangler types + astro check + worker tsc + tests/worker tsc
 pnpm validate:html               html-validate on dist/
-pnpm test:unit | test:e2e        node:test | Playwright, Chromium with JavaScript on and off (needs a build)
-E2E_SCOPE=core pnpm test:e2e       only the core suite (no tests/e2e/qa): what CI runs for entry-only changes (0022)
+pnpm test:unit | test:e2e        node:test | Playwright, Chromium with JavaScript on and off (needs build:fixtures)
+pnpm test:site                   after `pnpm build`: photo rights + the smoke test of every page of the owner's site;
+                                 all CI runs for entry-only changes (0033)
 pnpm test:cross | test:visual     Firefox + WebKit smoke | full-page screenshots, exact pixels, against local baselines (0022)
-pnpm test:launch                 the launch gate: fails until the owner answers O1 (unfilled gaps on the pages and in site.json, sameAs)
+pnpm test:launch                 on the owner's build: the launch gate, fails until the owner answers O1 (unfilled gaps on the pages and in site.json, sameAs)
 pnpm test:live                   suite 15 against LIVE_URL (CF_ACCESS_CLIENT_ID/_SECRET while staging is behind Access)
-pnpm qa | qa:production          the whole QA run (3 e2e repeats, Firefox, WebKit) | SEO, rights and launch gate on a
-                                 SITE_ENV=production build; both refuse to start while port 8787 is taken
-pnpm test:worker                 Vitest in the Workers runtime, against dist/ (needs a build)
+pnpm qa | qa:production          the whole QA run (site and empty smoke, then on the fixtures 3 e2e repeats, Firefox,
+                                 WebKit) | SEO, rights on a SITE_ENV=production test build, the launch gate on the site's;
+                                 both refuse to start while port 8787 is taken
+pnpm test:worker                 Vitest in the Workers runtime, against dist/ (needs build:fixtures)
 pnpm test:lighthouse             Lighthouse CI against pnpm preview; 3 runs per page, judged on the median (0013)
 pnpm test:lighthouse:seo         Lighthouse SEO ≥ 95 (worst of 3 runs) against a SITE_ENV=production build; qa:production runs it (0022)
 pnpm new <slug> --lang it|en     new entry, or the other-language version of one (ticket C4)
@@ -375,6 +390,13 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
 - Every `/admin` path verifies the Access JWT; there is no local or test bypass. Secrets only via `wrangler secret
 put`; non-secret config as per-env vars in `wrangler.jsonc` (`secrets.required` lists the names at the top level only: in an env it makes every deploy fail until the secret is set;
   `tests/unit/wrangler-config.test.ts`).
+- Tests never depend on the owner's content (0033): a suite reads content from `tests/fixtures` (`fixtureContent`,
+  `fixtureJournal`, `fixturePages` in `tests/fixtures/content.ts`) and runs on `pnpm build:fixtures`, never on
+  `src/content`; the GitHub stand-ins answer `src/content/…` from the fixtures. A sample entry, series or photo for a
+  test goes into `tests/fixtures/content` (its originals into the `SPECS` of `scripts/fixture-photos.ts`), never into
+  `src/content`. What must hold for any content, the owner's included, goes into `tests/site/smoke.spec.ts`, which
+  names no entry. Code that reads content takes its folders from `scripts/lib/content-root.ts` (Vite alias
+  `@originals` for the originals), never a hard-coded `src/content` or `src/.originals`.
 - No long dashes (0032): the site's own text never contains an en dash or an em dash, as a character, entity or escape.
   Use a plain hyphen: " - " between words, "300-400" in ranges. Arrows and "·" are fine. `tests/unit/no-long-dashes.test.ts`
   reads every text file under `src`, `worker/src`, `scripts` and `public`, code comments included; the owner's journal

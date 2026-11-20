@@ -1,13 +1,13 @@
 /**
  * Worker tests (Vitest inside the Workers runtime, @cloudflare/vitest-plugin).
- * Run after `pnpm build`: the Worker serves dist/ through its ASSETS binding.
+ * Run after `pnpm build:fixtures`: the Worker serves dist/ through its ASSETS binding (the test build, decision 0033).
  *
  * Nothing leaves the machine. Miniflare's outboundService answers every
  * outbound fetch here, in Node:
  *  - https://test-team.cloudflareaccess.com/cdn-cgi/access/certs: a JWKS made
  *    for this run, so the Access JWT check runs for real against it;
  *  - https://api.github.com: a small stand-in for the GitHub App calls that
- *    reads files from this checkout and records what the Worker sent. A test
+ *    reads files from this checkout (src/content/… from the fixtures) and records what the Worker sent. A test
  *    can set, through /__set: files that differ from the checkout (or exist only
  *    on a branch, as "<path>@<branch>"), the open pull requests, a refused
  *    auto-merge, and a write refused as a conflict.
@@ -17,6 +17,7 @@ import { readFileSync } from "node:fs";
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import { exportJWK, exportPKCS8, generateKeyPair, SignJWT } from "jose";
 import { defineConfig } from "vitest/config";
+import { assertFixtureBuild } from "./tests/fixtures/content.ts";
 
 const TEAM = "test-team.cloudflareaccess.com";
 const AUD = "test-aud";
@@ -63,6 +64,9 @@ const fresh = (): FakeState => ({ files: {}, pulls: [], autoMergeRefused: false,
 /** A blob sha that changes with the text, like GitHub's. */
 const blobSha = (text: string): string => createHash("sha1").update(text).digest("hex");
 
+/** The fixtures play the repository's content on main (decision 0033): a request for src/content/… reads them. */
+const onDisk = (path: string): string => path.replace(/^src\/content\//, "tests/fixtures/content/");
+
 function fakeGitHub() {
   let state = fresh();
   const recorded: Recorded[] = [];
@@ -95,7 +99,7 @@ function fakeGitHub() {
         const ref = url.searchParams.get("ref") ?? "main";
         const text =
           ref === "main"
-            ? (state.files[path] ?? readFileSync(new URL(`./${path}`, import.meta.url), "utf8"))
+            ? (state.files[path] ?? readFileSync(new URL(`./${onDisk(path)}`, import.meta.url), "utf8"))
             : state.files[`${path}@${ref}`];
         if (text === undefined) throw new Error("not on that branch");
         return json(200, {
@@ -126,6 +130,7 @@ function fakeGitHub() {
 }
 
 export default defineConfig(async () => {
+  assertFixtureBuild();
   const migrations = await readD1Migrations("worker/migrations");
   const access = await accessFixtures();
   const github = fakeGitHub();

@@ -6,18 +6,18 @@
  *   LIVE_URL                     https://philglov-staging.philglov-es.workers.dev   (https://philglov.es after launch)
  *   CF_ACCESS_CLIENT_ID / _SECRET   an Access service token, while staging is behind Access (docs/setup.md)
  */
-import { expect, test } from "@playwright/test";
+import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { watch } from "./lib.ts";
 
+// The pages every deploy has. Entries and photo pages are the owner's content, so they are not named here: the last
+// test below takes them from the deployed sitemap (decision 0033).
 const PAGES = [
   "/",
   "/it",
   "/journal",
-  "/lisbona",
-  "/it/lisbona",
+  "/it/journal",
   "/photos",
-  "/photos/lisbon",
-  "/photos/lisbon/tram-28",
+  "/it/photos",
   "/about",
   "/now",
   "/rights",
@@ -32,33 +32,53 @@ for (const path of PAGES) {
     context,
     baseURL,
   }) => {
-    const seen = watch(page, baseURL ?? "", path === "/no-such-page" ? path : undefined);
-    const res = await page.goto(path, { waitUntil: "load" });
-    expect(res?.status()).toBe(path === "/no-such-page" ? 404 : 200);
-    await page.evaluate(() => document.fonts.ready.then(() => undefined));
-    await page.waitForLoadState("networkidle");
-    expect(seen.problems).toEqual([]);
-    // No cookie. On staging, Cloudflare Access sets its own CF_Authorization after a service-token login; that one is
-    // Access's, and goes away at launch (production has no Access in front of it), so it is the only one let through.
-    const cookies = (await context.cookies()).filter((c) => production || c.name !== "CF_Authorization");
-    expect(
-      cookies.map((c) => c.name),
-      "no cookie of the site's, and none of Cloudflare's apart from Access's own",
-    ).toEqual([]);
-    // Scripts: the one inline theme script, JSON-LD data, and files of this site. Nothing Cloudflare injected.
-    const scripts = await page.evaluate(() =>
-      [...document.scripts].map((s) => ({ src: s.getAttribute("src"), type: s.type, len: s.textContent?.length ?? 0 })),
-    );
-    for (const s of scripts) {
-      if (s.src) expect(s.src, "scripts come from /_assets/").toMatch(/^\/_assets\/[^/]+\.js$/);
-      else expect(["", "application/ld+json", "text/javascript", "module"]).toContain(s.type);
-    }
-    expect(
-      scripts.filter((s) => !s.src && s.type !== "application/ld+json"),
-      "one inline script",
-    ).toHaveLength(1);
-    expect(await page.locator('script[src*="cloudflare"], script[src*="cdn-cgi"], iframe').count()).toBe(0);
+    await checkPage(page, context, baseURL ?? "", path);
   });
+}
+
+test("live: every other page the sitemap lists (entries, series, photographs) passes the same checks", async ({
+  context,
+  baseURL,
+  request,
+}) => {
+  test.setTimeout(300_000);
+  const xml = await (await request.get("/sitemap.xml")).text();
+  const listed = [...xml.matchAll(/<loc>https:\/\/philglov\.es([^<]*)<\/loc>/g)].map((m) => m[1] || "/");
+  for (const path of [...new Set(listed)].filter((p) => !PAGES.includes(p))) {
+    // A fresh page each time, so one page's watch never sees the next page's requests.
+    const page = await context.newPage();
+    await test.step(path, () => checkPage(page, context, baseURL ?? "", path));
+    await page.close();
+  }
+});
+
+async function checkPage(page: Page, context: BrowserContext, baseURL: string, path: string): Promise<void> {
+  const seen = watch(page, baseURL, path === "/no-such-page" ? path : undefined);
+  const res = await page.goto(path, { waitUntil: "load" });
+  expect(res?.status()).toBe(path === "/no-such-page" ? 404 : 200);
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
+  await page.waitForLoadState("networkidle");
+  expect(seen.problems).toEqual([]);
+  // No cookie. On staging, Cloudflare Access sets its own CF_Authorization after a service-token login; that one is
+  // Access's, and goes away at launch (production has no Access in front of it), so it is the only one let through.
+  const cookies = (await context.cookies()).filter((c) => production || c.name !== "CF_Authorization");
+  expect(
+    cookies.map((c) => c.name),
+    "no cookie of the site's, and none of Cloudflare's apart from Access's own",
+  ).toEqual([]);
+  // Scripts: the one inline theme script, JSON-LD data, and files of this site. Nothing Cloudflare injected.
+  const scripts = await page.evaluate(() =>
+    [...document.scripts].map((s) => ({ src: s.getAttribute("src"), type: s.type, len: s.textContent?.length ?? 0 })),
+  );
+  for (const s of scripts) {
+    if (s.src) expect(s.src, "scripts come from /_assets/").toMatch(/^\/_assets\/[^/]+\.js$/);
+    else expect(["", "application/ld+json", "text/javascript", "module"]).toContain(s.type);
+  }
+  expect(
+    scripts.filter((s) => !s.src && s.type !== "application/ld+json"),
+    "one inline script",
+  ).toHaveLength(1);
+  expect(await page.locator('script[src*="cloudflare"], script[src*="cdn-cgi"], iframe').count()).toBe(0);
 }
 
 test("live headers: CSP, HSTS, nosniff, Referrer-Policy, Permissions-Policy, COOP, TDM; no Set-Cookie", async ({
@@ -67,7 +87,7 @@ test("live headers: CSP, HSTS, nosniff, Referrer-Policy, Permissions-Policy, COO
   const problems: string[] = [];
   for (const path of [
     "/",
-    "/it/lisbona",
+    "/it/journal",
     "/no-such-page",
     "/api/comment",
     "/feed.xml",

@@ -1,8 +1,12 @@
 import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
+import { folders } from "../scripts/lib/content-root.ts";
 
 /**
+ * The collections are read from src/content, or from the test fixtures for the test builds
+ * (scripts/lib/content-root.ts, decision 0033).
+ *
  * The content schema is the contract: an entry missing a field fails the
  * build, so a malformed laptop or phone entry never goes live.
  *
@@ -38,7 +42,7 @@ const languageFields = {
 };
 
 const journal = defineCollection({
-  loader: glob({ base: "./src/content/journal", pattern: "{en,it}/*.md" }),
+  loader: glob({ base: `./${folders.journal}`, pattern: "{en,it}/*.md" }),
   schema: z
     .object({
       ...languageFields,
@@ -50,7 +54,7 @@ const journal = defineCollection({
 
 /** About, Now, Rights, Privacy and other standalone pages. */
 const pages = defineCollection({
-  loader: glob({ base: "./src/content/pages", pattern: "{en,it}/*.md" }),
+  loader: glob({ base: `./${folders.pages}`, pattern: "{en,it}/*.md" }),
   schema: z
     .object({
       ...languageFields,
@@ -101,7 +105,7 @@ const art = z.object({ desktop: crop, tablet: crop, mobile: crop }).partial().st
  * `file` names the original in the private R2 bucket philglov-originals.
  */
 const photos = defineCollection({
-  loader: glob({ base: "./src/content/photos", pattern: "*/photos.json" }),
+  loader: glob({ base: `./${folders.photos}`, pattern: "*/photos.json" }),
   schema: z
     .object({
       title: bilingual,

@@ -1,8 +1,9 @@
 /**
  * The launch gate (project `launch`, `pnpm test:launch`). Not part of the staging run: these fail until the owner has
  * answered O1 (TICKETS.md): no unfilled gap on the pages or in site.json (scripts/lib/placeholders.ts), a filled sameAs
- * list, real descriptions. Run it against a production build (`pnpm qa:production`) so it also proves no page is
- * noindex.
+ * list, real descriptions. It reads the site's own build (`pnpm build`, the owner's content, never the fixtures;
+ * playwright.site.config.ts, decision 0033). Against a production build (`pnpm qa:production`) it also proves no page
+ * is noindex.
  */
 import { expect, test } from "@playwright/test";
 import { findPlaceholders, gapPages } from "../../../scripts/lib/placeholders.ts";
@@ -66,6 +67,10 @@ test("security.txt names a real contact and has not expired", () => {
 });
 
 test("production: no page or image says noindex", async ({ request }) => {
+  test.skip(
+    process.env["QA_PROD"] !== "1",
+    "needs a SITE_ENV=production build served as production: pnpm qa:production",
+  );
   const problems: string[] = [];
   for (const p of builtPages().filter((x) => x.indexable)) {
     const h = (await request.get(p.path)).headers()["x-robots-tag"] ?? "";

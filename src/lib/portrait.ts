@@ -21,7 +21,7 @@ export const portraitAlt = (locale: Locale): string =>
  * fetched. The same output as the build writes for <Photo>, so the rights metadata and the no-GPS check cover it.
  */
 export async function portraitImage(): Promise<string | undefined> {
-  const load = portraitKey ? originals[`/src/.originals/${portraitKey}`] : undefined;
+  const load = portraitKey ? originals[portraitKey] : undefined;
   if (!portraitKey || !load || !records[portraitKey]) return undefined;
   const image = await getImage({ src: (await load()).default, format: "jpeg", width: 1200, quality: 78 });
   return image.src;

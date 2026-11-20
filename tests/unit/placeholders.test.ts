@@ -2,13 +2,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { FIELD_NAMES, findPlaceholders, gapPages } from "../../scripts/lib/placeholders.ts";
+import { fixtureJournal, fixturePages } from "../fixtures/content.ts";
 
 // The launch gate's check for the site's own gaps (tests/e2e/qa/launch.spec.ts, decision 0022 "Round 4").
 
-const pagesDir = new URL("../../src/content/pages/", import.meta.url);
-const journalDir = new URL("../../src/content/journal/", import.meta.url);
+// The gate's logic, proved on the fixtures (decision 0033); the gate itself reads the site's pages (launch.spec.ts).
+const pagesDir = fixturePages;
+const journalDir = fixtureJournal;
 
-test("the gate reads the pages of src/content/pages and the home pages, and nothing else", () => {
+test("the gate reads the pages of the pages folder and the home pages, and nothing else", () => {
   const files = gapPages(pagesDir).map((p) => p.file);
   assert.deepEqual(files, [
     "about.html",

@@ -13,11 +13,11 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { collectionDir, originalsDir } from "./lib/content-root.ts";
 import type { PhotoRecord } from "./lib/photo-meta.ts";
 import { applyRights, copyrightNotice, hasExiftool } from "./lib/photo-rights.ts";
 
 const dist = new URL("../dist/_assets/", import.meta.url);
-const src = new URL("../src/", import.meta.url);
 
 const images = existsSync(dist) ? readdirSync(dist).filter((f) => /\.(avif|webp|jpe?g)$/i.test(f)) : [];
 if (images.length === 0) {
@@ -33,11 +33,11 @@ const years = new Map<string, number>();
 const remember = (name: string, year: number | undefined) => {
   if (year && year > 1900) years.set(name, Math.min(years.get(name) ?? year, year));
 };
-const metaFile = new URL(".originals/meta.json", src);
+const metaFile = new URL("meta.json", originalsDir);
 const meta: Record<string, PhotoRecord> = existsSync(metaFile) ? JSON.parse(readFileSync(metaFile, "utf8")) : {};
 const base = (key: string) => (key.split("/").pop() ?? key).replace(/\.[^.]+$/, "");
 for (const [key, rec] of Object.entries(meta)) remember(base(key), rec.exif.year);
-const seriesDir = new URL("content/photos/", src);
+const seriesDir = collectionDir("photos");
 for (const s of readdirSync(seriesDir, { withFileTypes: true })) {
   const file = new URL(`${s.name}/photos.json`, seriesDir);
   if (!s.isDirectory() || !existsSync(file)) continue;

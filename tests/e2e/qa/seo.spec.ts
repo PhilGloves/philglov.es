@@ -12,6 +12,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { builtPages, dist, readBuilt } from "./lib.ts";
+import { fixtureJournal } from "../../fixtures/content.ts";
 
 const ORIGIN = "https://philglov.es";
 const PROD = process.env["QA_PROD"] === "1";
@@ -19,7 +20,7 @@ const pages = builtPages();
 const indexable = pages.filter((p) => p.indexable);
 const journalSlugs = new Set(
   ["en", "it"].flatMap((l) =>
-    readdirSync(new URL(`../../../src/content/journal/${l}/`, import.meta.url))
+    readdirSync(new URL(`${l}/`, fixtureJournal))
       .filter((f) => f.endsWith(".md"))
       .map((f) => `${l === "it" ? "/it" : ""}/${f.replace(/\.md$/, "")}`),
   ),
@@ -114,13 +115,14 @@ test("JSON-LD: valid JSON, schema.org context, the right type on the right page"
       if (person["name"] !== "Filippo Guanti") problems.push(`${p.path}: Person.name is ${String(person["name"])}`);
       if (person["url"] !== ORIGIN) problems.push(`${p.path}: Person.url is ${String(person["url"])}`);
       // TO-03: the image is a JPEG the build made from the portrait site.json names (decision 0034), once its original
-      // has been fetched, and absent while there is none (never the placeholder).
+      // is there (in the test build, the fixtures' drawn stand-in, 0033), and absent while there is none (never the
+      // placeholder).
       const portrait = (
         JSON.parse(readFileSync(new URL("../../../src/data/site.json", import.meta.url), "utf8")) as {
           portrait: { file: string } | null;
         }
       ).portrait;
-      const fetched = portrait && existsSync(new URL(`../../../src/.originals/${portrait.file}`, import.meta.url));
+      const fetched = portrait && existsSync(new URL(`../../fixtures/.originals/${portrait.file}`, import.meta.url));
       const image = person["image"];
       if (fetched) {
         const stem = (portrait.file.split("/").pop() ?? "").replace(/\.[^.]+$/, "");

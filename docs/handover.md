@@ -284,12 +284,24 @@ does not catch `[city]`, `[launch date]` or `[your contact email]` (its pattern 
 Lessons: a heredoc or a JSON string turns `\n` in a documented command into a line break (how step 8b broke); write
 such edits with an editor tool and test the blocks. On Windows, Git for Windows puts only `git` on PATH, not `bash`.
 
+## Owner text changes and test fixtures — 2026-11-18
+
+Two stacked pull requests. First, decision [0032](decisions/0032-owner-text-changes.md): no `jobTitle`, the home title
+"Filippo Guanti - just me" / "solo io", and no long dashes on the site (`tests/unit/no-long-dashes.test.ts`). Second,
+decision [0033](decisions/0033-test-fixtures.md): the sample entries and series moved to `tests/fixtures/content`; every
+suite runs on `pnpm build:fixtures` (generated photos, no R2); the owner's own build gets `pnpm test:site` and the
+launch gate; the site works empty. Lessons: a Vite `import.meta.glob` pattern must be a literal, so the folder switch is
+an alias (`@originals`); Astro's glob loader wants a root-relative `base`, not an absolute Windows path; a lazy glob
+copies every file it matches into `dist/_assets` even when no page uses it, so stale originals in a local
+`src/.originals` end up in a local build (CI fetches only what the content uses). Text written through this session's
+tool calls had JavaScript-style escapes (backslash, u, four hex digits) turned into the characters themselves: build such strings with `chr()`.
+
 ## The owner's texts, portrait and icon — 2026-11-20
 
-Decision [0034](decisions/0034-owner-texts-portrait-icon.md), from `main` while #37 (text changes) and #38 (fixtures)
-were still open: whichever merges later needs its conflicts in `site.json`, the i18n files, the Privacy and Rights
-pages, `seo.ts`, `photo-keys.ts`, CLAUDE.md and the tests resolved. On top of #38 the portrait also needs a drawn
-fixture original (`scripts/fixture-photos.ts` `SPECS`) and `contentKeys` reading `site.json` from `src/data` while the
-content comes from the fixtures. The owner's texts are published as written; the Italian search sentence of Home was
-not given and is unchanged. The portrait shows once the owner has uploaded its original (owner playbook, "Change the
-portrait"); until then About keeps the placeholder frame and the launch gate reports the missing Person image.
+Decision [0034](decisions/0034-owner-texts-portrait-icon.md). Branched from `main` before #37 and #38 merged, then
+brought up to date with each. `site.json` is shared by the site and the fixture builds, so `contentKeys` reads it from
+`src/data` whatever the content folder, and `scripts/fixture-photos.ts` draws a stand-in for the portrait. The owner's
+texts are published as written; the Italian search sentence of Home was not given and is unchanged. The portrait's
+original (location removed) is in `philglov-originals-staging` as `portrait/finisterre.jpg`. Open: the entry page's
+visual baselines, which this laptop could not regenerate reliably (the optional italic face renders upright at some
+widths, a different one each run).

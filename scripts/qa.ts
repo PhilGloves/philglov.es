@@ -1,8 +1,10 @@
 /**
- * `pnpm qa [runs]`        the whole local QA run (docs/qa/README.md): build, html-validate, unit, Worker, then the e2e
- *                         matrix in Chromium (JavaScript on and off) `runs` times (default 3), then Firefox and WebKit.
- * `pnpm qa:production`    builds with SITE_ENV=production and runs the SEO, rights and launch-gate suites and the
- *                         Lighthouse SEO floor against it, then rebuilds the normal build, so dist/ is never left in production mode.
+ * `pnpm qa [runs]`        the whole local QA run (docs/qa/README.md): the site's own build and the empty site, each with
+ *                         its smoke test, then the test build (fixtures, decision 0033): html-validate, unit, Worker, the
+ *                         e2e matrix in Chromium (JavaScript on and off) `runs` times (default 3), Firefox and WebKit.
+ * `pnpm qa:production`    builds the fixtures with SITE_ENV=production and runs the SEO and rights suites and the
+ *                         Lighthouse SEO floor against it, then the site's own production build and the launch gate, then
+ *                         rebuilds the normal test build, so dist/ is never left in production mode.
  *
  * It refuses to start while something already answers on 127.0.0.1:8787: Playwright would reuse that server, and a
  * stale one (an older build, another checkout) gives failures that are not the site's.
@@ -34,28 +36,27 @@ function step(name: string, command: string, args: string[], env: Record<string,
 }
 
 if (mode === "production") {
-  if (step("build (SITE_ENV=production)", "pnpm", ["build"], { SITE_ENV: "production" })) {
+  if (step("test build (SITE_ENV=production)", "pnpm", ["build:fixtures"], { SITE_ENV: "production" })) {
     step(
-      "seo, rights, launch gate on the production build",
+      "seo, rights on the production test build",
       "pnpm",
-      [
-        "exec",
-        "playwright",
-        "test",
-        "--project=chromium",
-        "--project=launch",
-        "tests/e2e/qa/seo.spec.ts",
-        "tests/e2e/qa/rights.spec.ts",
-        "tests/e2e/qa/launch.spec.ts",
-      ],
+      ["exec", "playwright", "test", "--project=chromium", "tests/e2e/qa/seo.spec.ts", "tests/e2e/qa/rights.spec.ts"],
       { QA_PROD: "1" },
     );
     // Lighthouse SEO needs the production build (staging says noindex): the floor is 95 on the worst of 3 runs per page.
-    step("lighthouse seo floor on the production build", "pnpm", ["test:lighthouse:seo"]);
+    step("lighthouse seo floor on the production test build", "pnpm", ["test:lighthouse:seo"]);
   }
-  step("rebuild the normal build", "pnpm", ["build"]);
+  if (step("site build (SITE_ENV=production)", "pnpm", ["build"], { SITE_ENV: "production" }))
+    step("launch gate on the site's production build", "pnpm", ["test:launch"], { QA_PROD: "1" });
+  step("rebuild the normal test build", "pnpm", ["build:fixtures"]);
 } else {
-  step("build", "pnpm", ["build"]);
+  if (step("site build", "pnpm", ["build"])) {
+    step("html-validate (site)", "pnpm", ["validate:html"]);
+    step("site smoke test", "pnpm", ["test:site"]);
+  }
+  if (step("empty site build", "pnpm", ["build:fixtures", "empty"]))
+    step("empty site smoke test", "pnpm", ["test:site"]);
+  step("test build", "pnpm", ["build:fixtures"]);
   step("html-validate", "pnpm", ["validate:html"]);
   step("unit tests", "pnpm", ["test:unit"]);
   step("Worker tests", "pnpm", ["test:worker"]);

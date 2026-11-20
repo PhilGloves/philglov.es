@@ -12,6 +12,7 @@
     "check:content": "node scripts/check-content.ts",
     "new": "node scripts/new.ts",
     "build": "node scripts/check-content.ts && node scripts/check-originals.ts && node scripts/photo-meta.ts && astro build && node scripts/share-images.ts && node scripts/photo-rights.ts && node scripts/postbuild.ts",
+    "build:fixtures": "node scripts/build-fixtures.ts",
     "preview": "node scripts/preview.ts",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
@@ -27,7 +28,8 @@
     "photos:fetch": "node scripts/fetch-originals.ts",
     "test:cross": "playwright test --project=firefox --project=webkit",
     "test:visual": "playwright test --project=visual",
-    "test:launch": "playwright test --project=launch",
+    "test:site": "node --test tests/unit/qa-images.test.ts && playwright test -c playwright.site.config.ts --project=smoke",
+    "test:launch": "playwright test -c playwright.site.config.ts --project=launch",
     "test:live": "playwright test -c playwright.live.config.ts",
     "qa": "node scripts/qa.ts",
     "qa:production": "node scripts/qa.ts production"
