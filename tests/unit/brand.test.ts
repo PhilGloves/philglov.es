@@ -6,15 +6,53 @@ import { fillShareTemplate, wrapTitle } from "../../src/assets/brand/share-image
 const brandDir = new URL("../../src/assets/brand/", import.meta.url);
 const template = readFileSync(new URL("share-template.svg", brandDir), "utf8");
 
-test("placeholder icons: a 32 px favicon, a 180 px apple-touch-icon, an SVG, all moss", () => {
+test("the owner's icons: a 512 px source, a 32 px favicon, a 180 px apple-touch-icon, an SVG, all on moss", () => {
   const size = (file: string): [number, number] => {
     const png = readFileSync(new URL(file, brandDir));
     assert.equal(png.toString("ascii", 1, 4), "PNG");
     return [png.readUInt32BE(16), png.readUInt32BE(20)];
   };
+  assert.deepEqual(size("site-icon.png"), [512, 512]);
   assert.deepEqual(size("favicon-32.png"), [32, 32]);
   assert.deepEqual(size("apple-touch-icon.png"), [180, 180]);
   assert.match(readFileSync(new URL("favicon.svg", brandDir), "utf8"), /fill="#4a5d23"/i);
+});
+
+// The SVG icon is served from this site as a file: it may draw, and do nothing else. No script, no event handler, no
+// link or reference to another file (href, url(), @import), no embedded image or foreign content, no style block.
+test("the SVG icon only draws: no script, link, embedded image or style", () => {
+  const svg = readFileSync(new URL("favicon.svg", brandDir), "utf8");
+  const drawing = new Set([
+    "svg",
+    "title",
+    "desc",
+    "g",
+    "path",
+    "rect",
+    "circle",
+    "ellipse",
+    "line",
+    "polyline",
+    "polygon",
+  ]);
+  const elements = [...svg.matchAll(/<([a-zA-Z][\w:-]*)/g)].map((m) => m[1] ?? "");
+  assert.deepEqual(
+    elements.filter((e) => !drawing.has(e)),
+    [],
+    "only drawing elements",
+  );
+  const attributes = [...svg.matchAll(/\s([a-zA-Z][\w:-]*)=/g)].map((m) => m[1] ?? "");
+  assert.deepEqual(
+    attributes.filter((a) => /^on|href$|^style$/i.test(a)),
+    [],
+    "no event handler, link or style attribute",
+  );
+  assert.doesNotMatch(svg, /url\(|@import|<!ENTITY|<\?xml-stylesheet|javascript:|data:/i);
+  // The one URL in it is the SVG namespace.
+  assert.deepEqual(
+    [...svg.matchAll(/https?:\/\/[^"'\s>]+/g)].map((m) => m[0]),
+    ["http://www.w3.org/2000/svg"],
+  );
 });
 
 test("share template is 1200×630 and has a slot for the title, the name and a moss rule", () => {
