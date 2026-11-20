@@ -15,7 +15,7 @@ Tutto ciò che trovi su questo sito — fotografie, testi, design — è © Fili
 - linkare qualsiasi pagina;
 - citare fino a 150 parole, indicando il mio nome e il link alla pagina.
 
-**Chiedimi prima** ([la tua email di contatto]) se vuoi
+**Chiedimi prima** (phil@philglov.es) se vuoi
 
 - pubblicare, stampare o ripubblicare una fotografia;
 - tradurre o ripubblicare un testo;

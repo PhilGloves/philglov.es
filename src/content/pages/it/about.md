@@ -1,11 +1,11 @@
 ---
 title: "Chi è Filippo Guanti"
-date: 2026-11-12
+date: 2026-11-20
 lang: it
 originalLang: en
-description: "[Segnaposto] Due o tre frasi di biografia: chi è Filippo Guanti e cosa fa."
+description: "Scopri chi è Filippo Guanti."
 tags: []
 comments: false
 ---
 
-[Segnaposto: due o tre frasi di biografia, poi tutto il resto che serve su questa pagina.]
+Sono solo un ragazzo italiano che non si sente davvero italiano. A volte le persone dicono che mi comporto in maniera non comune. Credo che io stia solo seguendo le regole e non penso fuori dagli schemi (me l'hanno insegnato i tedeschi)

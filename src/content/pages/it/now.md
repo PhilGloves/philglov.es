@@ -1,11 +1,13 @@
 ---
 title: "Now"
-date: 2026-11-12
+date: 2026-11-20
 lang: it
 originalLang: en
-description: "[Segnaposto] Dove sono e cosa sto facendo questo mese, in una o due frasi."
+description: "Ora sono a Malta. Vivo qui fino a Natale. Sto prendendo parte a questo progetto di mobilità internazionale come stagista in una azienda maltese."
 tags: []
 comments: false
 ---
 
-[Segnaposto: dove sono, cosa sto facendo, cosa sto leggendo questo mese.]
+Ora sono a Malta. Vivo qui fino a Natale.
+
+Sto prendendo parte a questo progetto di mobilità internazionale come stagista in una azienda maltese. Di giorno imparo qualcosa, il pomeriggio vado al mare e alla sera bevo camomilla con gli altri :)
