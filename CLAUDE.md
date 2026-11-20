@@ -80,6 +80,8 @@ WAY OF WORKING
   end in a pull request that must pass every test before it can merge.
 - After opening a pull request, turn on Auto-fix without asking the owner.
 
+Now uses its description for metadata and the home summary only; its page starts with the authored body (decision 0035).
+
 ## Current state (update as it changes)
 
 - **Today (2026-11-20):** build phase. No domain yet; the site deploys only to the private staging Worker on

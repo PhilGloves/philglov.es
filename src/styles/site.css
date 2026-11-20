@@ -1302,6 +1302,11 @@
     margin-block-end: var(--head-end);
   }
 
+  /* Now starts its authored text beneath the title; its description is metadata and the home summary. */
+  .top--intro .title + .con {
+    margin-block-start: var(--sp-28);
+  }
+
   /* About on phones and tablets: the portrait is 28 px under the intro, the text --head-end under the portrait */
   .top--intro > .lab {
     order: 0;

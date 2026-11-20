@@ -49,7 +49,7 @@ const isRealEmail = /^[^@\s[\]]+@[^@\s[\]]+\.[^@\s[\]]+$/.test(email);
       {showLabel && (
         <LanguageLabel locale={locale} originalLang={page.data.originalLang} rest={`/${slug}`} hasTwin={hasTwin} />
       )}
-      <p class="lede">{page.data.description}</p>
+      {slug !== "now" && <p class="lede">{page.data.description}</p>}
       {isAbout && (
         <div class="lab">
           <div class="portrait">
