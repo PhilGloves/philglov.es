@@ -295,3 +295,13 @@ an alias (`@originals`); Astro's glob loader wants a root-relative `base`, not a
 copies every file it matches into `dist/_assets` even when no page uses it, so stale originals in a local
 `src/.originals` end up in a local build (CI fetches only what the content uses). Text written through this session's
 tool calls had JavaScript-style escapes (backslash, u, four hex digits) turned into the characters themselves: build such strings with `chr()`.
+
+## The owner's texts, portrait and icon — 2026-11-20
+
+Decision [0034](decisions/0034-owner-texts-portrait-icon.md). Branched from `main` before #37 and #38 merged, then
+brought up to date with each. `site.json` is shared by the site and the fixture builds, so `contentKeys` reads it from
+`src/data` whatever the content folder, and `scripts/fixture-photos.ts` draws a stand-in for the portrait. The owner's
+texts are published as written; the Italian search sentence of Home was not given and is unchanged. The portrait's
+original (location removed) is in `philglov-originals-staging` as `portrait/finisterre.jpg`. Open: the entry page's
+visual baselines, which this laptop could not regenerate reliably (the optional italic face renders upright at some
+widths, a different one each run).

@@ -1,7 +1,10 @@
 /**
- * The one place that names the site's identity files. The owner has deferred
- * the brand (logo, favicon, colours of the share image): when it is chosen,
- * replace the files in this folder and edit this config; no template changes.
+ * The one place that names the site's identity files. The icon is the owner's
+ * autograph "P" on moss (2026-11-20): favicon.svg is the main icon, and
+ * site-icon.png (512 px) is the source of the two PNGs, drawn by
+ * `node scripts/make-brand-icons.ts`; /favicon.ico is built from favicon-32.png
+ * (scripts/postbuild.ts). To change the icon, replace those files and edit this
+ * config; no template changes.
  *
  * Icons are imported, so Astro copies them to /_assets/ with a hashed name and
  * the Worker never runs for them. The share image is an SVG template that the

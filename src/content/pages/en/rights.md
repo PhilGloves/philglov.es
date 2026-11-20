@@ -15,7 +15,7 @@ Everything on this site - photographs, text, design - is © Filippo Guanti. All 
 - link to any page;
 - quote up to 150 words, with my name and a link to the page.
 
-**Please ask me first** ([your contact email]) if you'd like to
+**Please ask me first** (phil@philglov.es) if you'd like to
 
 - publish, print or repost a photograph;
 - translate or republish an entry;

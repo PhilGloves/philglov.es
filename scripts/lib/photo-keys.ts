@@ -36,9 +36,9 @@ export function entryKeys(markdown: string): string[] {
 
 /**
  * Every original a content folder uses (`content` holds photos/ and journal/: src/content, or the fixtures'; the series
- * files, and the journal entries in both languages), sorted, each once: what the build fetches
- * (scripts/fetch-originals.ts), what the launch copy moves to production (scripts/copy-originals.ts, decision 0031) and
- * what the fixtures draw (scripts/fixture-photos.ts, decision 0033).
+ * files, the journal entries in both languages, and the portrait that src/data/site.json names, TO-03), sorted, each
+ * once: what the build fetches (scripts/fetch-originals.ts), what the launch copy moves to production
+ * (scripts/copy-originals.ts, decision 0031) and what the fixtures draw (scripts/fixture-photos.ts, decision 0033).
  */
 export function contentKeys(content: URL): string[] {
   const series: Record<string, string> = {};
@@ -53,6 +53,12 @@ export function contentKeys(content: URL): string[] {
     for (const f of readdirSync(new URL(`${lang}/`, journal))) {
       if (f.endsWith(".md")) keys.push(...entryKeys(readFileSync(new URL(`${lang}/${f}`, journal), "utf8")));
     }
+  }
+  // The site's facts are the same file for every content set, so the fixtures get a portrait to draw as well.
+  const siteFile = new URL("../../src/data/site.json", import.meta.url);
+  if (existsSync(siteFile)) {
+    const portrait = (JSON.parse(readFileSync(siteFile, "utf8")) as { portrait?: { file?: string } | null }).portrait;
+    if (portrait?.file) keys.push(portrait.file);
   }
   return [...new Set(keys)].sort();
 }

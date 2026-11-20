@@ -12,7 +12,7 @@ a translation script, CI job, `translate`/`review` command, AI or translation AP
 
 | #   | Question                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Blocks      | Default until answered                                  |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- | ------------------------------------------------------- |
-| O1  | **Placeholders:** contact email (guide suggests `phil@philglov.es`), city, launch date, partita IVA (only if any), the list of profiles for `sameAs`, a real photo for About, the 2–3 sentence bio.                                                                                                                                                                                                                                                          | F6a, F1, C5 | visible `[placeholder]` text; QA fails it before launch |
+| O1  | **Placeholders:** _answered 2026-11-20 (decision 0034) except the launch date, a gap until launch._ Contact email (guide suggests `phil@philglov.es`), city, launch date, partita IVA (only if any), the list of profiles for `sameAs`, a real photo for About, the 2–3 sentence bio.                                                                                                                                                                        | F6a, F1, C5 | visible `[placeholder]` text; QA fails it before launch |
 | O6  | **Security checklist** (end of `SECURITY-REPORT.md`): narrow where the GitHub App can push and where the deploy token is available (a ruleset and environments), the `/admin` Access session (24 hours recommended, not 7 days) and login method, the commit email, the live backup restore, the dashboard items. Item 15 done 2026-11-17 (invocation logs held IP addresses; now off, re-check on staging); item 6 corrected (only the deploy token moves). | launch      | as today; the code-side fixes are in (0030)             |
 
 Settled by the owner on 2026-11-13 (publishing): O5, the admin CSP stays as it is; when a background request on
@@ -322,8 +322,10 @@ Three rounds, one pull request each, from `QA-REPORT.md`, `docs/qa/bug-reports.m
   - [x] BUG-6 A missing entry photo fails the build with the file names; `ALLOW_MISSING_ORIGINALS=1` (local only, refused
         on CI) builds with a grey stand-in and a warning (`docs/setup.md`).
   - [x] TO-02 Main navigation links are 44 × 44 px on phones, words unmoved.
-  - [ ] TO-03 `site.json` `portrait` (owner: the real portrait); the Person data carries it as its image and the launch
-        gate fails until it is set. Code done; waits for the photograph (with O1).
+  - [x] TO-03 `site.json` `portrait` (owner: the real portrait); the Person data carries it as its image and the launch
+        gate fails until it is set. _Done 2026-11-20 (decision 0034): the portrait is the original
+        `portrait/finisterre.jpg` in the photo bucket; it shows once the owner has uploaded it (owner playbook,
+        "Change the portrait")._
 - [x] R3 Round 3, scope set by the owner: the tests themselves. _Done (decision 0022, "Round 3" and "Round 3,
       follow-up")._
 

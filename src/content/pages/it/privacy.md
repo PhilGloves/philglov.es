@@ -10,7 +10,7 @@ comments: false
 
 Ultimo aggiornamento: [data di lancio]
 
-**Chi è il titolare.** Filippo Guanti, [città], Italia - [la tua email di contatto]. Questo è un sito personale senza pubblicità, senza statistiche e senza tracciamento.
+**Chi è il titolare.** Filippo Guanti, Torino, Italia - phil@philglov.es. Questo è un sito personale senza pubblicità, senza statistiche e senza tracciamento.
 
 **Cosa questo sito non fa.** Non usa cookie, non carica nulla da altre aziende e non crea alcun profilo su di te. La scelta del tema chiaro o scuro resta salvata solo nel tuo browser.
 
@@ -27,4 +27,4 @@ Inviare un modulo è facoltativo. Commenti e segnalazioni non vengono mai inviat
 
 **Chi altro li tratta.** Cloudflare, Inc. ospita il sito e conserva questi dati per mio conto nella sua regione dati dell'Unione Europea, in base a un accordo sul trattamento dei dati. Cloudflare è un'azienda statunitense; quando i dati escono dall'UE, si basa sul Data Privacy Framework UE-USA e sulle clausole contrattuali standard. Se ti rispondo via email, quel messaggio passa dal mio fornitore di posta. Non condivido i tuoi dati con nessun altro.
 
-**I tuoi diritti.** Puoi chiedermi di vedere, correggere o cancellare i tuoi dati, di limitarne l'uso o di opporti, o di riceverne una copia, e puoi revocare il consenso in qualsiasi momento: scrivi a [la tua email di contatto]. Puoi anche presentare reclamo al Garante per la protezione dei dati personali (garanteprivacy.it).
+**I tuoi diritti.** Puoi chiedermi di vedere, correggere o cancellare i tuoi dati, di limitarne l'uso o di opporti, o di riceverne una copia, e puoi revocare il consenso in qualsiasi momento: scrivi a phil@philglov.es. Puoi anche presentare reclamo al Garante per la protezione dei dati personali (garanteprivacy.it).

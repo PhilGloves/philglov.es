@@ -2,9 +2,19 @@
   "name": "Filippo Guanti",
   "alternateName": ["Phil Guanti", "philglov"],
   "url": "https://philglov.es",
-  "contactEmail": "[contact email]",
-  "city": "[city]",
+  "contactEmail": "phil@philglov.es",
+  "city": "Msida, Malta",
   "partitaIva": null,
-  "sameAs": [],
-  "portrait": null
+  "sameAs": [
+    "https://www.instagram.com/philglov.es/",
+    "https://github.com/PhilGloves",
+    "https://www.linkedin.com/in/filippo-guanti-a6614520a/"
+  ],
+  "portrait": {
+    "file": "portrait/finisterre.jpg",
+    "alt": {
+      "en": "Me at the Finisterre Lighthouse, at the end of my Way of St. James",
+      "it": "Io al Faro di Finisterre, alla fine del mio Cammino di Santiago :("
+    }
+  }
 }

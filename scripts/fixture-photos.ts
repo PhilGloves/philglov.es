@@ -21,6 +21,8 @@ const SPECS: Record<string, [number, number, string]> = {
   "photos/lisbon/alfama.jpg": [2667, 4000, "#b8c8a8"],
   "foto/1000029179-9gp7.jpg": [2667, 4000, "#b8c8a8"],
   "provafoto/1000029179-oerb.jpg": [1600, 1200, "#786858"],
+  // The portrait site.json names (decision 0034): 3:4, like the phone photo it stands in for.
+  "portrait/finisterre.jpg": [1512, 2016, "#c8ccd0"],
 };
 const FALLBACK: [number, number, string] = [2400, 1600, "#8c9878"];
 

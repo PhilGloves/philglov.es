@@ -82,9 +82,9 @@ WAY OF WORKING
 
 ## Current state (update as it changes)
 
-- **Today (2026-11-18):** build phase. No domain yet; the site deploys only to the private staging Worker on
+- **Today (2026-11-20):** build phase. No domain yet; the site deploys only to the private staging Worker on
   workers.dev. Repository is **public**. Everything in `TICKETS.md` is built; what is left waits for the owner: the
-  real texts and photos (no entry or photo series yet; Now and About are placeholders, O1, TO-03), the security
+  entries and photos (Home, About, Now and the facts are the owner's since 0034; the launch date is the one gap left), the security
   checklist (O6), Lighthouse on Windows (Q17), and launch (`docs/setup.md` Part 2). `docs/setup.md` Part 1 is done
   except passkeys (owner to confirm) and two settings: `CLOUDFLARE_ACCOUNT_ID` as a Dependabot secret (step 5) and the
   live-check service token (step 8b). Read [docs/handover.md](docs/handover.md) first; the owner's own how-to for
@@ -206,6 +206,13 @@ contatto]` …) and a bracket starting with "Placeholder"/"Segnaposto" on the bu
   `pnpm build:fixtures`**, the owner's build gets `pnpm test:site` (smoke test, photo rights) and the launch gate. CI:
   the content scope builds and checks only the site; the full scope adds the test build with every suite and the
   empty site. "Full QA matrix after a publish" and `E2E_SCOPE` are gone.
+- 2026-11-20: the owner's texts, portrait and icon ([0034](docs/decisions/0034-owner-texts-portrait-icon.md)): Home,
+  About and Now as the owner wrote them (never reword them); `site.json` has the city (Msida, Malta; the home line takes
+  it as `{city}`), `phil@philglov.es`, three `sameAs` profiles; Privacy names Torino; the footer's rights line ends at
+  "All rights reserved". **The portrait is an original in the photo bucket** (`site.json` `portrait.file`, in
+  `contentKeys`), drawn by `<Photo>` on About and named by the Person data through `portraitImage()`
+  (`src/lib/portrait.ts`); the fixtures draw a stand-in for it (`SPECS` in `scripts/fixture-photos.ts`); `/imgs/` is git-ignored. The icon is the owner's SVG and `site-icon.png`, from which
+  `scripts/make-brand-icons.ts` draws the two PNGs.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -350,6 +357,10 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
   environment that sets its own `observability` replaces the top-level block and must repeat it. Only
   `CLOUDFLARE_API_TOKEN` may move into GitHub environments; the Test job reads `CLOUDFLARE_ACCOUNT_ID` and the R2 keys
   as repository secrets (`tests/unit/wrangler-config.test.ts`, `ci-workflow.test.ts`).
+- The owner's texts and icon (0034): text the owner gave (Home, About, Now, the facts in `site.json`) is published as
+  written: never reword, correct or translate it; a language the owner did not write stays as it was, and the pull
+  request says so. The portrait is never a file in git: it is `site.json` `portrait.file`, an original in the photo
+  bucket, uploaded with its GPS removed. The SVG icon may only draw (`tests/unit/brand.test.ts`).
 - The owner runs the docs' commands on Windows (fourth opinion, A-02 to A-15): README and `docs/owner-playbook.md` in
   Windows PowerShell 5.1 (no `&&` or `||`, no `>` redirect into a file another tool reads: a script writes its own
   output file, as `scripts/restore-backup.ts` does), `docs/setup.md` in Git Bash. Every fence in the owner's documents

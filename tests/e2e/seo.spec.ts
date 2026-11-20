@@ -84,5 +84,11 @@ test("rights and privacy pages carry the guide's texts in both languages", async
   await expect(page.locator("main")).toContainText("It sets no cookies, loads nothing from other companies");
   await page.goto("/it/privacy");
   await expect(page.locator("main")).toContainText("Non usa cookie");
-  await expect(page.locator('footer a[href="/it/rights"]')).toContainText("No all’addestramento di IA");
+  // The owner removed "No AI training" from the footer line (2026-11-20); it ends at "All rights reserved". The
+  // reservation itself stays in the Rights text, robots.txt, the headers and the photo metadata.
+  await expect(page.locator('footer a[href="/it/rights"]')).toHaveText(
+    "© 2026 Filippo Guanti · Tutti i diritti riservati",
+  );
+  await page.goto("/");
+  await expect(page.locator('footer a[href="/rights"]')).toHaveText("© 2026 Filippo Guanti · All rights reserved");
 });
