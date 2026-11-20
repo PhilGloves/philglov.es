@@ -183,29 +183,35 @@ const exifRows = exif
           <p class="lede">{t(locale, "photosIntro")}</p>
         </div>
         <div class="g sec">
-          <div class="lab">
-            <p class="small muted">
-              {all.length === 1 ? t(locale, "photosCountOne") : tf(locale, "photosCount", { n: all.length })}
-            </p>
-          </div>
+          {all.length > 0 && (
+            <div class="lab">
+              <p class="small muted">
+                {all.length === 1 ? t(locale, "photosCountOne") : tf(locale, "photosCount", { n: all.length })}
+              </p>
+            </div>
+          )}
           <div class="con">
-            <ul class="series">
-              {all.map((s) => (
-                <li>
-                  <a href={seriesPath(s)}>
-                    <Photo
-                      tone={s.photos[0]?.tone ?? 1}
-                      alt={s.photos[0]?.alt[locale] ?? s.title[locale]}
-                      src={s.photos[0]?.src}
-                      sizes={SIZES.tile}
-                      priority={s === all[0]}
-                    />
-                    <h2>{s.title[locale]}</h2>
-                    <p>{seriesMeta(s)}</p>
-                  </a>
-                </li>
-              ))}
-            </ul>
+            {all.length === 0 ? (
+              <p class="muted">{t(locale, "noEntries")}</p>
+            ) : (
+              <ul class="series">
+                {all.map((s) => (
+                  <li>
+                    <a href={seriesPath(s)}>
+                      <Photo
+                        tone={s.photos[0]?.tone ?? 1}
+                        alt={s.photos[0]?.alt[locale] ?? s.title[locale]}
+                        src={s.photos[0]?.src}
+                        sizes={SIZES.tile}
+                        priority={s === all[0]}
+                      />
+                      <h2>{s.title[locale]}</h2>
+                      <p>{seriesMeta(s)}</p>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </>

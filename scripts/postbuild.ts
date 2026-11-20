@@ -22,8 +22,8 @@
  * default) adds X-Robots-Tag: noindex, so a stray build is never indexable.
  */
 import { readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { pngToIco } from "./lib/ico.ts";
+import { originalsPath } from "./lib/content-root.ts";
 import { removeStandIns } from "./lib/standins.ts";
 import { assetHeaderLines, baseHeaders } from "../worker/src/headers.ts";
 import { localiseFootnotes } from "./lib/footnotes.ts";
@@ -98,5 +98,5 @@ writeFileSync(new URL("_headers", dist), `${lines.join("\n")}\n`);
 console.log(`postbuild: wrote dist/_headers and script-hashes.json (${scriptHashes.join(", ")}) for SITE_ENV=${env}`);
 
 // 5. The grey stand-ins of an ALLOW_MISSING_ORIGINALS=1 build have served their purpose (scripts/lib/standins.ts).
-const removed = removeStandIns(fileURLToPath(new URL("../src/.originals/", import.meta.url)));
+const removed = removeStandIns(originalsPath);
 if (removed.length) console.warn(`postbuild: removed ${removed.length} stand-in photograph(s) from src/.originals`);

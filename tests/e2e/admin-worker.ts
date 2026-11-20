@@ -16,6 +16,7 @@
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { entryKeys } from "../../scripts/lib/photo-keys.ts";
+import { fixtureJournal } from "../fixtures/content.ts";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
@@ -66,7 +67,9 @@ async function fakeGitHub(request: Request): Promise<Response> {
   const contents = /^\/repos\/[^/]+\/[^/]+\/contents\/(.+)$/.exec(url.pathname);
   if (contents && request.method === "GET") {
     try {
-      const text = readFileSync(new URL(`../../${contents[1]}`, import.meta.url), "utf8");
+      // The fixtures play the repository's content on main (decision 0033): src/content/… is read from them.
+      const path = (contents[1] ?? "").replace(/^src\/content\//, "tests/fixtures/content/");
+      const text = readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
       const sha = createHash("sha1").update(text).digest("hex");
       return Response.json({ sha, encoding: "base64", content: Buffer.from(text).toString("base64") });
     } catch {
@@ -183,8 +186,8 @@ export async function serveAdmin(): Promise<Admin> {
     .sort())
     db.exec(readFileSync(new URL(file, migrations), "utf8"));
   github = { pulls: [], calls: [] };
-  // What the originals bucket holds at the start: every photo an entry in this checkout shows.
-  const journal = new URL("../../src/content/journal/", import.meta.url);
+  // What the originals bucket holds at the start: every photo a fixture entry shows (the suites run on the fixtures, 0033).
+  const journal = fixtureJournal;
   const stored = new Set(
     readdirSync(journal).flatMap((lang) =>
       readdirSync(new URL(`${lang}/`, journal))

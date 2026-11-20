@@ -4,6 +4,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { localiseFootnotes } from "../../scripts/lib/footnotes.ts";
 import { inlineScripts, sha256 } from "../../scripts/lib/inline-scripts.ts";
+import { fixtureJournal } from "../fixtures/content.ts";
 
 const dist = new URL("../../dist/", import.meta.url);
 const built = existsSync(new URL("index.html", dist));
@@ -210,7 +211,7 @@ test(
 test("share images are 1200×630 PNGs, one default and one per entry version", { skip }, () => {
   const dir = new URL("_assets/share/", dist);
   const files = readdirSync(dir);
-  const journal = new URL("../../src/content/journal/", import.meta.url);
+  const journal = fixtureJournal;
   const expected = ["default.png"];
   for (const lang of ["en", "it"])
     for (const file of readdirSync(new URL(`${lang}/`, journal)).filter((f) => f.endsWith(".md")))

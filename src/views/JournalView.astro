@@ -33,12 +33,15 @@ const path = journalPath(locale, page);
     </div>
 
     <div class="g sec">
-      <div class="lab">
-        {page > 1 && <h2>{tf(locale, "pageOf", { page, pages: paged.pages })}</h2>}
-        <p class="small muted">
-          <Arrows text={t(locale, "markLegend")} />
-        </p>
-      </div>
+      {/* An empty journal (no entries yet) has nothing for the legend to explain, so no label column at all. */}
+      {rows.length > 0 && (
+        <div class="lab">
+          {page > 1 && <h2>{tf(locale, "pageOf", { page, pages: paged.pages })}</h2>}
+          <p class="small muted">
+            <Arrows text={t(locale, "markLegend")} />
+          </p>
+        </div>
+      )}
       <div class="con">
         {rows.length === 0 && <p class="muted">{t(locale, "noEntries")}</p>}
         {years.map((year) => (

@@ -53,7 +53,7 @@ const config = (bucket: string, id: string, secret: string): R2Config => ({
 const from = config(FROM, value("R2_FROM_ACCESS_KEY_ID"), value("R2_FROM_SECRET_ACCESS_KEY"));
 const to = config(TO, value("R2_TO_ACCESS_KEY_ID"), value("R2_TO_SECRET_ACCESS_KEY"));
 
-const keys = contentKeys(new URL("../src/", import.meta.url));
+const keys = contentKeys(new URL("../src/content/", import.meta.url));
 console.log(`copy-originals: the content uses ${keys.length} originals; copying from ${FROM} to ${TO}.`);
 const report = await copyOriginals(keys, from, to, (line) => console.log(`  ${line}`));
 

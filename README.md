@@ -42,32 +42,40 @@ for templates but skips the Worker (no headers, no forms).
 
 ## Run what CI runs
 
+There are two builds (decision 0033). `pnpm build` builds **your site**: your entries, pages and photo series in
+`src/content`. That is the only build that is ever deployed. `pnpm build:fixtures` builds **the test site** from
+`tests/fixtures/content` (sample entries, a sample series, small generated photos, no R2), and every test suite runs on
+that one, so nothing you write, edit or delete can make a test fail. The suites refuse to run on your own build and say
+which command to run instead.
+
 CI has one required check, **Test**, and it picks one of two scopes (step "How much to test" in
 `.github/workflows/ci.yml`):
 
 - **Content scope**: the pull request only adds or changes journal entries, `src/content/journal/en|it/<slug>.md`, as
-  plain files. That is what the phone publishes. Test runs lint, the build (with the content check), html-validate,
-  the unit tests and the core browser suite in Chromium with JavaScript on and off. After the merge the full QA matrix
-  runs on `main` anyway ("Full QA matrix after a publish"), without holding the deploy.
-- **Full scope**: everything else. It adds typecheck, the Worker tests, the whole QA matrix (`tests/e2e/qa`), Firefox
-  and WebKit, Lighthouse, and a `SITE_ENV=production` build with the SEO, rights and Lighthouse SEO checks. The launch
-  gate runs too, but does not block until owner question O1 is answered.
+  plain files. That is what the phone publishes. Test runs lint, then builds your site (with the content check) and
+  checks it: html-validate, the photo rights, and the smoke test of every page (`pnpm test:site`: status, console,
+  requests, accessibility, links, sitemap, feeds).
+- **Full scope**: everything else. It builds the test site and runs typecheck, the unit and Worker tests, the whole
+  browser suite with the QA matrix, Firefox and WebKit, Lighthouse, and a `SITE_ENV=production` test build with the
+  SEO, rights and Lighthouse SEO checks; then the smoke test on an empty site (no entry, no series); then your site
+  exactly as in the content scope. The launch gate runs on your site too, but does not block until owner question O1
+  is answered.
 
 Before pushing, stop `pnpm preview` (the tests start their own server and would reuse a stale one), then run the
 steps one after another, stopping at the first that fails. For an entry only:
 
 ```powershell
-foreach ($step in "lint", "build", "validate:html", "test:unit") { pnpm $step; if ($LASTEXITCODE -ne 0) { "Stopped at: $step"; break } }
-```
-
-```powershell
-$env:E2E_SCOPE = "core"; pnpm test:e2e; Remove-Item Env:E2E_SCOPE
+foreach ($step in "lint", "build", "validate:html", "test:site") { pnpm $step; if ($LASTEXITCODE -ne 0) { "Stopped at: $step"; break } }
 ```
 
 For anything else (it takes a while: the QA matrix alone is about 20 minutes on a fast laptop):
 
 ```powershell
-foreach ($step in "lint", "typecheck", "build", "validate:html", "test:unit", "test:worker", "test:e2e", "test:cross", "test:lighthouse") { pnpm $step; if ($LASTEXITCODE -ne 0) { "Stopped at: $step"; break } }
+foreach ($step in "lint", "typecheck", "build:fixtures", "validate:html", "test:unit", "test:worker", "test:e2e", "test:cross", "test:lighthouse") { pnpm $step; if ($LASTEXITCODE -ne 0) { "Stopped at: $step"; break } }
+```
+
+```powershell
+foreach ($step in "build", "validate:html", "test:site") { pnpm $step; if ($LASTEXITCODE -ne 0) { "Stopped at: $step"; break } }
 ```
 
 ```powershell

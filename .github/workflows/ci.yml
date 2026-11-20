@@ -1,5 +1,5 @@
-# One workflow for pull requests and main. Order (docs/guide.md, Lead prompt 5):
-#   lint → typecheck → build → unit → Worker → e2e → Lighthouse → deploy
+# One workflow for pull requests and main. Order (docs/guide.md, Lead prompt 5; decision 0033):
+#   lint → typecheck → test build (fixtures) → unit → Worker → e2e → Lighthouse → site build → smoke test → deploy
 # There is no translation step: both languages are written by hand.
 # One required check, "Test": a change that only touches journal entries runs its fast scope; the rest runs everything.
 # Deploy jobs are switched on with repository variables once docs/setup.md
@@ -69,9 +69,10 @@ jobs:
           done <<< "$changes"
           exit "$bad"
       # One required check, "Test" (ruleset "Protect main"), so the split lives inside this job. A change that only
-      # adds or edits journal entries (what the phone publishes, and a laptop entry too) runs lint, the build with
-      # its content check, html-validate, the unit tests (the photo checks) and the Chromium core suite. Anything else, and every other trigger, runs
-      # everything: typecheck, unit, Worker, the QA matrix, Firefox and WebKit, Lighthouse, the production-mode checks.
+      # adds or edits journal entries (what the phone publishes, and a laptop entry too) runs lint and the site's own
+      # build with its checks: the content check, html-validate, the photo rights and the smoke test of every page.
+      # The suites run on the fixtures (decision 0033), which such a change does not touch. Anything else, and every
+      # other trigger, runs everything: the test build and every suite on it, then the site's build as above.
       - name: How much to test
         id: scope
         run: |
@@ -85,9 +86,9 @@ jobs:
           fi
           echo "scope=$scope" >> "$GITHUB_OUTPUT"
           if [ "$scope" = content ]; then
-            echo "Scope: entries only, so the fast scope (lint, build and content check, html-validate, unit tests, Chromium core suite)." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "Scope: entries only, so the fast scope (lint; the site's build with its content check, html-validate, photo rights and smoke test)." | tee -a "$GITHUB_STEP_SUMMARY"
           else
-            echo "Scope: full (typecheck, unit, Worker, QA matrix, Firefox and WebKit, Lighthouse, production-mode checks)." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "Scope: full (typecheck; on the fixtures: unit, Worker, QA matrix, Firefox and WebKit, Lighthouse, production-mode checks, the empty site; then the site's build and smoke test)." | tee -a "$GITHUB_STEP_SUMMARY"
           fi
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -109,24 +110,14 @@ jobs:
         if: steps.scope.outputs.scope == 'full'
         run: pnpm typecheck
 
-      # Photo originals come from the private R2 bucket on every run and are never cached: in a public repository a
-      # fork's pull request can read main's caches, and originals are full size and may carry GPS (decision 0030).
-      # Only Astro's resized outputs (no metadata) are cached, keyed by the content they come from.
+      # Only Astro's resized outputs (no metadata) are cached, keyed by the content they come from: the site's and the
+      # test fixtures'. Photo originals are never cached (see "Fetch photo originals from R2" below, decision 0030).
       - name: Restore resized-image cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: node_modules/.astro
-          key: astro-${{ hashFiles('src/content/photos/**/photos.json', 'src/content/journal/**/*.md') }}
+          key: astro-${{ hashFiles('src/content/photos/**/photos.json', 'src/content/journal/**/*.md', 'tests/fixtures/content/**') }}
           restore-keys: astro-
-      - name: Fetch photo originals from R2
-        if: ${{ hashFiles('scripts/fetch-originals.ts') != '' }}
-        env:
-          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_BUCKET: ${{ vars.R2_ORIGINALS_BUCKET }}
-        run: node scripts/fetch-originals.ts
-
       # exiftool writes the rights fields into every photograph after the build
       # (scripts/photo-rights.ts) and checks that none carries GPS data.
       - name: Install exiftool
@@ -135,24 +126,23 @@ jobs:
       # so the browser must be installed before it, not only before the e2e tests.
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
-      - name: Build
-        run: pnpm build
-      - name: Validate HTML
+
+      # The suites run on the test fixtures (tests/fixtures/content, generated photos, no R2), never on the owner's
+      # content, so no entry can make them fail (decision 0033). A change that only touches entries changes none of
+      # what they test, so the fast scope skips them.
+      - name: Test build (fixtures)
+        if: steps.scope.outputs.scope == 'full'
+        run: pnpm build:fixtures
+      - name: Validate HTML (test build)
+        if: steps.scope.outputs.scope == 'full'
         run: pnpm validate:html
-      # Also in the fast scope: a phone publish is when new photographs arrive, and these tests read every output image
-      # with exiftool (no GPS, rights fields) before the entry can go live (tests/unit/qa-images.test.ts).
       - name: Unit tests
+        if: steps.scope.outputs.scope == 'full'
         run: pnpm test:unit
       # The Worker inside the Workers runtime (Vitest + Miniflare), against the built dist/.
       - name: Worker tests
         if: steps.scope.outputs.scope == 'full'
         run: pnpm test:worker
-      # The core suite (everything in tests/e2e except tests/e2e/qa) is what a publish waits for.
-      - name: End-to-end core suite (Chromium, JavaScript on and off)
-        if: steps.scope.outputs.scope == 'content'
-        env:
-          E2E_SCOPE: core
-        run: pnpm test:e2e
       - name: End-to-end tests, core and the QA matrix (Chromium, JavaScript on and off)
         if: steps.scope.outputs.scope == 'full'
         run: pnpm test:e2e
@@ -182,38 +172,57 @@ jobs:
               console.log(`${r.finalDisplayedUrl}: ${cats}; FCP ${ms("first-contentful-paint")} ms, LCP ${ms("largest-contentful-paint")} ms, SI ${ms("speed-index")} ms, TBT ${ms("total-blocking-time")} ms, TTFB ${ms("server-response-time")} ms, CLS ${r.audits["cumulative-layout-shift"]?.numericValue}`);
             ' "$f" | tee -a "$GITHUB_STEP_SUMMARY"
           done
-
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: dist
-          path: dist/
-          include-hidden-files: true
-          retention-days: 7
-      # After the artifact above is saved, so the deploys never get a production-mode dist. SEO and rights need a
-      # SITE_ENV=production build to prove no page is noindex by accident (QA suite 11, decision 0022).
-      - name: Production-mode build (for the SEO, rights and launch checks)
+      # SEO and rights need a SITE_ENV=production build to prove no page is noindex by accident (QA suite 11, 0022).
+      - name: Production-mode test build (for the SEO and rights checks)
         if: steps.scope.outputs.scope == 'full'
         env:
           SITE_ENV: production
-        run: pnpm build
-      - name: SEO and rights suites on the production-mode build
+        run: pnpm build:fixtures
+      - name: SEO and rights suites on the production-mode test build
         if: steps.scope.outputs.scope == 'full'
         env:
           QA_PROD: "1"
         run: pnpm exec playwright test --project=chromium tests/e2e/qa/seo.spec.ts tests/e2e/qa/rights.spec.ts
       # Lighthouse SEO needs the production-mode build too: staging says noindex, which Lighthouse rightly scores down.
       # The floor is 95 on the WORST of three runs per page (lighthouserc.seo.json), the guide's "all four categories".
-      - name: Lighthouse SEO floor on the production-mode build
+      - name: Lighthouse SEO floor on the production-mode test build
         if: steps.scope.outputs.scope == 'full'
         run: pnpm test:lighthouse:seo
+      # The site before the owner's first entry and series: home, journal, photos, feeds and sitemap still work.
+      - name: Empty site build and its smoke test
+        if: steps.scope.outputs.scope == 'full'
+        run: |
+          pnpm build:fixtures empty
+          pnpm test:site
+
+      # What is deployed: the owner's content, built last so dist/ is this build when the artifact is saved. Both
+      # scopes; a phone publish waits for exactly this. Photo originals come from the private R2 bucket on every run
+      # and are never cached: in a public repository a fork's pull request can read main's caches, and originals are
+      # full size and may carry GPS (decision 0030).
+      - name: Fetch photo originals from R2
+        if: ${{ hashFiles('scripts/fetch-originals.ts') != '' }}
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_ORIGINALS_BUCKET }}
+        run: node scripts/fetch-originals.ts
+      # The content check, the originals check and the page check (no active HTML, 0030) run inside the build.
+      - name: Site build
+        run: pnpm build
+      - name: Validate HTML (site)
+        run: pnpm validate:html
+      # Every page of the owner's content: status, console, requests, axe (AA, and AAA for the text), links, sitemap,
+      # feeds; and every output image read with exiftool (no GPS, the rights fields) before an entry can go live.
+      - name: Site smoke test and photo rights
+        run: pnpm test:site
       # The launch gate fails until the owner has answered O1 (placeholder text, sameAs), so it informs and does not
-      # block. When O1 is answered, delete continue-on-error and this check blocks as it should.
+      # block. It reads the site's own pages. When O1 is answered, delete continue-on-error and this check blocks as it
+      # should. Its "no noindex" part needs a production build and runs in `pnpm qa:production`.
       - name: Launch gate (informational until O1 is answered)
         id: launch
         if: steps.scope.outputs.scope == 'full'
         continue-on-error: true
-        env:
-          QA_PROD: "1"
         run: pnpm test:launch
       - name: Launch gate result
         if: ${{ steps.scope.outputs.scope == 'full' && !cancelled() }}
@@ -221,6 +230,12 @@ jobs:
           OUTCOME: ${{ steps.launch.outcome }}
         run: |
           echo "Launch gate (not blocking yet, owner question O1): $OUTCOME" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          include-hidden-files: true
+          retention-days: 7
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:
@@ -231,74 +246,6 @@ jobs:
             .lighthouseci/
             .lighthouseci-seo/
           # .lighthouseci/ is a hidden folder, which upload-artifact skips by default.
-          include-hidden-files: true
-          if-no-files-found: ignore
-          retention-days: 7
-
-  # A published entry merges on the fast scope above and goes live without waiting for the QA matrix. The matrix still
-  # runs on main for it, here, in parallel: every page of the build is in it (accessibility, SEO, links, images), the
-  # new entry included. It does not gate the deploy and is not a required check; a red cross on main is the signal.
-  # Runs only for pushes to main that the fast scope handled (entry-only changes); every other push already ran the
-  # full scope inside "Test".
-  full-qa-after-publish:
-    name: Full QA matrix after a publish
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.test.outputs.scope == 'content'
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .node-version
-      - run: npm install -g "pnpm@$PNPM_VERSION"
-      - run: pnpm install --frozen-lockfile
-      # Originals are fetched, never cached (see the Test job, decision 0030).
-      - name: Restore resized-image cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: node_modules/.astro
-          key: astro-${{ hashFiles('src/content/photos/**/photos.json', 'src/content/journal/**/*.md') }}
-          restore-keys: astro-
-      - name: Fetch photo originals from R2
-        if: ${{ hashFiles('scripts/fetch-originals.ts') != '' }}
-        env:
-          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_BUCKET: ${{ vars.R2_ORIGINALS_BUCKET }}
-        run: node scripts/fetch-originals.ts
-      - name: Install exiftool
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libimage-exiftool-perl
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium firefox webkit
-      - name: Build
-        run: pnpm build
-      - name: Validate HTML
-        run: pnpm validate:html
-      - name: Unit tests
-        run: pnpm test:unit
-      - name: Worker tests
-        run: pnpm test:worker
-      - name: End-to-end tests, core and the QA matrix (Chromium, JavaScript on and off)
-        run: pnpm test:e2e
-      - name: Smoke subset in Firefox and WebKit
-        run: pnpm test:cross
-      - name: Production-mode build (for the SEO and rights checks)
-        env:
-          SITE_ENV: production
-        run: pnpm build
-      - name: SEO and rights suites on the production-mode build
-        env:
-          QA_PROD: "1"
-        run: pnpm exec playwright test --project=chromium tests/e2e/qa/seo.spec.ts tests/e2e/qa/rights.spec.ts
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: ${{ !cancelled() }}
-        with:
-          name: test-reports-after-publish
-          path: |
-            test-results/
-            playwright-report/
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7

@@ -215,6 +215,10 @@ back by the matrix: a separate, non-required job runs it afterwards. Details and
 Each takes about ten minutes. Use the staging address (log in with Access first). Write down the phone, the system
 version and what you saw; a one-line "fine" is a result.
 
+Since 2026-11-18 (decision 0033) staging has no sample entry or photo series: `/lisbona` and `/photos/lisbon` below
+exist only in the test build. Use one of your own entries and series once they are published, or run
+`pnpm build:fixtures` and then `pnpm preview` on the laptop and open the pages at http://127.0.0.1:8787.
+
 ### VoiceOver, iPhone, Safari (Settings → Accessibility → VoiceOver, on)
 
 1. **Home.** Swipe right through the page from the top. Listen for: "Skip to content" first; the name and "philglov.es"; the

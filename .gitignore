@@ -11,6 +11,9 @@ worker/worker-configuration.d.ts
 
 # photo originals downloaded from R2 at build (never committed)
 src/.originals/
+# the test fixtures' originals, drawn by scripts/fixture-photos.ts (decision 0033)
+tests/fixtures/.originals/
+tests/fixtures/empty/.originals/
 
 # test output
 test-results/
