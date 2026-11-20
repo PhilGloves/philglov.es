@@ -9,9 +9,9 @@
  *  - indexing: on staging every page says noindex; with QA_PROD=1 (a SITE_ENV=production build, `pnpm qa:production`)
  *    no indexable page says noindex, anywhere: header or meta tag.
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { builtPages, readBuilt } from "./lib.ts";
+import { builtPages, dist, readBuilt } from "./lib.ts";
 
 const ORIGIN = "https://philglov.es";
 const PROD = process.env["QA_PROD"] === "1";
@@ -113,15 +113,22 @@ test("JSON-LD: valid JSON, schema.org context, the right type on the right page"
       }
       if (person["name"] !== "Filippo Guanti") problems.push(`${p.path}: Person.name is ${String(person["name"])}`);
       if (person["url"] !== ORIGIN) problems.push(`${p.path}: Person.url is ${String(person["url"])}`);
-      // TO-03: the image is the real portrait from site.json, and absent while there is none (never the placeholder).
+      // TO-03: the image is a JPEG the build made from the portrait site.json names (decision 0034), once its original
+      // has been fetched, and absent while there is none (never the placeholder).
       const portrait = (
         JSON.parse(readFileSync(new URL("../../../src/data/site.json", import.meta.url), "utf8")) as {
-          portrait: string | null;
+          portrait: { file: string } | null;
         }
       ).portrait;
-      const wanted = portrait ? `${ORIGIN}${portrait}` : undefined;
-      if (person["image"] !== wanted)
-        problems.push(`${p.path}: Person.image is ${String(person["image"])}, not ${String(wanted)}`);
+      const fetched = portrait && existsSync(new URL(`../../../src/.originals/${portrait.file}`, import.meta.url));
+      const image = person["image"];
+      if (fetched) {
+        const stem = (portrait.file.split("/").pop() ?? "").replace(/\.[^.]+$/, "");
+        const match = new RegExp(`^${ORIGIN}/(_assets/${stem}\\.[\\w-]+\\.jpe?g)$`).exec(String(image));
+        if (!match) problems.push(`${p.path}: Person.image is ${String(image)}, not a JPEG of ${portrait.file}`);
+        else if (!existsSync(new URL(match[1] ?? "", dist)))
+          problems.push(`${p.path}: Person.image ${match[1]} not built`);
+      } else if (image !== undefined) problems.push(`${p.path}: Person.image is ${String(image)} with no portrait`);
       // The profiles themselves are owner question O1; launch.spec.ts requires the list to be filled.
       if (person["sameAs"] !== undefined && !Array.isArray(person["sameAs"]))
         problems.push(`${p.path}: Person.sameAs is not a list`);
