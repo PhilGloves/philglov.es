@@ -11,6 +11,8 @@ worker/worker-configuration.d.ts
 
 # photo originals downloaded from R2 at build (never committed)
 src/.originals/
+# the owner's own folder of photo and icon files: the portrait in it carries a GPS position (decision 0034)
+/imgs/
 
 # test output
 test-results/

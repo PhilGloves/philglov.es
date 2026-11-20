@@ -12,6 +12,8 @@ import site from "../data/site.json" with { type: "json" };
 import { tf, type Locale } from "../i18n";
 import { type PageEntry } from "../lib/collections.ts";
 import { isoDate, pathFor } from "../lib/entries.ts";
+import { SIZES } from "../lib/photo-sizes.ts";
+import { portraitAlt, portraitImage, portraitKey } from "../lib/portrait.ts";
 import { personJsonLd } from "../lib/seo.ts";
 
 interface Props {
@@ -39,7 +41,7 @@ const isRealEmail = /^[^@\s[\]]+@[^@\s[\]]+\.[^@\s[\]]+$/.test(email);
   title={page.data.title}
   description={page.data.description}
   hasTwin={hasTwin}
-  jsonLd={isAbout ? [personJsonLd(locale)] : []}
+  jsonLd={isAbout ? [personJsonLd(locale, await portraitImage())] : []}
 >
   <article class="page">
     <div class="g top top--intro">
@@ -51,7 +53,7 @@ const isRealEmail = /^[^@\s[\]]+@[^@\s[\]]+\.[^@\s[\]]+$/.test(email);
       {isAbout && (
         <div class="lab">
           <div class="portrait">
-            <Photo tone={3} alt="[Portrait of Filippo Guanti: placeholder until the photograph is added]" />
+            <Photo tone={3} alt={portraitAlt(locale)} src={portraitKey} sizes={SIZES.portrait} priority />
             <ul class="contact">
               <li>{isRealEmail ? <a href={`mailto:${email}`}>{email}</a> : email}</li>
               <li>{site.city}</li>

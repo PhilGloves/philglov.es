@@ -13,4 +13,6 @@ export const SIZES = {
   tileWide: "(min-width: 65rem) 52vw, (min-width: 40rem) 80vw, calc(100vw - 2rem)",
   /** The single photograph page: the content column, as large as it gets. */
   single: "(min-width: 65rem) 62rem, calc(100vw - 2rem)",
+  /** The portrait on About: its frame is capped at 16rem (site.css, .portrait .frame) at every width. */
+  portrait: "16rem",
 } as const;

@@ -8,6 +8,8 @@ import { t, tf, type Locale } from "../i18n";
 import { getPage, getSeries, getSlots } from "../lib/collections.ts";
 import { journalPath, pathFor, rowsFor, isoDate, type EntryLike, type Row } from "../lib/entries.ts";
 import { SIZES } from "../lib/photo-sizes.ts";
+import site from "../data/site.json" with { type: "json" };
+import { portraitImage } from "../lib/portrait.ts";
 import { personJsonLd } from "../lib/seo.ts";
 
 interface Props {
@@ -39,12 +41,12 @@ const path = locale === "en" ? "/" : "/it";
   fullTitle
   title={t(locale, "homeTitle")}
   description={t(locale, "homeDescription")}
-  jsonLd={[personJsonLd(locale)]}
+  jsonLd={[personJsonLd(locale, await portraitImage())]}
 >
   <div class="page">
     <div class="g hero">
       <div class="lab small">
-        <p class="muted">{t(locale, "heroBased")}</p>
+        <p class="muted">{tf(locale, "heroBased", { city: site.city })}</p>
       </div>
       <h1 class="state">
         <span class="sr-only">{t(locale, "heroKick")}</span>

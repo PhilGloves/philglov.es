@@ -26,14 +26,23 @@ test("tdmrep.json reserves the whole site (TDM Reservation Protocol)", () => {
   assert.deepEqual(JSON.parse(tdmrepJson()), [{ location: "/", "tdm-reservation": 1 }]);
 });
 
-test("Person JSON-LD names Filippo Guanti, both languages, and omits an empty sameAs", () => {
+test("Person JSON-LD names Filippo Guanti, both languages, and the owner's profiles as sameAs", () => {
   const person = personJsonLd("en");
   assert.equal(person["@type"], "Person");
   assert.equal(person["name"], "Filippo Guanti");
   assert.deepEqual(person["knowsLanguage"], ["en", "it"]);
   assert.deepEqual(person["alternateName"], ["Phil Guanti", "philglov"]);
-  assert.equal("sameAs" in person, false);
+  assert.deepEqual(person["sameAs"], [
+    "https://www.instagram.com/philglov.es/",
+    "https://github.com/PhilGloves",
+    "https://www.linkedin.com/in/filippo-guanti-a6614520a/",
+  ]);
   assert.equal(personJsonLd("it")["jobTitle"], "Fotografo e sviluppatore");
+});
+
+test("Person JSON-LD omits an empty sameAs", () => {
+  const data = { name: "Filippo Guanti", alternateName: [], jobTitle: { en: "x", it: "y" }, sameAs: [] };
+  assert.equal("sameAs" in personJsonLd("en", undefined, data), false);
 });
 
 test("BlogPosting JSON-LD has author, date, language", () => {
@@ -107,17 +116,14 @@ test("sitemap carries hreflang alternates only where given", () => {
   assert.match(xml, /<loc>https:\/\/philglov\.es\/only<\/loc>\n {2}<\/url>/);
 });
 
-// TO-03: the Person on Home and About names the portrait as its image once the owner has one (site.json "portrait"),
-// as an absolute URL; until then there is no image, and the launch gate fails on it. The placeholder frame is never used.
-test("Person JSON-LD carries the portrait as an absolute image URL once site.json names one", () => {
-  const data = {
-    name: "Filippo Guanti",
-    alternateName: [],
-    jobTitle: { en: "x", it: "y" },
-    sameAs: [],
-    portrait: "/_assets/portrait.jpg",
-  };
-  assert.equal(personJsonLd("en", data)["image"], "https://philglov.es/_assets/portrait.jpg");
-  assert.equal("image" in personJsonLd("en", { ...data, portrait: null }), false);
-  assert.equal(personJsonLd("en", data, "/other.jpg")["image"], "https://philglov.es/other.jpg");
+// TO-03: the Person on Home and About names the portrait as its image once its JPEG exists (portraitImage() in
+// src/lib/portrait.ts, from the original site.json names), as an absolute URL; until then there is no image, and the
+// launch gate fails on it. The placeholder frame is never used.
+test("Person JSON-LD carries the portrait as an absolute image URL when there is one, and no image otherwise", () => {
+  assert.equal(
+    personJsonLd("en", "/_assets/finisterre.Ab12Cd34.jpeg")["image"],
+    "https://philglov.es/_assets/finisterre.Ab12Cd34.jpeg",
+  );
+  assert.equal("image" in personJsonLd("en"), false);
+  assert.equal("image" in personJsonLd("en", undefined), false);
 });

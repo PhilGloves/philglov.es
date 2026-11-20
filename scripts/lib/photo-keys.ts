@@ -35,8 +35,8 @@ export function entryKeys(markdown: string): string[] {
 }
 
 /**
- * Every original the content under `src` uses (the series files, and the journal entries in both languages), sorted,
- * each once: what the build fetches (scripts/fetch-originals.ts) and what the launch copy moves to production
+ * Every original the content under `src` uses (the series files, the journal entries in both languages, and the
+ * portrait that `data/site.json` names, TO-03), sorted, each once: what the build fetches (scripts/fetch-originals.ts) and what the launch copy moves to production
  * (scripts/copy-originals.ts, decision 0031).
  */
 export function contentKeys(src: URL): string[] {
@@ -52,6 +52,11 @@ export function contentKeys(src: URL): string[] {
     for (const f of readdirSync(new URL(`${lang}/`, journal))) {
       if (f.endsWith(".md")) keys.push(...entryKeys(readFileSync(new URL(`${lang}/${f}`, journal), "utf8")));
     }
+  }
+  const siteFile = new URL("data/site.json", src);
+  if (existsSync(siteFile)) {
+    const portrait = (JSON.parse(readFileSync(siteFile, "utf8")) as { portrait?: { file?: string } | null }).portrait;
+    if (portrait?.file) keys.push(portrait.file);
   }
   return [...new Set(keys)].sort();
 }

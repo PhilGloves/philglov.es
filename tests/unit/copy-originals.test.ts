@@ -6,6 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { copyOriginals } from "../../scripts/lib/copy-originals.ts";
 import { contentKeys } from "../../scripts/lib/photo-keys.ts";
@@ -155,6 +156,11 @@ test("the copy takes its list from the content: every original the entries and s
   const keys = contentKeys(new URL("../../src/", import.meta.url));
   assert.deepEqual(keys, [...new Set(keys)].sort());
   assert.ok(keys.length > 0);
+  // TO-03: the portrait site.json names is an original like the others: fetched by the build, copied at launch.
+  const site = JSON.parse(readFileSync(new URL("../../src/data/site.json", import.meta.url), "utf8")) as {
+    portrait: { file: string } | null;
+  };
+  if (site.portrait) assert.ok(keys.includes(site.portrait.file), `${site.portrait.file} is in the list`);
   assert.ok(
     keys.every((k) => /^[a-z0-9-]+\/[^/]+$|^photos\/[a-z0-9-]+\/[^/]+$/.test(k)),
     keys.join(", "),
