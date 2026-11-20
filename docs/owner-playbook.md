@@ -187,17 +187,40 @@ The words of the interface (menus, buttons, form labels, footer) are in `src/i18
 `src/data/site.json` holds a few facts about you that several pages use. Edit it as in the section above (steps 1–4).
 JSON's rules: text in double quotes, a comma between items and none after the last, `null` (no quotes) for "none".
 
-| Field           | What it is, where it shows                                                                                |
-| --------------- | --------------------------------------------------------------------------------------------------------- |
-| `name`          | "Filippo Guanti": header, titles, structured data, share images. Leave it.                                |
-| `alternateName` | Other names people search for you by, as a list: `["Phil Guanti", "philglov"]`. Structured data only.     |
-| `url`           | `https://philglov.es`. Never change it.                                                                   |
-| `jobTitle`      | One line per language, `"en"` and `"it"`. Structured data only (search engines).                          |
-| `contactEmail`  | Your public address: About page and `/.well-known/security.txt`. `"[contact email]"` until set (O1).      |
-| `city`          | About page. `"[city]"` until set (O1).                                                                    |
-| `partitaIva`    | `null`, or your number as text (`"01234567890"`): then the footer shows "P.IVA …". Only if you have one.  |
-| `sameAs`        | Your profiles, full addresses in a list: `["https://github.com/…", "https://www.instagram.com/…"]`.       |
-| `portrait`      | `null` until there is a real portrait. It needs the photo file as well; ask an agent (TICKETS.md, TO-03). |
+| Field           | What it is, where it shows                                                                               |
+| --------------- | -------------------------------------------------------------------------------------------------------- |
+| `name`          | "Filippo Guanti": header, titles, structured data, share images. Leave it.                               |
+| `alternateName` | Other names people search for you by, as a list: `["Phil Guanti", "philglov"]`. Structured data only.    |
+| `url`           | `https://philglov.es`. Never change it.                                                                  |
+| `jobTitle`      | One line per language, `"en"` and `"it"`. Structured data only (search engines).                         |
+| `contactEmail`  | Your public address: About page and `/.well-known/security.txt` (`phil@philglov.es`).                    |
+| `city`          | About page and the home line "Based in …" / "Vivo a …" (`"Msida, Malta"`).                               |
+| `partitaIva`    | `null`, or your number as text (`"01234567890"`): then the footer shows "P.IVA …". Only if you have one. |
+| `sameAs`        | Your profiles, full addresses in a list: `["https://github.com/…", "https://www.instagram.com/…"]`.      |
+| `portrait`      | `file` (the original's key in the photo bucket) and `alt` (`"en"`, `"it"`); see "Change the portrait".   |
+
+## Change the portrait
+
+The portrait on About is an original like every photo: it lives in the private photo bucket, never in the
+repository, and the build makes the served copies (which carry no location). `site.json` `portrait` names it: `file`
+is its key in the bucket, `alt` its description in each language. The commands below are for the current one,
+`imgs/portrait.jpg` uploaded as `portrait/finisterre.jpg`; for another photo, change those two names everywhere.
+
+1. Make a copy with its location removed in `src/.originals/portrait/` (that folder is never committed). With
+   exiftool, in PowerShell from the repository folder:
+
+   ```powershell
+   exiftool -gps:all= -xmp:all= -o src/.originals/portrait/finisterre.jpg imgs/portrait.jpg
+   ```
+
+2. Upload the copy to the photo bucket (log in first with `pnpm exec wrangler login` if Wrangler asks):
+
+   ```powershell
+   pnpm exec wrangler r2 object put philglov-originals-staging/portrait/finisterre.jpg --file src/.originals/portrait/finisterre.jpg --content-type image/jpeg --jurisdiction eu --remote
+   ```
+
+3. In `site.json`, `portrait` `file` is `portrait/finisterre.jpg`, with both `alt` texts. Commit in a pull request:
+   its Test fetches the photo, and the preview shows it on About.
 
 The launch gate (`pnpm test:launch`, and the informational step on CI) fails while `contactEmail` is not a real
 address, `sameAs` is empty or `portrait` is `null`, **and while a page of the site still has a bracketed gap**. It reads

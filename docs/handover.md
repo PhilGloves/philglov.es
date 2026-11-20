@@ -283,3 +283,13 @@ originals cache deleted in 0030, so the next one stops at `check-originals` unti
 does not catch `[city]`, `[launch date]` or `[your contact email]` (its pattern is `[placeholder…]`/`[segnaposto…]`).
 Lessons: a heredoc or a JSON string turns `\n` in a documented command into a line break (how step 8b broke); write
 such edits with an editor tool and test the blocks. On Windows, Git for Windows puts only `git` on PATH, not `bash`.
+
+## The owner's texts, portrait and icon — 2026-11-20
+
+Decision [0034](decisions/0034-owner-texts-portrait-icon.md), from `main` while #37 (text changes) and #38 (fixtures)
+were still open: whichever merges later needs its conflicts in `site.json`, the i18n files, the Privacy and Rights
+pages, `seo.ts`, `photo-keys.ts`, CLAUDE.md and the tests resolved. On top of #38 the portrait also needs a drawn
+fixture original (`scripts/fixture-photos.ts` `SPECS`) and `contentKeys` reading `site.json` from `src/data` while the
+content comes from the fixtures. The owner's texts are published as written; the Italian search sentence of Home was
+not given and is unchanged. The portrait shows once the owner has uploaded its original (owner playbook, "Change the
+portrait"); until then About keeps the placeholder frame and the launch gate reports the missing Person image.
