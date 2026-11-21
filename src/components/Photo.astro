@@ -39,6 +39,10 @@ interface Props {
 const { tone, alt, ratio, src, art, sizes = "100vw", priority = false } = Astro.props;
 
 const WIDTHS = [480, 800, 1200, 1600, 2400];
+// The plain <img>'s own file: the largest published width, never the original's size (final review T3-01). Without
+// a width, Astro writes that file at the original's full size, a print-quality copy in the page source.
+const LARGEST = Math.max(...WIDTHS);
+const capped = (width: number): number => Math.min(width, LARGEST);
 const QUALITY = { avif: 55, webp: 70, jpeg: 78 } as const;
 const record = src ? records[src] : undefined;
 const load = src ? originals[src] : undefined;
@@ -109,12 +113,15 @@ const fallbackImg =
         widths: WIDTHS,
         sizes,
         quality: QUALITY.jpeg,
-        ...(fallback.fit && {
-          width: fallback.width,
-          height: fallback.height,
-          fit: fallback.fit,
-          position: fallback.position,
-        }),
+        ...(fallback.fit
+          ? {
+              // The crop at its ratio, scaled down to the largest published width.
+              width: capped(fallback.width),
+              height: Math.round((fallback.height * capped(fallback.width)) / fallback.width),
+              fit: fallback.fit,
+              position: fallback.position,
+            }
+          : { width: capped(fallback.image.width) }),
       })
     : undefined;
 
@@ -131,6 +138,7 @@ const loading = priority ? "eager" : "lazy";
       formats={["avif", "webp"]}
       fallbackFormat="jpeg"
       widths={WIDTHS}
+      width={capped(meta.width)}
       layout="none"
       sizes={sizes}
       quality={QUALITY.jpeg}
