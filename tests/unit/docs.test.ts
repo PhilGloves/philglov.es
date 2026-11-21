@@ -14,7 +14,14 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-const DOCS = ["README.md", "docs/setup.md", "docs/owner-playbook.md", "docs/publishing-from-the-phone.md"];
+const DOCS = [
+  "README.md",
+  "docs/setup.md",
+  "docs/owner-playbook.md",
+  "docs/publishing-from-the-phone.md",
+  // The launch day list (final review, 2026-11-21).
+  "LAUNCH-RUNBOOK.md",
+];
 const root = new URL("../../", import.meta.url);
 
 interface Block {
