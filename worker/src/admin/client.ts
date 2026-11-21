@@ -97,7 +97,9 @@ export const MODERATION_SCRIPT = String.raw`"use strict";
  *    copy at once, so it is there again on switching back; the Switch button, for pages without JavaScript, is
  *    hidden. The choice leads to another page, it is not a field, so changing it is never autosaved. A photo still
  *    uploading would be lost on leaving, so it holds the switch as it holds Publish (TO-01). The other version's alt
- *    text and caption under a carried-over photo (`data-hint`) are kept when a browser copy is restored.
+ *    text and caption under a carried-over photo (`data-hint`) are kept when a browser copy is restored;
+ *  - Publish and Save draft greyed out, saying "Sending…", from the first tap until the answer (T2-03). Without
+ *    JavaScript the Worker is the protection: a second Publish of an entry on its way opens nothing.
  */
 export const WRITE_SCRIPT = String.raw`"use strict";
 (function () {
@@ -245,10 +247,23 @@ export const WRITE_SCRIPT = String.raw`"use strict";
     if (!held) { held = el("p", { class: "alert", role: "alert" }); buttons.parentNode.insertBefore(held, buttons); }
     gate();
   }
+  // From the first tap until the answer arrives, Publish and Save draft are greyed out, the one pressed says so, and
+  // another tap sends nothing (T2-03). Disabled only after this event: a disabled button is not sent with the form.
+  var sending = false, sends = [form.querySelector('button[value="publish"]'), form.querySelector('button[value="save"]')];
   form.addEventListener("submit", function (e) {
-    if (!pending()) return;
-    e.preventDefault();
-    hold();
+    if (sending || pending()) { e.preventDefault(); if (!sending) hold(); return; }
+    sending = true;
+    var pressed = e.submitter;
+    setTimeout(function () {
+      sends.forEach(function (b) { b.disabled = true; b.setAttribute("data-label", b.textContent); });
+      if (sends.indexOf(pressed) >= 0) pressed.textContent = "Sending…";
+    }, 0);
+  });
+  // Back to this page from the next one: the buttons work again.
+  addEventListener("pageshow", function (e) {
+    if (!e.persisted) return;
+    sending = false;
+    sends.forEach(function (b) { b.disabled = false; if (b.hasAttribute("data-label")) b.textContent = b.getAttribute("data-label"); });
   });
   if (version) version.addEventListener("change", function () {
     if (pending()) { version.value = lang.value; hold(); return; }

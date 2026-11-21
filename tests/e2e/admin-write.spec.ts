@@ -203,3 +203,94 @@ test("the publisher's open pull requests: going live, then needing attention aft
   await expect(late).toContainText("Still not merged after 15 minutes.");
   await expect(page.locator('[data-publication="pending"]')).toContainText("going live");
 });
+
+// Final review T2-03: one entry, one pull request.
+const newEntry = async (page: import("@playwright/test").Page) => {
+  await page.goto(`${admin.origin}/admin/write`);
+  await page.fill("#w-title", "A double tap");
+  await page.fill("#w-slug", "a-double-tap");
+  await page.fill("#w-desc", "One sentence.");
+  await page.fill("#w-body", "Hello.");
+};
+const opened = () => admin.github.calls.filter((c) => c.method === "POST" && c.path.endsWith("/pulls"));
+
+test("a double tap on Publish opens one pull request, and the page links to it", async ({
+  page,
+  javaScriptEnabled,
+}) => {
+  await newEntry(page);
+  let posts = 0;
+  page.on("request", (r) => {
+    if (r.method() === "POST" && r.url().endsWith("/admin/write")) posts += 1;
+  });
+  await page.getByRole("button", { name: "Publish" }).dblclick();
+  // With JavaScript the second tap sends nothing; without it the Worker answers it with the first pull request.
+  await expect(page.locator("#published")).toContainText("will be live in a few minutes at /a-double-tap.");
+  await expect(page.getByRole("link", { name: "the pull request" })).toHaveAttribute(
+    "href",
+    "https://github.com/test/repo/pull/99",
+  );
+  expect(opened()).toHaveLength(1);
+  expect(admin.github.calls.filter((c) => c.method === "PUT")).toHaveLength(1);
+  // With JavaScript the second tap is not even sent.
+  if (javaScriptEnabled) expect(posts).toBe(1);
+});
+
+test("Publish and Save draft are greyed out from the first tap, and the one pressed says it is sending", async ({
+  page,
+  javaScriptEnabled,
+}) => {
+  test.skip(!javaScriptEnabled, "without JavaScript, the Worker's refusal is the protection (the test above)");
+  // Playwright waits for a pending navigation before it reads a page, and the answer is held here on purpose: the
+  // page notes its buttons in sessionStorage each time they change, and the next page of this origin reads it.
+  await page.addInitScript(() => {
+    addEventListener("DOMContentLoaded", () => {
+      const form = document.querySelector("#write-form");
+      if (!form) return;
+      const note = () =>
+        sessionStorage.setItem(
+          "buttons",
+          JSON.stringify(
+            ["publish", "save"].map((v) => {
+              const b = form.querySelector<HTMLButtonElement>(`button[value="${v}"]`);
+              return [b?.disabled, b?.textContent?.trim()];
+            }),
+          ),
+        );
+      new MutationObserver(note).observe(form, {
+        subtree: true,
+        attributes: true,
+        childList: true,
+        characterData: true,
+      });
+    });
+  });
+  await page.route(`${admin.origin}/admin/write`, async (route) => {
+    if (route.request().method() === "POST") await new Promise((r) => setTimeout(r, 1500));
+    await route.continue();
+  });
+  await newEntry(page);
+  await page.locator('button[value="publish"]').click();
+  await expect(page.locator("#published")).toContainText("will be live in a few minutes at /a-double-tap.");
+  expect(JSON.parse((await page.evaluate(() => sessionStorage.getItem("buttons"))) ?? "null")).toEqual([
+    [true, "Sending…"],
+    [true, "Save draft"],
+  ]);
+  expect(opened()).toHaveLength(1);
+});
+
+test("reloading the Published page sends the form again: the answer is the same pull request", async ({ page }) => {
+  await newEntry(page);
+  await page.getByRole("button", { name: "Publish" }).click();
+  await expect(page.locator("h2.admin-title")).toHaveText("Published");
+  // The browser asks whether to send the form again; the owner says yes.
+  page.on("dialog", (d) => void d.accept());
+  await page.reload();
+  await expect(page.locator("h2.admin-title")).toHaveText("Already on its way");
+  await expect(page.locator("#published")).toContainText("nothing was published twice");
+  await expect(page.getByRole("link", { name: "the pull request" })).toHaveAttribute(
+    "href",
+    "https://github.com/test/repo/pull/99",
+  );
+  expect(opened()).toHaveLength(1);
+});

@@ -11,8 +11,10 @@ for (const [path, script] of Object.entries(scripts))
     assert.doesNotMatch(script, /innerHTML|outerHTML|insertAdjacentHTML|eval\(|new Function|document\.write/);
   });
 
+// Behind Access only, outside the public budget of 1,536 bytes. write.js grew past 12,000 with the busy Publish and
+// Save draft buttons (final review T2-03).
 test("the admin scripts stay small", () => {
-  assert.ok(WRITE_SCRIPT.length < 12_000, `write.js: ${WRITE_SCRIPT.length} bytes`);
+  assert.ok(WRITE_SCRIPT.length < 13_000, `write.js: ${WRITE_SCRIPT.length} bytes`);
   assert.ok(MODERATION_SCRIPT.length < 3_000, `moderation.js: ${MODERATION_SCRIPT.length} bytes`);
 });
 
