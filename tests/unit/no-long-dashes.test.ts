@@ -17,8 +17,10 @@ const roots = ["src", "worker/src", "scripts", "public"];
 const ownersText = ["src/content/journal", "src/content/photos", "src/.originals"];
 const binary = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".gif", ".ico", ".woff2", ".woff", ".ttf", ".pdf"]);
 
-// U+2013 and U+2014 as characters, HTML entities (named, decimal, hex) and JavaScript/JSON/CSS escapes.
-const dash = /[\u2013\u2014]|&[mn]dash;|&#821[12];|&#x201[34];|\\u201[34]|\\201[34]/i;
+// U+2013 and U+2014 as characters, HTML entities (named, decimal, hex, with leading zeros or without the final ";",
+// which browsers still read) and JavaScript/JSON/CSS escapes (\u2014, \u{2014}, CSS \2014 or \002014).
+const dash =
+  /[\u2013\u2014]|&[mn]dash;|&#0*821[12](?![0-9])|&#x0*201[34](?![0-9a-f])|\\u\{0*201[34]\}|\\u201[34]|\\0*201[34](?![0-9a-f])/i;
 
 function* files(dir: string): Generator<string> {
   for (const name of readdirSync(join(root, dir))) {
@@ -53,8 +55,15 @@ test("the check catches a dash in every form it can be written", () => {
     "&#x2013;",
     "\\u2014",
     "\\2013",
+    // Final review, T1B-05: spellings that used to pass.
+    "\\u{2014}",
+    "\\002014",
+    "&#08212;",
+    "&#x02014;",
+    "a &#8212 b",
   ]) {
     assert.match(sample, dash, sample);
   }
-  for (const sample of ["a - b", "300-400", "a · b", "→"]) assert.doesNotMatch(sample, dash, sample);
+  for (const sample of ["a - b", "300-400", "a · b", "→", "&#82120;", "\\2013a", "U+2013"])
+    assert.doesNotMatch(sample, dash, sample);
 });
