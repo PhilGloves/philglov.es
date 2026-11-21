@@ -7,5 +7,11 @@ export function inlineScripts(html: string): string[] {
     .map((m) => m.groups?.["body"] ?? "");
 }
 
+/**
+ * worker/src/script-hashes.json as the build writes it: one line, exactly as it is committed, so a build leaves the
+ * file unchanged unless the hash changed (final review T1B-08; CI compares it with the committed one, T1-01).
+ */
+export const scriptHashesFile = (hashes: string[]): string => `${JSON.stringify(hashes)}\n`;
+
 /** CSP source for an inline script: 'sha256-<base64>' (without the quotes). */
 export const sha256 = (text: string): string => `sha256-${createHash("sha256").update(text).digest("base64")}`;
