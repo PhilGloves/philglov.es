@@ -9,6 +9,8 @@ worker/worker-configuration.d.ts
 test-results/
 playwright-report/
 # owner-provided reference files: kept byte-for-byte
+# the owner's journal entries, written on the phone exactly as he typed them; Lint must accept them (final review T2-01)
+src/content/journal/
 docs/guide.md
 docs/design/
 src/styles/photo-colours.generated.css
