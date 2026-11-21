@@ -210,6 +210,15 @@ jobs:
       # The content check, the originals check and the page check (no active HTML, 0030) run inside the build.
       - name: Site build
         run: pnpm build
+      # The staging and preview deploys bundle the COMMITTED worker/src/script-hashes.json with these pages. If the
+      # theme script changed and its new hash was not committed, their security policy would block it there while
+      # every check here passed (final review, T1-01). The build writes the file exactly as committed (T1B-08).
+      - name: Committed script hash matches the build
+        run: |
+          if ! git diff --exit-code -- worker/src/script-hashes.json; then
+            echo "::error::The theme script's hash changed. Run pnpm build and commit worker/src/script-hashes.json."
+            exit 1
+          fi
       - name: Validate HTML (site)
         run: pnpm validate:html
       # Every page of the owner's content: status, console, requests, axe (AA, and AAA for the text), links, sitemap,
