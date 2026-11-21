@@ -10,7 +10,9 @@
  *    reads files from this checkout (src/content/… from the fixtures) and records what the Worker sent. A test
  *    can set, through /__set: files that differ from the checkout (or exist only
  *    on a branch, as "<path>@<branch>"), the open pull requests, a refused
- *    auto-merge, and a write refused as a conflict.
+ *    auto-merge, and a write refused as a conflict. Like GitHub, it keeps what the
+ *    Worker wrote on a branch and lists the pull requests it opened as open, until
+ *    a test merges or closes them (/__set pulls).
  */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -111,8 +113,14 @@ function fakeGitHub() {
         return json(404, { message: "Not Found" });
       }
     }
-    if (contents && request.method === "PUT")
-      return state.writeConflict ? json(409, { message: "does not match" }) : json(201, { content: {} });
+    if (contents && request.method === "PUT") {
+      if (state.writeConflict) return json(409, { message: "does not match" });
+      // The file is on its branch from now on, as on GitHub: a later read of that branch finds it.
+      const put = body as { content?: string; branch?: string } | null;
+      if (put?.branch)
+        state.files[`${contents[1]}@${put.branch}`] = Buffer.from(put.content ?? "", "base64").toString();
+      return json(201, { content: {} });
+    }
     if (url.pathname === "/graphql")
       return json(
         200,
@@ -123,8 +131,28 @@ function fakeGitHub() {
     if (url.pathname.endsWith("/pulls") && request.method === "GET") return json(200, state.pulls);
     if (url.pathname.endsWith("/git/ref/heads/main")) return json(200, { object: { sha: "main-sha" } });
     if (url.pathname.endsWith("/git/refs")) return json(201, {});
-    if (url.pathname.endsWith("/pulls"))
-      return json(201, { html_url: "https://github.com/test/repo/pull/99", number: 99, node_id: "PR_node99" });
+    if (url.pathname.endsWith("/pulls")) {
+      // An opened pull request is open from now on, as on GitHub: the next list of open pull requests has it. The
+      // first one of a test is number 99.
+      const opened = body as { title?: string; head?: string } | null;
+      const number = 99 + state.pulls.filter((p) => (p as { number?: number }).number !== undefined).length;
+      state.pulls = [
+        ...state.pulls,
+        {
+          number,
+          html_url: `https://github.com/test/repo/pull/${number}`,
+          title: opened?.title ?? "",
+          created_at: new Date().toISOString(),
+          user: { login: "philglov-publisher[bot]" },
+          head: { ref: opened?.head ?? "" },
+        },
+      ];
+      return json(201, {
+        html_url: `https://github.com/test/repo/pull/${number}`,
+        number,
+        node_id: `PR_node${number}`,
+      });
+    }
     return json(404, { message: "Not Found" });
   };
 }

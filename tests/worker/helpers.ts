@@ -6,7 +6,9 @@ import { formToken } from "../../worker/src/tokens.ts";
 export const ORIGIN = "https://example.com";
 
 export async function resetDb(): Promise<void> {
-  await env.DB.batch(["comments", "reports", "rate_limits", "drafts"].map((t) => env.DB.prepare(`DELETE FROM ${t}`)));
+  await env.DB.batch(
+    ["comments", "reports", "rate_limits", "drafts", "publishing"].map((t) => env.DB.prepare(`DELETE FROM ${t}`)),
+  );
 }
 
 export async function siteManifest(): Promise<Manifest> {
