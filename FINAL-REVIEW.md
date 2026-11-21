@@ -5,7 +5,7 @@ request #40). Everything was run on a laptop: the real site and the test site bu
 test suite, and screenshots looked at one by one. Nothing was deployed, no Cloudflare or GitHub setting was touched,
 nothing was merged. A finding counts only once a second reviewer, who had not seen it, reproduced it.
 
-The fixes are in one pull request: **PULL REQUEST LINK** (branch `review/final-review`, not merged).
+The fixes are in one pull request: [pull request #41](https://github.com/PhilGloves/philglov.es/pull/41) (branch `review/final-review`, not merged).
 
 ## 1. Verdict
 
