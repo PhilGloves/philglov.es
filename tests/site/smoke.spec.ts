@@ -70,6 +70,9 @@ for (const built of pages) {
       await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
       for (const width of [1440, 390]) {
         await page.setViewportSize({ width, height: 900 });
+        // A new width makes a <picture> on the page still open fetch another source; leaving now would abort it and
+        // count as a failed request (final review T2-02, the flake on entries with photos). Wait, as settle() says.
+        found.push(...(await settle(page, seen)));
         const res = await page.goto(built.path);
         expect(res?.status()).toBe(built.status);
         found.push(...(await settle(page, seen)));
