@@ -53,6 +53,8 @@ function pointsAt(html: string): string[] {
       if (url.startsWith("/")) out.push(url);
     }
   for (const m of html.matchAll(/\s(?:href|src)="https:\/\/philglov\.es(\/[^"#]*)/g)) out.push(m[1] ?? "");
+  // The share image of a link preview is named only in a meta tag's content (final review T1-02).
+  for (const m of html.matchAll(/<meta\s[^>]*content="https:\/\/philglov\.es(\/[^"#]*)"/g)) out.push(m[1] ?? "");
   return out.map((p) => p.replace(/\?.*$/, "") || "/").filter((p) => !p.startsWith("/api/") && !p.startsWith("/admin"));
 }
 
@@ -70,6 +72,9 @@ for (const built of pages) {
       await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
       for (const width of [1440, 390]) {
         await page.setViewportSize({ width, height: 900 });
+        // A new width makes a <picture> on the page still open fetch another source; leaving now would abort it and
+        // count as a failed request (final review T2-02, the flake on entries with photos). Wait, as settle() says.
+        found.push(...(await settle(page, seen)));
         const res = await page.goto(built.path);
         expect(res?.status()).toBe(built.status);
         found.push(...(await settle(page, seen)));

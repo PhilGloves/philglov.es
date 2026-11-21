@@ -27,7 +27,7 @@ import { originalsPath } from "./lib/content-root.ts";
 import { removeStandIns } from "./lib/standins.ts";
 import { assetHeaderLines, baseHeaders } from "../worker/src/headers.ts";
 import { localiseFootnotes } from "./lib/footnotes.ts";
-import { inlineScripts, sha256 } from "./lib/inline-scripts.ts";
+import { inlineScripts, scriptHashesFile, sha256 } from "./lib/inline-scripts.ts";
 import { pageProblems } from "./lib/page-check.ts";
 
 const dist = new URL("../dist/", import.meta.url);
@@ -66,10 +66,8 @@ if (refused.length) {
 }
 if (hashes.size !== 1) throw new Error(`Expected exactly one inline script across all pages, found ${hashes.size}`);
 const scriptHashes = [...hashes];
-writeFileSync(
-  new URL("../worker/src/script-hashes.json", import.meta.url),
-  `${JSON.stringify(scriptHashes, null, 2)}\n`,
-);
+// One line, as the file is committed (and as Prettier keeps it), so a build changes it only when the hash changes.
+writeFileSync(new URL("../worker/src/script-hashes.json", import.meta.url), scriptHashesFile(scriptHashes));
 
 // 3. /favicon.ico, made from the one site icon.
 writeFileSync(

@@ -10,7 +10,9 @@
  *   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET
  *
  * Without credentials (a laptop, a fork) it does nothing and exits 0: the
- * pages then draw the tone placeholders. `--force` downloads everything again.
+ * pages then draw the tone placeholders. With credentials, a photo it cannot
+ * fetch stops the build (scripts/lib/fetch-originals.ts, final review T1B-01).
+ * `--force` downloads everything again.
  * RAW files never leave the owner's drives; the bucket holds JPEG/PNG only.
  */
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
@@ -18,7 +20,8 @@ import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { contentKeys } from "./lib/photo-keys.ts";
 import { isStandIn } from "./lib/standins.ts";
-import { getObject, type R2Config } from "./lib/r2.ts";
+import { fetchOriginals, fetchSummary } from "./lib/fetch-originals.ts";
+import type { R2Config } from "./lib/r2.ts";
 
 const root = new URL("../src/", import.meta.url);
 
@@ -45,23 +48,16 @@ if (!accountId || !accessKeyId || !secretAccessKey || !bucket) {
 }
 
 const cfg: R2Config = { accountId, accessKeyId, secretAccessKey, bucket };
-let downloaded = 0;
-const failed: string[] = [];
-for (const key of keys) {
-  if (!force && have(key)) continue;
-  try {
-    const bytes = await getObject(cfg, key);
+const report = await fetchOriginals(
+  cfg,
+  keys,
+  have,
+  (key, bytes) => {
     mkdirSync(dirname(fileURLToPath(local(key))), { recursive: true });
     writeFileSync(local(key), bytes);
-    downloaded++;
-  } catch (err) {
-    failed.push(`${key}: ${(err as Error).message}`);
-  }
-}
-console.log(
-  `fetch-originals: ${keys.length} needed, ${downloaded} downloaded, ${keys.length - downloaded - failed.length} cached`,
+  },
+  force,
 );
-if (failed.length) {
-  // A missing original is not fatal (the pages fall back to the placeholder), but say which.
-  console.warn(`fetch-originals: could not fetch ${failed.length}:\n  ${failed.join("\n  ")}`);
-}
+const { lines, code } = fetchSummary(report, bucket);
+for (const line of lines) (code ? console.error : console.log)(line);
+process.exit(code);

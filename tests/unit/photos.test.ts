@@ -262,3 +262,33 @@ test(
     if (seen === 0) return; // no entry carries a photograph in this build
   },
 );
+
+// Final review, T3-01 (FINAL-REVIEW.md): the plain <img> of a <Photo> pointed at a JPEG as large as the original
+// (the portrait at 3024 × 4032, the fixtures' Lisbon photos at 4000 px), a print-quality copy for anyone who reads
+// the page source. Decision 0019's widths end at 2400.
+test(
+  "no image a page shows is wider than 2400 px, and every <img src> is one of its srcset files",
+  { skip: built ? false : "run `pnpm build` first" },
+  async () => {
+    const assets = new URL("_assets/", dist);
+    const big = new Set<string>();
+    let seen = 0;
+    for (const file of htmlFiles(dist)) {
+      const html = readFileSync(file, "utf8");
+      for (const tag of html.matchAll(/<(?:img|source)\b[^>]*\ssrcset="[^"]+"[^>]*>/g)) {
+        seen++;
+        const srcset = /\ssrcset="([^"]+)"/.exec(tag[0])?.[1] ?? "";
+        const candidates = srcset.split(",").map((c) => c.trim().split(/\s+/)[0] ?? "");
+        const src = /\ssrc="([^"]+)"/.exec(tag[0])?.[1];
+        if (src !== undefined)
+          assert.ok(candidates.includes(src), `${fileURLToPath(file)}: src ${src} is not one of its srcset files`);
+        for (const url of [src, ...candidates].filter((u): u is string => !!u?.startsWith("/_assets/"))) {
+          const { width = 0, height = 0 } = await sharp(fileURLToPath(new URL(url.slice(9), assets))).metadata();
+          if (width > 2400) big.add(`${url}: ${width} × ${height}`);
+        }
+      }
+    }
+    assert.ok(seen > 0, "the build has photographs (the fixtures do; the real site has the portrait)");
+    assert.deepEqual([...big], []);
+  },
+);

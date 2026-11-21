@@ -345,6 +345,11 @@ pull request and says it has to be merged by hand.
 
 ## Part 2 — At launch: domain and production
 
+On launch day, follow [LAUNCH-RUNBOOK.md](../LAUNCH-RUNBOOK.md): one ordered list made from the steps below and
+checked against the code by the final review (2026-11-21). Where the two differ, the runbook is right and
+`FINAL-REVIEW.md` says why (the `.es` registrar and the waiting time, www, production's six secrets, the launch date,
+rolling back).
+
 ### Launch blockers — production must not go live without these
 
 1. **Branch protection on `main`.** _Done 2026-11-11: ruleset "Protect main"._ The repository is public, so this is

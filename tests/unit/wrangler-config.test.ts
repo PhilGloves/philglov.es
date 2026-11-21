@@ -31,11 +31,49 @@ test("PHOTO_UPLOADS: production always takes photos; staging and preview take th
   assert.equal(c.env["preview"]?.vars["PHOTO_UPLOADS"], staging, "preview follows staging");
 });
 
-test("notifications stay off and Access stays unconfigured until the owner sets them", () => {
-  for (const [name, env] of Object.entries(config().env)) {
-    assert.equal(env.vars["NOTIFY"], "off", name);
-    assert.match(env.vars["ACCESS_TEAM_DOMAIN"] ?? "", /^[a-z0-9-]+\.cloudflareaccess\.com$/, name);
+type Config = ReturnType<typeof config>;
+type EnvBlock = Config["env"][string] & { send_email?: { name: string; destination_address?: string }[] };
+
+/**
+ * Notifications: staging and preview never send; production sends only after launch, when docs/setup.md step 14 adds
+ * the send_email binding EMAIL (no destination_address: the Worker sends to NOTIFY_TO only) and sets NOTIFY "on". The
+ * rule used to demand "off" everywhere, so the pull request of step 14 could never pass (final review, T4-01).
+ */
+function notifyProblems(c: Config): string[] {
+  const out: string[] = [];
+  for (const [name, block] of Object.entries(c.env) as [string, EnvBlock][]) {
+    const notify = block.vars["NOTIFY"];
+    const bindings = block.send_email ?? [];
+    if (name !== "production" && notify !== "off") out.push(`${name}: NOTIFY must be "off"`);
+    if (name === "production" && notify !== "off" && notify !== "on") out.push(`production: NOTIFY "${notify}"`);
+    if (name !== "production" && bindings.length) out.push(`${name}: no send_email binding outside production`);
+    if (notify === "on" && !bindings.some((b) => b.name === "EMAIL" && b.destination_address === undefined))
+      out.push(`${name}: NOTIFY "on" needs the send_email binding EMAIL without a destination_address`);
   }
+  return out;
+}
+
+test("notifications: off on staging and preview; production sends only with the EMAIL binding", () => {
+  const c = config();
+  assert.deepEqual(notifyProblems(c), []);
+  const withEnv = (name: string, change: (e: EnvBlock) => EnvBlock): Config => ({
+    ...c,
+    env: { ...c.env, [name]: change(structuredClone(c.env[name] as EnvBlock)) },
+  });
+  const on = (e: EnvBlock): EnvBlock => ({ ...e, vars: { ...e.vars, NOTIFY: "on" } });
+  // docs/setup.md step 14, as written: accepted.
+  const step14 = withEnv("production", (e) => ({ ...on(e), send_email: [{ name: "EMAIL" }] }));
+  assert.deepEqual(notifyProblems(step14), []);
+  // Half of it, or the wrong environment: refused.
+  assert.notDeepEqual(notifyProblems(withEnv("production", (e) => ({ ...on(e), send_email: [] }))), []);
+  assert.notDeepEqual(notifyProblems(withEnv("staging", (e) => ({ ...on(e), send_email: [{ name: "EMAIL" }] }))), []);
+  const fixed = withEnv("production", (e) => ({ ...on(e), send_email: [{ name: "EMAIL", destination_address: "x" }] }));
+  assert.notDeepEqual(notifyProblems(fixed), []);
+});
+
+test("Access stays unconfigured until the owner sets it", () => {
+  for (const [name, env] of Object.entries(config().env))
+    assert.match(env.vars["ACCESS_TEAM_DOMAIN"] ?? "", /^[a-z0-9-]+\.cloudflareaccess\.com$/, name);
 });
 
 // Owner checklist item 15 (SECURITY-REPORT.md, decision 0030): Workers Logs' invocation logs on staging held the

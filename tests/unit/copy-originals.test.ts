@@ -136,7 +136,8 @@ test("a production token that cannot write fails each copy with R2's answer, and
   try {
     const report = await copyOriginals(USED, from, cfg(PRODUCTION, READ_ONLY_PRODUCTION));
     assert.equal(report.failed.length, USED.length);
-    assert.match(report.failed[0] ?? "", /R2 403/);
+    // Final review, T1B-07: the message names the bucket that refused, so the owner knows which token is wrong.
+    assert.match(report.failed[0] ?? "", /R2 403 from philglov-originals for \/alps\/lake-ab12\.jpg/);
     assert.equal(r2.buckets.get(PRODUCTION)?.size, 0);
   } finally {
     await r2.close();
@@ -146,7 +147,7 @@ test("a production token that cannot write fails each copy with R2's answer, and
 test("the stand-in refuses a request signed with the wrong secret, so the signatures above were checked", async () => {
   const { r2, from } = await setUp();
   try {
-    await assert.rejects(listKeys({ ...from, secretAccessKey: "wrong" }, ""), /R2 403/);
+    await assert.rejects(listKeys({ ...from, secretAccessKey: "wrong" }, ""), /R2 403 from philglov-originals-staging/);
   } finally {
     await r2.close();
   }

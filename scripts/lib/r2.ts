@@ -110,7 +110,7 @@ async function send(cfg: R2Config, method: string, path: string, opts: Send = {}
 
 async function request(cfg: R2Config, path: string, query: Record<string, string> = {}): Promise<Response> {
   const res = await send(cfg, "GET", path, { query });
-  if (!res.ok) throw new Error(`R2 ${res.status} for ${path}`);
+  if (!res.ok) throw new Error(`R2 ${res.status} from ${cfg.bucket} for ${path}`);
   return res;
 }
 
@@ -147,7 +147,7 @@ export interface ObjectHead {
 export async function headObject(cfg: R2Config, key: string): Promise<ObjectHead | null> {
   const res = await send(cfg, "HEAD", keyPath(key));
   if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`R2 ${res.status} for ${keyPath(key)}`);
+  if (!res.ok) throw new Error(`R2 ${res.status} from ${cfg.bucket} for ${keyPath(key)}`);
   return {
     size: Number(res.headers.get("content-length") ?? "NaN"),
     etag: (res.headers.get("etag") ?? "").replaceAll('"', ""),
@@ -163,5 +163,5 @@ export async function putObject(
   contentType: string,
 ): Promise<void> {
   const res = await send(cfg, "PUT", keyPath(key), { body, headers: { "content-type": contentType } });
-  if (!res.ok) throw new Error(`R2 ${res.status} for ${keyPath(key)}`);
+  if (!res.ok) throw new Error(`R2 ${res.status} from ${cfg.bucket} for ${keyPath(key)}`);
 }

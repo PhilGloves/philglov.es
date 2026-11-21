@@ -19,40 +19,55 @@ test("the owner's icons: a 512 px source, a 32 px favicon, a 180 px apple-touch-
 });
 
 // The SVG icon is served from this site as a file: it may draw, and do nothing else. No script, no event handler, no
-// link or reference to another file (href, url(), @import), no embedded image or foreign content, no style block.
-test("the SVG icon only draws: no script, link, embedded image or style", () => {
-  const svg = readFileSync(new URL("favicon.svg", brandDir), "utf8");
-  const drawing = new Set([
-    "svg",
-    "title",
-    "desc",
-    "g",
-    "path",
-    "rect",
-    "circle",
-    "ellipse",
-    "line",
-    "polyline",
-    "polygon",
-  ]);
+// link or reference to another file (href, url(), @import, an outside DTD), no embedded image or foreign content, no
+// style block.
+const DRAWING = new Set([
+  "svg",
+  "title",
+  "desc",
+  "g",
+  "path",
+  "rect",
+  "circle",
+  "ellipse",
+  "line",
+  "polyline",
+  "polygon",
+]);
+function svgProblems(svg: string): string[] {
+  const out: string[] = [];
   const elements = [...svg.matchAll(/<([a-zA-Z][\w:-]*)/g)].map((m) => m[1] ?? "");
-  assert.deepEqual(
-    elements.filter((e) => !drawing.has(e)),
-    [],
-    "only drawing elements",
-  );
-  const attributes = [...svg.matchAll(/\s([a-zA-Z][\w:-]*)=/g)].map((m) => m[1] ?? "");
-  assert.deepEqual(
-    attributes.filter((a) => /^on|href$|^style$/i.test(a)),
-    [],
-    "no event handler, link or style attribute",
-  );
-  assert.doesNotMatch(svg, /url\(|@import|<!ENTITY|<\?xml-stylesheet|javascript:|data:/i);
+  for (const e of elements.filter((e) => !DRAWING.has(e))) out.push(`element <${e}>`);
+  // XML allows white space around "=", and a browser reads `onload ="…"` as a handler.
+  const attributes = [...svg.matchAll(/\s([a-zA-Z_:][\w:.-]*)\s*=/g)].map((m) => m[1] ?? "");
+  for (const a of attributes.filter((a) => /^on|href$|^style$/i.test(a))) out.push(`attribute ${a}`);
+  if (/url\(|@import|<!ENTITY|<!DOCTYPE|<\?xml-stylesheet|javascript:|data:/i.test(svg))
+    out.push("a reference, a DTD or an entity");
+  // A character reference can spell any of those ("u&#114;l("); a drawing needs none.
+  if (/&#/.test(svg)) out.push("a character reference");
   // The one URL in it is the SVG namespace.
-  assert.deepEqual(
-    [...svg.matchAll(/https?:\/\/[^"'\s>]+/g)].map((m) => m[0]),
-    ["http://www.w3.org/2000/svg"],
-  );
+  const urls = [...svg.matchAll(/https?:\/\/[^"'\s>]+/g)].map((m) => m[0]);
+  for (const u of urls.filter((u) => u !== "http://www.w3.org/2000/svg")) out.push(`address ${u}`);
+  return out;
+}
+
+test("the SVG icon only draws: no script, link, embedded image or style", () => {
+  assert.deepEqual(svgProblems(readFileSync(new URL("favicon.svg", brandDir), "utf8")), []);
+});
+
+// Final review, T1B-04 (FINAL-REVIEW.md): spellings that used to pass the check above.
+test("the icon check refuses what a browser would still read as a handler, a style or an outside file", () => {
+  const ns = 'xmlns="http://www.w3.org/2000/svg"';
+  const hostile = [
+    `<svg ${ns} onload ="fetch('/admin')"><path d="M0 0"/></svg>`,
+    `<svg ${ns}><path onclick\t= "x()" d="M0 0"/></svg>`,
+    `<svg ${ns}><path style ="fill:red" d="M0 0"/></svg>`,
+    `<!DOCTYPE svg SYSTEM "//evil.example/x.dtd"><svg ${ns}><path d="M0 0"/></svg>`,
+    `<svg ${ns}><path fill="u&#114;l(//evil.example/x)" d="M0 0"/></svg>`,
+    `<svg ${ns} onload="x()"><path d="M0 0"/></svg>`,
+    `<svg ${ns}><script>x()</script></svg>`,
+  ];
+  for (const svg of hostile) assert.notDeepEqual(svgProblems(svg), [], svg);
 });
 
 test("share template is 1200×630 and has a slot for the title, the name and a moss rule", () => {
