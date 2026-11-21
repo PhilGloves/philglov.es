@@ -53,6 +53,8 @@ function pointsAt(html: string): string[] {
       if (url.startsWith("/")) out.push(url);
     }
   for (const m of html.matchAll(/\s(?:href|src)="https:\/\/philglov\.es(\/[^"#]*)/g)) out.push(m[1] ?? "");
+  // The share image of a link preview is named only in a meta tag's content (final review T1-02).
+  for (const m of html.matchAll(/<meta\s[^>]*content="https:\/\/philglov\.es(\/[^"#]*)"/g)) out.push(m[1] ?? "");
   return out.map((p) => p.replace(/\?.*$/, "") || "/").filter((p) => !p.startsWith("/api/") && !p.startsWith("/admin"));
 }
 
