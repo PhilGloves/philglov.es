@@ -18,7 +18,7 @@ the buttons show they are busy.
      removes the browser copy (`data-clear`) and the server draft, as "Published" does, because the browser may show
      this answer instead of the first one.
    - **another text is refused** (409) with the link to the open pull request; the text stays in the form, and the
-     message says to save a draft and make the change once the first is live.
+     message says to save a draft and make the change once the first is live, or, if the first needs attention (a failed check: it will never go live), to close it on GitHub and publish again.
      A pull request that is merged or closed is not open, so the next Publish of that file works as before.
 2. **One Publish of a file at a time.** Two taps arrive together, and each would find no pull request open yet. A
    Publish takes a row in the D1 table `publishing` (migration 0004: the file path and a time, nothing personal) and

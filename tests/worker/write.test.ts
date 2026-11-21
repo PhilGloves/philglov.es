@@ -1149,6 +1149,8 @@ describe("one entry, one pull request (T2-03)", () => {
     expect(res.status).toBe(409);
     const html = await res.text();
     expect(html).toContain("Not published: /a-new-one is still on its way");
+    // One whose check failed never goes live: the way out is to close it.
+    expect(html.replace(/\s+/g, " ")).toContain("close that pull request on GitHub, then publish this again.");
     expect(html).toContain('href="https://github.com/test/repo/pull/99"');
     expect(html).toContain(">\nHello, with a change.</textarea");
     expect(await opened()).toHaveLength(1);

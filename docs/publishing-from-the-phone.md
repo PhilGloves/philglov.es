@@ -23,7 +23,7 @@ Until launch this is staging's `/admin/write`. From launch, write and edit entri
    15 minutes, the page lists it under "On their way" as needing attention, with its pull request. Publish and Save
    draft grey out and say "Sending…" until the answer arrives. A second tap, or reloading the "Published" page, opens
    nothing new: the page says "Already on its way" and links to the same pull request. A different text for the same
-   entry waits until the first is live (decision 0036).
+   entry waits until the first is live; if the first needs attention, close its pull request on GitHub and publish again (decision 0036).
 
 What you type is kept in the browser as you go. **Save draft** keeps it on the server too, so you can finish on
 another day or another device. Drafts are listed at the bottom of the page.

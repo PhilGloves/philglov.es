@@ -927,7 +927,9 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
       const message = html`<div class="alert" role="alert">
         <strong>Not published: ${live} is still on its way</strong>, with the text you published before:
         <a href="${newest?.url ?? ""}">its pull request</a>. Nothing was sent. Once it is live, open the entry under
-        "Edit a published entry" and make this change there. Save a draft to keep this text until then.
+        "Edit a published entry" and make this change there. Save a draft to keep this text until then. If it shows
+        as needing attention (a check failed, so it will not go live), close that pull request on GitHub, then
+        publish this again.
       </div>`;
       return writePage(env, identity, { ...state, message }, 409);
     }
