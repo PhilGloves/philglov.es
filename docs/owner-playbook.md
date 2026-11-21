@@ -22,6 +22,10 @@ Three rules hold everywhere:
    - **Lint**: Prettier or ESLint names the file and line. A formatting problem goes away with `pnpm format`; commit
      and push the result.
    - **Typecheck**: names the file and line; the code needs a fix.
+   - **Fetch photo originals from R2**: `could not fetch N from <bucket>` lists photos the site uses (entry photos,
+     the portrait, series photos) that are not in that bucket. Upload the missing ones to that bucket, or check that
+     the R2 secrets and the `R2_ORIGINALS_BUCKET` variable name the bucket the builds should read (after launch:
+     `philglov-originals`). Without the photo the page would show a grey frame, so the build stops instead.
    - **Build**: the first error line says which check stopped it.
      - `Content check failed:` lists entries with a problem (a front matter field missing or misspelled, a slug, the
        other version, alt text). Fix the file it names.
