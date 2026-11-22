@@ -217,6 +217,55 @@ describe("drafts and publishing", () => {
     expect(page).toContain('<script src="/admin/write.js" defer></script>');
   });
 
+  // Decision 0037: one Enter is a new line in the published entry, and the page says so where it is typed.
+  test("under the text box, two lines say how to start a new line and how to write a link; the cheat sheet agrees", async () => {
+    const page = await (await adminFetch("/admin/write")).text();
+    // In the text field itself, after the text box and before the cheat sheet, which stays closed.
+    const field = /<label for="w-body">[\s\S]*?<\/div>/.exec(page)?.[0] ?? "";
+    expect(field).toMatch(
+      /<\/textarea\s*><span id="w-body-hint" class="hint">Enter: new line\. Empty line: new paragraph\.<\/span\s*><span id="w-body-link" class="hint">Link: <code>\[words\]\(https:\/\/address\)<\/code><\/span\s*>/,
+    );
+    expect(field).not.toContain("<details");
+    // Read out with the text box.
+    expect(field).toMatch(/<textarea\s+id="w-body"[^>]*\saria-describedby="w-body-hint w-body-link w-body-err"/);
+    const sheet = /<details>\s*<summary>Markdown cheat sheet<\/summary>[\s\S]*?<\/details>/.exec(page)?.[0] ?? "";
+    expect(page.indexOf(sheet)).toBeGreaterThan(page.indexOf(field));
+    expect(sheet).toContain("<li>Enter: new line. Empty line: new paragraph.</li>");
+    expect(sheet).toContain("<li>Link: <code>[words](https://address)</code></li>");
+    expect(sheet).not.toMatch(/Blank line|example\.com/);
+    // The rest of the sheet is as it was.
+    for (const kept of ["## Heading", "_italics_", "**bold**", "- item", "1. item", "&gt; text", "[^1]: the note"])
+      expect(sheet).toContain(kept);
+  });
+
+  test("the two lines are on every form of the write page: a draft, an edit, the other language", async () => {
+    const saved = await adminPost("/admin/write", { csrf: await csrf(), intent: "save", title: "T", body: "One\ntwo" });
+    // An entry of the build that exists in one language: its edit form, and the form that writes the other language.
+    const m = await siteManifest();
+    const single = m.entries.find((e) => !m.entries.some((o) => o.slug === e.slug && o.lang !== e.lang));
+    if (!single) throw new Error("the build has no entry in one language only");
+    const forms: [string, string][] = [
+      [saved.headers.get("Location") ?? "", "Write"],
+      [`/admin/write?edit=1&slug=${single.slug}&lang=${single.lang}`, "Edit"],
+      [`/admin/write?edit=1&slug=${single.slug}&lang=${single.lang === "en" ? "it" : "en"}`, "Write the "],
+    ];
+    for (const [address, heading] of forms) {
+      const page = await (await adminFetch(address)).text();
+      expect(page, address).toContain(`<h2 class="admin-title">${heading}`);
+      expect(page, address).toContain(
+        '<span id="w-body-hint" class="hint">Enter: new line. Empty line: new paragraph.</span',
+      );
+      expect(page, address).toContain(
+        '<span id="w-body-link" class="hint">Link: <code>[words](https://address)</code></span',
+      );
+    }
+    // What was typed with one Enter per line is kept as typed, in the draft and in the form.
+    expect(await env.DB.prepare("SELECT body FROM drafts").first("body")).toBe("One\ntwo");
+    expect(await (await adminFetch(forms[0]?.[0] ?? "")).text()).toMatch(
+      /class="write-body"[^>]*>\nOne\ntwo<\/textarea/,
+    );
+  });
+
   test("Publish with errors answers 422 and keeps the text", async () => {
     const res = await adminPost("/admin/write", {
       csrf: await csrf(),

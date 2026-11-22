@@ -1,5 +1,6 @@
 import { defineConfig } from "astro/config";
 import { originalsPath } from "./scripts/lib/content-root.ts";
+import { entryLineBreaks } from "./src/lib/entry-line-breaks.ts";
 
 // See docs/decisions/0009-assets-and-routing.md for why each option is set.
 export default defineConfig({
@@ -29,6 +30,8 @@ export default defineConfig({
     // Shiki writes inline style attributes, which the CSP blocks.
     syntaxHighlight: false,
   },
+  // In journal entries, one line break typed is one line break on the page (src/lib/entry-line-breaks.ts, 0037).
+  integrations: [entryLineBreaks()],
   // No client router (<ClientRouter />), no prefetch script, no dev toolbar.
   prefetch: false,
   // Astro inlines small <script>s below this limit; an inline script would need its own CSP hash.

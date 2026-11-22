@@ -221,6 +221,12 @@ contatto]` …) and a bracket starting with "Placeholder"/"Segnaposto" on the bu
   and kept in the form; two at once take turns through the D1 table `publishing` (migration 0004). With JavaScript,
   Publish and Save draft grey out and say "Sending…". Both GitHub stand-ins keep branch files and list the pull
   requests they opened as open.
+- 2026-11-22: one Enter is a new line in journal entries ([0037](docs/decisions/0037-line-breaks-in-entries.md)):
+  `src/lib/entry-line-breaks.ts`, an integration in `astro.config.ts`, adds one mdast plugin to Astro's default
+  Markdown processor (Sätteri) for the journal folder only; an empty line is still a new paragraph; pages, feeds and
+  descriptions are unchanged. `/admin/write` shows "Enter: new line. Empty line: new paragraph." and
+  "Link: [words](https://address)" under the text box; the cheat sheet matches. `tests/site/typed-lines.spec.ts`
+  checks the owner's entries on his build.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -232,7 +238,8 @@ src/content/pages/{en,it}/    about, now, rights, privacy …
 src/content/photos/<series>/photos.json
 src/pages/                    routes (en at /, it under /it)
 src/layouts/ src/components/  one Astro component per piece of UI
-src/views/ src/lib/           page views; pure logic (entries, seo, robots, xml) tested in tests/unit
+src/views/ src/lib/           page views; pure logic (entries, seo, robots, xml) tested in tests/unit;
+                              entry-line-breaks.ts the Markdown plugin for entries (0037)
 src/styles/tokens.css         design tokens, measured contrast (design agent)
 src/styles/site.css           the one stylesheet: layers, layout, components, admin, print (0014)
 src/assets/brand/             placeholder favicon, share-image template, brand.config.ts
@@ -258,7 +265,8 @@ tests/e2e/qa/                 the QA suites, one file per suite of the QA brief;
 tests/fixtures/               what every suite is built from (0033): content/ (sample entries, a series, pages), empty/
                               (no entry, no series); .originals/ drawn by scripts/fixture-photos.ts (git-ignored);
                               content.ts has the paths and assertFixtureBuild()
-tests/site/                   smoke.spec.ts: every page of the owner's own build (playwright.site.config.ts, 0033)
+tests/site/                   smoke.spec.ts: every page of the owner's own build (playwright.site.config.ts, 0033);
+                              typed-lines.spec.ts: every line he typed in an entry is a line on its page (0037)
 scripts/lib/content-root.ts   which content a build reads (SITE_CONTENT unset = the site; fixtures; empty) (0033)
 docs/qa/                      bug-reports.md, manual-checklist.md; QA-REPORT.md at the root is the coverage report
 SECURITY-REPORT.md            security audit findings and the owner checklist (0030)
@@ -412,5 +420,10 @@ put`; non-secret config as per-env vars in `wrangler.jsonc` (`secrets.required` 
   Use a plain hyphen: " - " between words, "300-400" in ranges. Arrows and "·" are fine. `tests/unit/no-long-dashes.test.ts`
   reads every text file under `src`, `worker/src`, `scripts` and `public`, code comments included; the owner's journal
   entries and photo series are his text and are not checked.
+- Line breaks in entries (0037): Markdown stays on Astro's default processor, Sätteri; `entryLineBreaks()` in
+  `astro.config.ts` stops the build on any other. Its plugin turns a line end in a text node of a journal entry into a
+  `break`, and touches nothing else (headings, code, HTML, pages). Feeds and descriptions come from the front matter,
+  never from the rendered text. The write page's two lines under the text box and the cheat sheet say the same thing
+  (`LINE_HINT`, `LINK_HINT` in `worker/src/admin/write.ts`).
 - No translation tooling of any kind: no AI or translation API, script, CI job, key, secret or dependency. hreflang
   pairs only when both language versions exist (`hasTwin` in `BaseLayout.astro`).
