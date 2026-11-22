@@ -258,13 +258,20 @@ function photoItem(photo: PhotoRef, index: number, hint?: PhotoRef, hintLang?: L
   </li>`;
 }
 
+/**
+ * In a journal entry one Enter is a new line and an empty line a new paragraph (decision 0037). The two lines under
+ * the text box say so, and how to write a link, without opening the cheat sheet, which repeats them.
+ */
+const LINE_HINT = "Enter: new line. Empty line: new paragraph.";
+const LINK_HINT = html`Link: <code>[words](https://address)</code>`;
+
 const CHEAT_SHEET = html`<details>
   <summary>Markdown cheat sheet</summary>
   <ul class="fine">
-    <li>Blank line: new paragraph</li>
+    <li>${LINE_HINT}</li>
+    <li>${LINK_HINT}</li>
     <li><code>## Heading</code> for a subheading</li>
     <li><code>_italics_</code> and <code>**bold**</code></li>
-    <li><code>[words](https://example.com)</code> for a link</li>
     <li><code>- item</code> for a list, <code>1. item</code> for a numbered one</li>
     <li><code>&gt; text</code> for a quotation</li>
     <li><code>text[^1]</code> and, at the end, <code>[^1]: the note</code> for a footnote</li>
@@ -537,8 +544,16 @@ async function writePage(env: Env, identity: Identity, state: FormState, status 
       </div>
       <div class="field">
         <label for="w-body">Text, in Markdown</label
-        ><textarea id="w-body" name="body" class="write-body" aria-describedby="w-body-err" ${invalid(errors, "body")}>
+        ><textarea
+          id="w-body"
+          name="body"
+          class="write-body"
+          aria-describedby="w-body-hint w-body-link w-body-err"
+          ${invalid(errors, "body")}
+        >
 ${input.body}</textarea
+        ><span id="w-body-hint" class="hint">${LINE_HINT}</span
+        ><span id="w-body-link" class="hint">${LINK_HINT}</span
         >${fieldError(errors, "body", "w-body")}
       </div>
       ${CHEAT_SHEET}
