@@ -755,6 +755,27 @@ async function saveDraft(env: Env, input: EntryInput, draftId: string, baseSha: 
 
 const stamp = (d: Date): string => d.toISOString().replace(/[-:T]/g, "").slice(0, 14);
 
+/**
+ * One Publish of an entry file at a time (final review T2-03): two taps arrive together, and each would find no
+ * pull request open yet. The second waits here until the first has opened its pull request, then finds it. A row
+ * left by a request that died is taken over after two minutes; the GitHub calls take seconds.
+ */
+const CLAIM_STALE = 2 * 60 * 1000;
+const CLAIM_WAIT = 20 * 1000;
+async function claim(env: Env, path: string): Promise<boolean> {
+  for (const start = Date.now(); ; await new Promise((r) => setTimeout(r, 250))) {
+    const now = Date.now();
+    const row = await env.DB.prepare(
+      `INSERT INTO publishing (path, started_at) VALUES (?1, ?2)
+       ON CONFLICT (path) DO UPDATE SET started_at = ?2 WHERE publishing.started_at < ?3 RETURNING path`,
+    )
+      .bind(path, now, now - CLAIM_STALE)
+      .first();
+    if (row) return true;
+    if (now - start > CLAIM_WAIT) return false;
+  }
+}
+
 const BLOB_SHA = /^[0-9a-f]{40}$/;
 
 /** The entry was changed on GitHub (or by another Publish) after it was opened here. */
@@ -806,8 +827,15 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
   if (Object.keys(errors).length) return writePage(env, identity, { ...state, errors }, 422);
   if (!githubConfigured(env)) return writePage(env, identity, state, 503);
 
+  const path = entryFilePath(input.lang, input.slug);
+  if (!(await claim(env, path))) {
+    const message = html`<div class="alert" role="alert">
+      <strong>Not published:</strong> another Publish of ${pathFor(input.slug, input.lang)} is still being sent. Your
+      text is kept here. In a minute, open <a href="/admin/write">the write page</a> to see it under "On their way".
+    </div>`;
+    return writePage(env, identity, { ...state, message }, 409);
+  }
   try {
-    const path = entryFilePath(input.lang, input.slug);
     const [same, twin] = await Promise.all([
       readFile(env, path),
       readFile(env, entryFilePath(other(input.lang), input.slug)),
@@ -863,10 +891,53 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
     const from = (current ?? original)?.originalLang;
     const originalLang: Lang = from === "en" || from === "it" ? from : input.lang;
     const now = new Date();
+    const text = edited ?? entryMarkdown(input, originalLang, now.toISOString().slice(0, 10));
+    const live = pathFor(input.slug, input.lang);
+    const cleared = draftId || (isFixed ? editKey(input.lang, input.slug) : "new");
+    // The other language next: its edit form, or the form that writes it from this one (0029).
+    const next = other(input.lang);
+    const otherLink = html`<p>
+      <a href="${editLink(input.slug, next)}">${twin ? "Edit" : "Write"} the ${LANG_NAME[next]} version</a>
+    </p>`;
+
+    // This file already has a publisher pull request open (T2-03): the same text again is a resend (a double tap,
+    // or the "Published" page reloaded), answered with that pull request; another text waits until it has merged.
+    // Once it is merged or closed it is not open, and nothing here blocks the next Publish.
+    const waiting = (await openPublications(env)).filter((p) => branchFor(input.lang, input.slug).test(p.branch));
+    if (waiting.length) {
+      const sent = await Promise.all(waiting.map((p) => readFile(env, path, p.branch).catch(() => null)));
+      const resent = waiting.find((_, i) => sent[i]?.text === text);
+      if (resent) {
+        log("publish repeated");
+        if (draftId) await env.DB.prepare("DELETE FROM drafts WHERE id = ?1").bind(draftId).run();
+        const body = html`<h2 class="admin-title">Already on its way</h2>
+          <p class="notice" role="status" id="published" data-clear="${cleared}">
+            It was sent already, so nothing was published twice. ${isEdit ? "Your changes" : "The entry"} will be live
+            in a few minutes at <a href="${live}">${live}</a>.
+          </p>
+          <p class="fine">
+            It goes live once the checks pass. If it is still waiting after 15 minutes, the write page shows it as
+            needing attention, with the link: <a href="${resent.url}">the pull request</a>.
+          </p>
+          ${otherLink}
+          <p><a href="/admin/write">Write another entry</a></p>`;
+        return adminPage(env, { title: "Already on its way", current: "write", body, script: "write" });
+      }
+      const newest = waiting[waiting.length - 1];
+      const message = html`<div class="alert" role="alert">
+        <strong>Not published: ${live} is still on its way</strong>, with the text you published before:
+        <a href="${newest?.url ?? ""}">its pull request</a>. Nothing was sent. Once it is live, open the entry under
+        "Edit a published entry" and make this change there. Save a draft to keep this text until then. If it shows
+        as needing attention (a check failed, so it will not go live), close that pull request on GitHub, then
+        publish this again.
+      </div>`;
+      return writePage(env, identity, { ...state, message }, 409);
+    }
+
     const kind = isEdit ? "Edit" : twin ? `${LANG_NAME[input.lang]} version of` : "New entry";
     const pr = await openPullRequest(env, {
       path,
-      text: edited ?? entryMarkdown(input, originalLang, now.toISOString().slice(0, 10)),
+      text,
       sha: same?.sha,
       branch: `publish/${input.lang}-${input.slug}-${stamp(now)}`,
       title: `${kind} ${input.lang}/${input.slug}: ${input.title}`,
@@ -886,13 +957,6 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
     }
     if (draftId) await env.DB.prepare("DELETE FROM drafts WHERE id = ?1").bind(draftId).run();
     log("entry published");
-    const live = pathFor(input.slug, input.lang);
-    const cleared = draftId || (isFixed ? editKey(input.lang, input.slug) : "new");
-    // The other language next: its edit form, or the form that writes it from this one (0029).
-    const next = other(input.lang);
-    const otherLink = html`<p>
-      <a href="${editLink(input.slug, next)}">${twin ? "Edit" : "Write"} the ${LANG_NAME[next]} version</a>
-    </p>`;
     const body = autoMerge
       ? html`<h2 class="admin-title">Pull request opened</h2>
           <div class="alert" role="alert" id="published" data-clear="${cleared}">
@@ -927,5 +991,7 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
       <strong>Could not open the pull request${step}.</strong> Nothing was lost: save a draft and try again.
     </div>`;
     return writePage(env, identity, { ...state, message }, 502);
+  } finally {
+    await env.DB.prepare("DELETE FROM publishing WHERE path = ?1").bind(path).run();
   }
 }

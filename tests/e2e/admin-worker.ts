@@ -8,7 +8,8 @@
  * origin. Each test gets its own server on 127.0.0.1 (a real one, so redirects behave as in a browser) and its own
  * database: the real migrations on Node's built-in SQLite (node:sqlite) behind the few D1 calls the admin makes.
  * GitHub (for /admin/write) is a small stand-in like the one in vitest.config.ts: it reads entry files from this
- * checkout, records what the Worker writes, and lists the open pull requests a test sets. R2 is a stand-in that has
+ * checkout, records what the Worker writes, keeps it on its branch, and lists as open the pull requests a test sets
+ * and the ones the Worker opened. R2 is a stand-in that has
  * the photos the checkout's entries show and what the Worker uploads during the test (the upload endpoint never writes
  * over a stored key, decision 0030, so a stand-in that had every key would leave it no free name). The stylesheet and
  * entries.json come from dist/, so run `pnpm build` first.
@@ -47,11 +48,19 @@ export interface GitHubCall {
 
 /** What the GitHub stand-in knows and has been asked; reset by each serveAdmin(). */
 export interface FakeGitHub {
-  /** Open pull requests, as GitHub lists them. */
-  pulls: { html_url: string; title: string; created_at: string; user: { login: string } }[];
+  /** Open pull requests, as GitHub lists them; the ones the Worker opens are added, as on GitHub. */
+  pulls: {
+    html_url: string;
+    title: string;
+    created_at: string;
+    user: { login: string };
+    head?: { ref: string };
+  }[];
+  /** Files the Worker wrote on a branch, as "<path>@<branch>". */
+  branches: Record<string, string>;
   calls: GitHubCall[];
 }
-let github: FakeGitHub = { pulls: [], calls: [] };
+let github: FakeGitHub = { pulls: [], branches: {}, calls: [] };
 
 async function fakeGitHub(request: Request): Promise<Response> {
   const url = new URL(request.url);
@@ -65,6 +74,13 @@ async function fakeGitHub(request: Request): Promise<Response> {
   if (url.pathname === "/graphql")
     return Response.json({ data: { enablePullRequestAutoMerge: { clientMutationId: null } } });
   const contents = /^\/repos\/[^/]+\/[^/]+\/contents\/(.+)$/.exec(url.pathname);
+  const ref = url.searchParams.get("ref") ?? "main";
+  if (contents && request.method === "GET" && ref !== "main") {
+    const text = github.branches[`${contents[1]}@${ref}`];
+    if (text === undefined) return Response.json({ message: "Not Found" }, { status: 404 });
+    const sha = createHash("sha1").update(text).digest("hex");
+    return Response.json({ sha, encoding: "base64", content: Buffer.from(text).toString("base64") });
+  }
   if (contents && request.method === "GET") {
     try {
       // The fixtures play the repository's content on main (decision 0033): src/content/… is read from them.
@@ -76,15 +92,27 @@ async function fakeGitHub(request: Request): Promise<Response> {
       return Response.json({ message: "Not Found" }, { status: 404 });
     }
   }
-  if (contents) return Response.json({ content: {} }, { status: 201 });
+  if (contents) {
+    const branch = String(body?.["branch"] ?? "");
+    github.branches[`${contents[1]}@${branch}`] = Buffer.from(String(body?.["content"] ?? ""), "base64").toString();
+    return Response.json({ content: {} }, { status: 201 });
+  }
   if (url.pathname.endsWith("/git/ref/heads/main")) return Response.json({ object: { sha: "main-sha" } });
   if (url.pathname.endsWith("/git/refs")) return Response.json({}, { status: 201 });
   if (url.pathname.endsWith("/pulls") && request.method === "GET") return Response.json(github.pulls);
-  if (url.pathname.endsWith("/pulls"))
-    return Response.json(
-      { html_url: "https://github.com/test/repo/pull/99", number: 99, node_id: "PR_e2e" },
-      { status: 201 },
-    );
+  if (url.pathname.endsWith("/pulls")) {
+    // Open from now on, as on GitHub: the next list has it. The first one of a test is number 99.
+    const number = 99 + github.calls.filter((c) => c.method === "POST" && c.path.endsWith("/pulls")).length - 1;
+    const html_url = `https://github.com/test/repo/pull/${number}`;
+    github.pulls.push({
+      html_url,
+      title: String(body?.["title"] ?? ""),
+      created_at: new Date().toISOString(),
+      user: { login: "philglov-publisher[bot]" },
+      head: { ref: String(body?.["head"] ?? "") },
+    });
+    return Response.json({ html_url, number, node_id: "PR_e2e" }, { status: 201 });
+  }
   return Response.json({ message: "Not Found" }, { status: 404 });
 }
 
@@ -185,7 +213,7 @@ export async function serveAdmin(): Promise<Admin> {
     .filter((f) => f.endsWith(".sql"))
     .sort())
     db.exec(readFileSync(new URL(file, migrations), "utf8"));
-  github = { pulls: [], calls: [] };
+  github = { pulls: [], branches: {}, calls: [] };
   // What the originals bucket holds at the start: every photo a fixture entry shows (the suites run on the fixtures, 0033).
   const journal = fixtureJournal;
   const stored = new Set(

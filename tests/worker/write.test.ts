@@ -1073,3 +1073,113 @@ describe("reading an entry back", () => {
     expect(entryMarkdown(input, "en", "2026-11-13")).toContain("\ncomments: true\n");
   });
 });
+
+// Final review T2-03 (FINAL-REVIEW.md): a double tap on Publish, or reloading the "Published" page and confirming
+// the browser's question, sent the entry again and opened a second pull request for the same file. The stand-in
+// keeps the pull requests it opened open, as GitHub does, until a test merges or closes them.
+describe("one entry, one pull request (T2-03)", () => {
+  const opened = async (): Promise<Call[]> =>
+    (await calls()).filter((c) => c.method === "POST" && c.path.endsWith("/pulls"));
+  const editForm = async () => {
+    const html = await (await adminFetch(`/admin/write?edit=1&slug=${SLUG}&lang=en`)).text();
+    return {
+      csrf: /name="csrf" value="([^"]+)"/.exec(html)?.[1] ?? "",
+      base_sha: /name="base_sha" value="([^"]*)"/.exec(html)?.[1] ?? "",
+    };
+  };
+  const saveEdit = (base: { csrf: string; base_sha: string }, body: string) =>
+    adminPost("/admin/write", {
+      ...base,
+      intent: "publish",
+      title: "Città on foot",
+      slug: SLUG,
+      lang: "en",
+      description: "A walk.",
+      body,
+    });
+
+  test("a double tap: two Publish at once open one pull request, and both answers link to it", async () => {
+    const token = await csrf();
+    const [a, b] = await Promise.all([
+      adminPost("/admin/write", { csrf: token, ...newEntry }),
+      adminPost("/admin/write", { csrf: token, ...newEntry }),
+    ]);
+    expect(await opened()).toHaveLength(1);
+    const pages = [await a.text(), await b.text()];
+    expect([a.status, b.status]).toEqual([200, 200]);
+    expect(pages.filter((p) => p.includes('<h2 class="admin-title">Published</h2>'))).toHaveLength(1);
+    const again = pages.find((p) => p.includes('<h2 class="admin-title">Already on its way</h2>')) ?? "";
+    expect(again).toContain('href="https://github.com/test/repo/pull/99"');
+    // Whichever answer the browser shows, it removes the browser copy, as the "Published" page does.
+    expect(again).toContain('id="published" data-clear="new"');
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM publishing").first("n")).toBe(0);
+  });
+
+  test("reloading the Published page sends the same form again: nothing is opened twice", async () => {
+    const token = await csrf();
+    expect((await adminPost("/admin/write", { csrf: token, ...newEntry })).status).toBe(200);
+    const again = await adminPost("/admin/write", { csrf: token, ...newEntry });
+    expect(again.status).toBe(200);
+    const html = await again.text();
+    expect(html).toContain('<h2 class="admin-title">Already on its way</h2>');
+    expect(html).toContain("It was sent already, so nothing was published twice.");
+    expect(html).toContain('<a href="/a-new-one">/a-new-one</a>');
+    expect(html).toContain('href="https://github.com/test/repo/pull/99"');
+    expect(await opened()).toHaveLength(1);
+    expect((await calls()).filter((c) => c.method === "PUT")).toHaveLength(1);
+  });
+
+  test("reloading the Saved page of an edit: one pull request, one write", async () => {
+    await gh("/__set", { files: { [PATH]: PUBLISHED } });
+    const base = await editForm();
+    await gh("/__reset");
+    await gh("/__set", { files: { [PATH]: PUBLISHED } });
+    expect((await saveEdit(base, "Rewritten once.")).status).toBe(200);
+    const again = await saveEdit(base, "Rewritten once.");
+    expect(again.status).toBe(200);
+    expect(await again.text()).toContain('<h2 class="admin-title">Already on its way</h2>');
+    expect(await opened()).toHaveLength(1);
+    expect((await calls()).filter((c) => c.method === "PUT")).toHaveLength(1);
+  });
+
+  test("another text for the same entry while its pull request is open: refused, the text kept, the link shown", async () => {
+    const token = await csrf();
+    await adminPost("/admin/write", { csrf: token, ...newEntry });
+    const res = await adminPost("/admin/write", { csrf: token, ...newEntry, body: "Hello, with a change." });
+    expect(res.status).toBe(409);
+    const html = await res.text();
+    expect(html).toContain("Not published: /a-new-one is still on its way");
+    // One whose check failed never goes live: the way out is to close it.
+    expect(html.replace(/\s+/g, " ")).toContain("close that pull request on GitHub, then publish this again.");
+    expect(html).toContain('href="https://github.com/test/repo/pull/99"');
+    expect(html).toContain(">\nHello, with a change.</textarea");
+    expect(await opened()).toHaveLength(1);
+  });
+
+  test("once the first pull request is merged, a real second edit opens its own", async () => {
+    await gh("/__set", { files: { [PATH]: PUBLISHED } });
+    const first = await editForm();
+    expect((await saveEdit(first, "Rewritten once.")).status).toBe(200);
+    const written = (await calls()).find((c) => c.method === "PUT");
+    const merged = new TextDecoder().decode(
+      Uint8Array.from(atob(String(written?.body["content"])), (c) => c.charCodeAt(0)),
+    );
+    // Merged: main has the new text, and the pull request is no longer open.
+    await gh("/__set", { files: { [PATH]: merged }, pulls: [] });
+    const second = await editForm();
+    expect(second.base_sha).toBe(await blobSha(merged));
+    const res = await saveEdit(second, "Rewritten twice.");
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('<h2 class="admin-title">Saved</h2>');
+    expect(await opened()).toHaveLength(2);
+  });
+
+  test("a pull request closed without merging blocks nothing: Publish opens a new one", async () => {
+    const token = await csrf();
+    await adminPost("/admin/write", { csrf: token, ...newEntry });
+    await gh("/__set", { pulls: [] });
+    const res = await adminPost("/admin/write", { csrf: token, ...newEntry });
+    expect(await res.text()).toContain('<h2 class="admin-title">Published</h2>');
+    expect(await opened()).toHaveLength(2);
+  });
+});

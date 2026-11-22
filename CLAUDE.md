@@ -215,6 +215,12 @@ contatto]` …) and a bracket starting with "Placeholder"/"Segnaposto" on the bu
   `contentKeys`), drawn by `<Photo>` on About and named by the Person data through `portraitImage()`
   (`src/lib/portrait.ts`); the fixtures draw a stand-in for it (`SPECS` in `scripts/fixture-photos.ts`); `/imgs/` is git-ignored. The icon is the owner's SVG and `site-icon.png`, from which
   `scripts/make-brand-icons.ts` draws the two PNGs.
+- 2026-11-21: one Publish per entry ([0036](docs/decisions/0036-one-publish-per-entry.md), final review T2-03): a
+  Publish of a file whose publisher pull request is still open opens nothing; the same text again (a double tap, a
+  reloaded "Published" page) is answered "Already on its way" with that pull request, another text is refused (409)
+  and kept in the form; two at once take turns through the D1 table `publishing` (migration 0004). With JavaScript,
+  Publish and Save draft grey out and say "Sending…". Both GitHub stand-ins keep branch files and list the pull
+  requests they opened as open.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -378,6 +384,9 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
 - Publisher pull requests auto-merge, so the step "Publisher pull requests change entry files only" in `ci.yml` is a
   security boundary: keep it inline in the Test job, keep `PUBLISHER` in `worker/src/github.ts` equal to its login, and
   never give the GitHub App the Workflows permission (0021). No view transitions (`tests/unit/css.test.ts`).
+- One pull request per entry file (0036): Publish lists the publisher's open pull requests and never opens a second
+  one for a file that has one; it holds the `publishing` row while it opens one and removes it in `finally`. Keep
+  both. The write page disables its buttons only after the submit event, so the button pressed is still sent.
 - Front matter (0027): build-side code reads it only with Astro's parser (`frontMatter()` in
   `scripts/lib/content-check.ts`), never with a regex. `/admin/write` never rewrites a file: it replaces only the
   title or description line whose value changed (`editedEntryMarkdown`) and refuses, with a message, a file whose

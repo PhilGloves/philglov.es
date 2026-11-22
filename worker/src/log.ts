@@ -19,6 +19,7 @@ export type LogEvent =
   | "entry published"
   | "publish failed"
   | "publish conflict"
+  | "publish repeated"
   | "auto-merge failed"
   | "publications unavailable"
   | "photo stored"

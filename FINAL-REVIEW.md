@@ -5,7 +5,7 @@ request #40). Everything was run on a laptop: the real site and the test site bu
 test suite, and screenshots looked at one by one. Nothing was deployed, no Cloudflare or GitHub setting was touched,
 nothing was merged. A finding counts only once a second reviewer, who had not seen it, reproduced it.
 
-The fixes are in one pull request: [pull request #41](https://github.com/PhilGloves/philglov.es/pull/41) (branch `review/final-review`, not merged).
+The fixes are in one pull request: [pull request #41](https://github.com/PhilGloves/philglov.es/pull/41) (branch `review/final-review`), merged on 2026-11-21. T2-03 (finding 9) was fixed afterwards, on your choice, in its own pull request (branch `fix/t2-03-one-publish`).
 
 ## 1. Verdict
 
@@ -64,23 +64,26 @@ the fix pull request with a test that failed before the fix.
    spellings (T1B-05). The site check did not notice a missing share image (T1-02). The photo copy's errors did not
    say which bucket refused, so on launch day you could not tell which token was wrong (T1B-07). All reproduced,
    all **fixed**.
+9. **Medium: one entry could open two pull requests** (T2-03). A double tap on Publish, or reloading the
+   "Published" page and confirming the browser's question, published again; nothing checked for an open pull request
+   of the same entry and the button never showed it was busy. The second one had nothing left to change once the
+   first merged and turned red ("needs attention"). Reproduced by a second reviewer. **Fixed after the review**, as
+   you chose (options a and b, decision 0036): the Worker answers a second Publish of an entry already on its way
+   with "Already on its way" and the link to its pull request, and keeps a different text in the form until the
+   first is live; two taps that arrive together are taken one after the other. With JavaScript on, Publish and Save
+   draft grey out and say "Sending…" from the first tap. A later edit, once the first pull request is merged or
+   closed, publishes as before. **You:** nothing.
 
 ### Not fixed: your decision or a larger change
 
-9. **High: the launch gate never blocks, and `[launch date]` is still on both privacy pages** (T1B-03, T4-03). The
-   gate runs with `continue-on-error`, the production deploy does not wait for it, and no numbered step in
-   `docs/setup.md` says to type the date (it is listed under "Launch blockers" only). Confirmed by a second
-   reviewer. Not fixed: it needs your words, in both languages. **You:** runbook step 18: replace the placeholder on
-   both pages, and in the same pull request delete `continue-on-error: true` from the "Launch gate" step.
-10. **High for your calendar: the domain step has no registrar and no waiting time** (T4-02). Cloudflare's list of
+10. **High: the launch gate never blocks, and `[launch date]` is still on both privacy pages** (T1B-03, T4-03). The
+    gate runs with `continue-on-error`, the production deploy does not wait for it, and no numbered step in
+    `docs/setup.md` says to type the date (it is listed under "Launch blockers" only). Confirmed by a second
+    reviewer. Not fixed: it needs your words, in both languages. **You:** runbook step 18: replace the placeholder on
+    both pages, and in the same pull request delete `continue-on-error: true` from the "Launch gate" step.
+11. **High for your calendar: the domain step has no registrar and no waiting time** (T4-02). Cloudflare's list of
     registrable endings does not show `.es`; the nameserver switch can take 24 hours, and Email Routing, Access and
     the custom domain need it done. **You:** buy `philglov.es` now elsewhere (runbook steps 2 and 3).
-11. **Medium: one entry can open two pull requests** (T2-03). A double tap on Publish, or reloading the "Published"
-    page and confirming the browser's question, publishes again; nothing checks for an open pull request of the
-    same entry and the button never shows it is busy. The second one has nothing left to change once the first
-    merges and turns red ("needs attention"); you close it on GitHub. Reproduced by a second reviewer. Options: (a)
-    the Worker refuses a second Publish while one is open and shows its link (recommended, plus (b)); (b) Publish
-    greys out while sending; (c) leave it and close the extra one when it appears. **Until then: tap Publish once.**
 12. **Medium: after "changed on GitHub meanwhile", the way out is to retype** (T2-04). Saving an edit of an entry that
     changed on the laptop is refused, as it should be. The message says to save a draft and "open the current
     version", but that opens the same draft with the old version, which is refused again; only deleting the draft and
