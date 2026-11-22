@@ -53,6 +53,48 @@ test("the list of published entries opens one in the same form, slug and languag
   await expect(page.locator("#w-slug")).toHaveValue("lisbona");
 });
 
+// Decision 0037: one Enter is a new line in the published entry. The page says so, and how to write a link, right
+// under the text box, where it can be read without opening the cheat sheet.
+test("two lines under the text box say how to start a new line and write a link, with the cheat sheet closed", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${admin.origin}/admin/write`);
+  const sheet = page.locator("details", { hasText: "Markdown cheat sheet" });
+  await expect(sheet).toHaveJSProperty("open", false);
+  const line = page.locator("#w-body-hint");
+  const link = page.locator("#w-body-link");
+  await expect(line).toBeVisible();
+  await expect(line).toHaveText("Enter: new line. Empty line: new paragraph.");
+  await expect(link).toBeVisible();
+  await expect(link).toHaveText("Link: [words](https://address)");
+  // Two lines, each on one line of a phone screen, between the text box and the cheat sheet.
+  const box = async (locator: typeof line) => {
+    const b = await locator.boundingBox();
+    if (!b) throw new Error("not on the page");
+    return b;
+  };
+  const [text, first, second, toggle] = [
+    await box(page.locator("#w-body")),
+    await box(line),
+    await box(link),
+    await box(sheet.locator("summary")),
+  ];
+  expect(first.y).toBeGreaterThanOrEqual(text.y + text.height);
+  expect(second.y).toBeGreaterThanOrEqual(first.y + first.height);
+  expect(toggle.y).toBeGreaterThanOrEqual(second.y + second.height);
+  expect(first.height).toBeLessThan(30);
+  expect(second.height).toBeLessThan(30);
+  // A screen reader hears them with the text box, first. (What follows is the field's error slot, as on every field.)
+  await expect(page.locator("#w-body")).toHaveAccessibleDescription(
+    /^Enter: new line\. Empty line: new paragraph\. Link: \[words\]\(https:\/\/address\)/,
+  );
+  // The cheat sheet, opened, says the same.
+  await sheet.locator("summary").click();
+  await expect(sheet.locator("li").first()).toHaveText("Enter: new line. Empty line: new paragraph.");
+  await expect(sheet.locator("li", { hasText: "Link:" })).toHaveText("Link: [words](https://address)");
+});
+
 test("the search finds entries by title, in either language", async ({ page }) => {
   await page.goto(`${admin.origin}/admin/write`);
   await page.fill("#e-q", "lisbona");
