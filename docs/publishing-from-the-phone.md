@@ -12,8 +12,9 @@ Until launch this is staging's `/admin/write`. From launch, write and edit entri
 
 1. Open `/admin/write` and sign in with the one-time code (Cloudflare Access).
 2. Write the title. The slug is suggested from it; change it if you like (it is the address: `/slug`, `/it/slug`).
-3. Pick the language you are writing in, then the description (one sentence) and the text, in Markdown. The cheat
-   sheet under the text box lists what you can use. Plain HTML for text (`<abbr>`, `<kbd>`, `<details>`, a table)
+3. Pick the language you are writing in, then the description (one sentence) and the text, in Markdown. One Enter
+   starts a new line on the page; an empty line starts a new paragraph (decision 0037). The two lines under the text
+   box say so, and how to write a link: `[words](https://address)`. The cheat sheet under them lists the rest. Plain HTML for text (`<abbr>`, `<kbd>`, `<details>`, a table)
    is fine; anything that could redirect, embed, collect or run something (a `<meta>`, `<iframe>`, `<form>`,
    `<script>`, `<style>`, a `javascript:` link) fails the checks, and the pull request says which (decision 0030).
 4. Photos (JavaScript needed): pick them, and they upload one at a time, retrying by themselves. Write each one's alt

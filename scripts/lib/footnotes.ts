@@ -4,9 +4,10 @@
  * Astro 7 renders Markdown with Sätteri, which writes every footnote back-link
  * as the character "↩" and the section title and link labels in English. Crimson
  * Pro has no arrow glyphs (so "↩" would come from a system font) and Italian
- * entries need Italian labels. Configuring Sätteri needs another package and
- * still gives one language for all entries, so the build fixes the finished HTML
- * instead: no new dependency, and it can read each page's own `lang`.
+ * entries need Italian labels. The build fixes the finished HTML, where it can
+ * read each page's own `lang`. (Since decision 0037 entries also pass through a
+ * Sätteri plugin of the repository's own, for line breaks, added without a
+ * package; this fix predates it, works and is tested, so it stays as it is.)
  *
  *  - the back-link glyph becomes the site's one inline SVG arrow, pointing left
  *    (the same path as src/components/Arrow.astro);
