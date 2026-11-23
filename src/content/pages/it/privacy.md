@@ -8,7 +8,7 @@ tags: []
 comments: false
 ---
 
-Ultimo aggiornamento: [data di lancio]
+Ultimo aggiornamento: 23 novembre 2026
 
 **Chi è il titolare.** Filippo Guanti, Torino, Italia - phil@philglov.es. Questo è un sito personale senza pubblicità, senza statistiche e senza tracciamento.
 
