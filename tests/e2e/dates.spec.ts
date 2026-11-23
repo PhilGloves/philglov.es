@@ -47,13 +47,13 @@ test("the Now page says when it was updated: 20/11/2026 style in Italian, 2026-1
   await expect(page.locator("main")).toContainText(/Updated \d{4}-\d{2}-\d{2}/);
 });
 
-test("an entry's details block: Italian 21/10/2026, English in words, the datetime attribute ISO in both", async ({
+test("an entry's details block stays written out in both languages, the datetime attribute ISO in both", async ({
   page,
 }) => {
   await page.goto("/it/lisbona");
   const italian = page.locator("footer.about .facts time");
   await expect(italian).toHaveAttribute("datetime", "2026-10-21");
-  await expect(italian).toHaveText("21/10/2026");
+  await expect(italian).toHaveText("21 ottobre 2026");
   await page.goto("/lisbona");
   const english = page.locator("footer.about .facts time");
   await expect(english).toHaveAttribute("datetime", "2026-10-21");

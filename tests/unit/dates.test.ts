@@ -9,16 +9,21 @@ test("isoDate is the machine form, in both languages' pages: YYYY-MM-DD", () => 
   assert.equal(isoDate(new Date("2026-01-05T23:59:59Z")), "2026-01-05");
 });
 
-test("Italian dates read day/month/year with slashes, and `words` changes nothing", () => {
+test("Italian dates shown as numbers read day/month/year with slashes", () => {
   assert.equal(displayDate("it", date), "20/11/2026");
-  assert.equal(displayDate("it", date, true), "20/11/2026");
   assert.equal(displayDate("it", new Date("2026-01-05T00:00:00Z")), "05/01/2026");
 });
 
-test("English dates keep today's format: 2026-11-20, or in words for the entry's details", () => {
+test("English dates shown as numbers keep today's format: 2026-11-20", () => {
   assert.equal(displayDate("en", date), "2026-11-20");
-  assert.equal(displayDate("en", new Date("2026-10-21T00:00:00Z"), true), "21 October 2026");
+});
+
+test("a date written out stays written out, in the page language (the entry's details block)", () => {
+  const entry = new Date("2026-10-21T00:00:00Z");
+  assert.equal(displayDate("en", entry, true), "21 October 2026");
+  assert.equal(displayDate("it", entry, true), "21 ottobre 2026");
   assert.equal(displayDate("en", new Date("2026-01-01T00:30:00Z"), true), "1 January 2026");
+  assert.equal(displayDate("it", new Date("2026-01-01T00:30:00Z"), true), "1 gennaio 2026");
 });
 
 test("no time zone moves a date: the late evening of the 31st stays the 31st", () => {
@@ -26,4 +31,5 @@ test("no time zone moves a date: the late evening of the 31st stays the 31st", (
   assert.equal(displayDate("it", lateEvening), "31/12/2026");
   assert.equal(displayDate("en", lateEvening), "2026-12-31");
   assert.equal(displayDate("en", lateEvening, true), "31 December 2026");
+  assert.equal(displayDate("it", lateEvening, true), "31 dicembre 2026");
 });
