@@ -8,7 +8,7 @@ tags: []
 comments: false
 ---
 
-Last updated: [launch date]
+Last updated: 23 November 2026
 
 **Who is responsible.** Filippo Guanti, Torino, Italy - phil@philglov.es. This is a personal site with no ads, no analytics and no tracking.
 
