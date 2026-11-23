@@ -23,7 +23,7 @@ test("the Italian original: label, link to the English twin, own number", async 
   await expect(page.locator("p.label a")).toHaveAttribute("lang", "en");
   await expect(page.locator("header a.lang-switch")).toHaveAttribute("href", "/lisbona");
   await expect(page.locator("footer.about .facts")).toContainText("N. 002");
-  await expect(page.locator("footer.about .facts")).toContainText("21 ottobre 2026");
+  await expect(page.locator("footer.about .facts")).toContainText("21/10/2026");
 });
 
 test("an English-only entry: no hreflang, switch goes to the Italian home and says so, label says not yet", async ({

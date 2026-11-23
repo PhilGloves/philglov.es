@@ -5,6 +5,7 @@
  * approval simply shows up within a minute everywhere. Only this data is
  * cached, never a page (pages carry a fresh form token).
  */
+import { displayDate } from "../../src/lib/dates.ts";
 import type { Lang } from "./manifest.ts";
 
 export interface PublicComment {
@@ -39,5 +40,5 @@ export async function approvedComments(env: Env, ctx: ExecutionContext, slug: st
 /** "001", "002" … as in the prototype. */
 export const commentNumber = (index: number): string => String(index + 1).padStart(3, "0");
 
-/** The date a comment shows: YYYY-MM-DD, in UTC. */
-export const commentDate = (ms: number): string => new Date(ms).toISOString().slice(0, 10);
+/** The date a comment shows, in the page language (src/lib/dates.ts, 0039), in UTC. */
+export const commentDate = (lang: Lang, ms: number): string => displayDate(lang, new Date(ms));

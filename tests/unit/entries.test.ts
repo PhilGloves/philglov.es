@@ -5,7 +5,6 @@ import {
   fmt,
   journalPath,
   labelState,
-  longDate,
   markerFor,
   paginate,
   pathFor,
@@ -125,13 +124,6 @@ test("paths: no trailing slash, /it in front, same slug", () => {
   assert.equal(journalPath("en", 2), "/journal/page/2");
   assert.equal(journalPath("it"), "/it/journal");
   assert.equal(journalPath("it", 3), "/it/journal/page/3");
-});
-
-test("the date in words, in the page language, never moved by the time zone", () => {
-  const date = new Date("2026-10-21T00:00:00Z");
-  assert.equal(longDate("en", date), "21 October 2026");
-  assert.equal(longDate("it", date), "21 ottobre 2026");
-  assert.equal(longDate("en", new Date("2026-01-01T00:30:00Z")), "1 January 2026");
 });
 
 test("fmt fills placeholders", () => {

@@ -213,7 +213,7 @@ function commentList(lang: Lang, comments: PublicComment[]): Parts {
   comments.forEach((c, i) => {
     parts.tag('<li class="c"><span class="c-n" aria-hidden="true">').text(commentNumber(i)).tag("</span><div>");
     parts.tag('<p class="c-who"><b>').text(c.name).tag('</b> <span class="fine">');
-    parts.text(commentDate(c.created_at)).tag("</span></p>");
+    parts.text(commentDate(lang, c.created_at)).tag("</span></p>");
     paragraphs(parts, c.body, `<p class="c-body" lang="${c.lang}">`);
     if (c.reply_body) {
       parts.tag('<div class="c-reply"><span class="fine">').text(t(lang, "w_replied")).tag("</span>");

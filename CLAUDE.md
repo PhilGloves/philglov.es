@@ -227,6 +227,11 @@ contatto]` …) and a bracket starting with "Placeholder"/"Segnaposto" on the bu
   descriptions are unchanged. `/admin/write` shows "Enter: new line. Empty line: new paragraph." and
   "Link: [words](https://address)" under the text box; the cheat sheet matches. `tests/site/typed-lines.spec.ts`
   checks the owner's entries on his build.
+- 2026-11-22: the English sign-off at the end of an entry is "- Phil", the Italian one stays "- Filippo", like the replies
+  ("Phil replied" / "Filippo ha risposto"); the full name "Filippo Guanti" is unchanged everywhere ([0038](docs/decisions/0038-english-sign-off-phil.md)).
+- 2026-11-22: dates on Italian pages read day/month/year with slashes (20/11/2026), English pages keep theirs; one helper,
+  `displayDate()` in `src/lib/dates.ts`, for every visible date (the Worker's comment dates too); `datetime`, feeds, sitemap
+  and structured data stay ISO ([0039](docs/decisions/0039-italian-dates-day-month-year.md)).
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map

@@ -9,7 +9,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
  */
 import { t, tf, type Locale, type UiKey } from "../i18n";
 import { getSeries, type Photo as PhotoData, type Series } from "../lib/collections.ts";
-import { isoDate, pathFor } from "../lib/entries.ts";
+import { displayDate, isoDate } from "../lib/dates.ts";
+import { pathFor } from "../lib/entries.ts";
 import { SIZES } from "../lib/photo-sizes.ts";
 import { absolute, imageObjectJsonLd } from "../lib/seo.ts";
 
@@ -138,7 +139,7 @@ const exifRows = exif
         </div>
         <div class="lab">
           <p class="small muted">
-            <time datetime={isoDate(photo.takenAt)}>{isoDate(photo.takenAt)}</time>
+            <time datetime={isoDate(photo.takenAt)}>{displayDate(locale, photo.takenAt)}</time>
           </p>
         </div>
       </div>

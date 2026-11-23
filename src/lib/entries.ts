@@ -75,17 +75,6 @@ export function readingMinutes(body: string | undefined): number {
 
 export const slugOf = (id: string): string => id.slice(id.indexOf("/") + 1);
 
-export const isoDate = (date: Date): string => date.toISOString().slice(0, 10);
-
-/** "21 October 2026" / "21 ottobre 2026": the date in words, as the entry's details block shows it. */
-export const longDate = (locale: Locale, date: Date): string =>
-  date.toLocaleDateString(locale === "en" ? "en-GB" : "it-IT", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-
 /** Groups files into entries (twins share a slug) and numbers them by publication order. */
 export function buildSlots<E extends EntryLike>(entries: readonly E[]): Slot<E>[] {
   const bySlug = new Map<string, Partial<Record<Locale, Version<E>>>>();

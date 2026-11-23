@@ -40,6 +40,15 @@ test("the owner's reply is signed Phil on English pages and Filippo on Italian p
   expect(italian).not.toContain("Phil");
 });
 
+test("a comment's date is YYYY-MM-DD on English pages and DD/MM/YYYY on Italian pages (0039)", async () => {
+  const { slug, en, it } = await twinEntry();
+  await insertComment({ slug, name: "Marta", body: "Ciao.", created_at: Date.UTC(2026, 10, 20, 23, 30) });
+  expect(list(await page(en))).toContain('<span class="fine">2026-11-20</span>');
+  const italian = list(await page(it));
+  expect(italian).toContain('<span class="fine">20/11/2026</span>');
+  expect(italian).not.toContain("2026-11-20");
+});
+
 test("one thread per slug: the same comments on both language versions", async () => {
   const { slug, en, it } = await twinEntry();
   await insertComment({ slug, lang: "it", name: "Giulia", body: "Che bello." });
