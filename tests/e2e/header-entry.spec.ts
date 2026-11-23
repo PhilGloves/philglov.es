@@ -124,6 +124,17 @@ test("the details block closes the text: after the sign-off, before previous/nex
   expect(order).toEqual({ afterText: true, beforePrevNext: true, beforeComments: true });
 });
 
+// 0038: the owner signs an English entry "Phil" and an Italian one "Filippo", as he signs his replies.
+for (const [path, signOff] of [
+  ["/lisbona", "- Phil"],
+  ["/it/lisbona", "- Filippo"],
+] as const) {
+  test(`0038: the sign-off at the end of ${path} reads "${signOff}"`, async ({ page }) => {
+    await page.goto(path);
+    await expect(page.locator(".prose p.sign")).toHaveText(signOff);
+  });
+}
+
 // TO-02 (third review, fixed in fix round 2): on phones every main navigation link is at least 44 × 44 px to tap, in both
 // languages, and the menu looks the same: the hit area grows by padding that a negative margin takes back, so the words
 // keep their place and the 22 px between them.

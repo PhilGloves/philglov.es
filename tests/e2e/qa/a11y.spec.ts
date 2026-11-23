@@ -109,7 +109,7 @@ test("BUG-1: the language switch's accessible name contains its visible text (WC
   }
 });
 
-// BUG-3 (design, fixed in fix round 2, 0028): the sign-off ("— Filippo") and the footnote text of an entry are body text
+// BUG-3 (design, fixed in fix round 2, 0028): the sign-off ("- Phil" in English, "- Filippo" in Italian) and the footnote text of an entry are body text
 // and must reach the AAA 7:1 the brief asks for (rule 6); SO-08: so must the Now paragraph on the home page, whose
 // 23 px size on phones is below the large-text threshold. Both themes, every width the guide fixes, both languages.
 test("BUG-3 and SO-08: the sign-off, the footnotes and the Now paragraph have AAA contrast (7:1), in both themes at every width", async ({
