@@ -2403,6 +2403,10 @@
 
 /* ------------------------------------------------------------ utilities */
 @layer utilities {
+  .caption-line {
+    display: block;
+  }
+
   .muted {
     color: var(--muted);
   }
