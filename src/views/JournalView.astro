@@ -39,6 +39,8 @@ const path = journalPath(locale, page);
           {page > 1 && <h2>{tf(locale, "pageOf", { page, pages: paged.pages })}</h2>}
           <p class="small muted">
             <Arrows text={t(locale, "markLegend")} />
+            <br />
+            <Arrows text={t(locale, "markLegendOnly")} />
           </p>
         </div>
       )}
