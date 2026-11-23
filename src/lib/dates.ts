@@ -12,6 +12,12 @@ type DateLocale = "en" | "it";
 export const isoDate = (date: Date): string => date.toISOString().slice(0, 10);
 
 /**
+ * The calendar day in Malta, where the owner lives (site.json `city`), as "2026-11-23": the date a new entry gets.
+ * UTC would date an entry written at 00:40 in Msida the day before (audit, decision 0040).
+ */
+export const localDay = (date: Date): string => date.toLocaleDateString("en-CA", { timeZone: "Europe/Malta" });
+
+/**
  * The date a visitor sees. A date that is shown as numbers: English "2026-11-20", Italian "20/11/2026". With `words`
  * (a date that is written out, as the details block of an entry): English "20 November 2026", Italian "20 novembre
  * 2026". The rule (0039): a date that used to be numbers is now day/month/year in Italian; one already in words stays

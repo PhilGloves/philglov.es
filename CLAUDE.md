@@ -233,6 +233,12 @@ contatto]` …) and a bracket starting with "Placeholder"/"Segnaposto" on the bu
   written out ("21 ottobre 2026", the entry's details block); English pages keep theirs. One helper, `displayDate()` in
   `src/lib/dates.ts`, for every visible date (the Worker's comment dates too); `datetime`, feeds, sitemap and structured
   data stay ISO ([0039](docs/decisions/0039-italian-dates-day-month-year.md)).
+- 2026-11-23: audit fixes ([0040](docs/decisions/0040-audit-fixes.md)): a new entry is dated by the day in Malta
+  (`localDay()`, phone and `pnpm new`); the daily job deletes the comments of an entry no longer on the site (never
+  when the manifest lists no entry); form bodies are counted as they arrive (one `readForm()`, 64 KB / 512 KB); the
+  drafts list has no limit; a Publish that opens no pull request deletes its branch; CI fetches originals six at a time;
+  the same comment or report sent twice within 10 minutes is stored once; a retried photo upload (same `upload` id)
+  gets the photo already stored; the RSS feeds list the newest 50 entries.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map

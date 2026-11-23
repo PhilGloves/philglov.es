@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { displayDate, isoDate } from "../../src/lib/dates.ts";
+import { displayDate, isoDate, localDay } from "../../src/lib/dates.ts";
 
 const date = new Date("2026-11-20T00:00:00Z");
 
@@ -32,4 +32,11 @@ test("no time zone moves a date: the late evening of the 31st stays the 31st", (
   assert.equal(displayDate("en", lateEvening), "2026-12-31");
   assert.equal(displayDate("en", lateEvening, true), "31 December 2026");
   assert.equal(displayDate("it", lateEvening, true), "31 dicembre 2026");
+});
+
+test("a new entry is dated by the day in Malta, not in UTC (0040)", () => {
+  // 00:40 in Msida on 23 November is still 22 November in UTC (winter, UTC+1); 01:30 in summer (UTC+2) too.
+  assert.equal(localDay(new Date("2026-11-22T23:40:00Z")), "2026-11-23");
+  assert.equal(localDay(new Date("2026-07-14T23:30:00Z")), "2026-07-15");
+  assert.equal(localDay(new Date("2026-11-23T12:00:00Z")), "2026-11-23");
 });

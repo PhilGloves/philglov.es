@@ -7,6 +7,8 @@ import { sitemapUrls } from "./sitemap-urls.ts";
 import { rssFeed, sitemapXml } from "./xml.ts";
 
 /** One feed per language; an entry appears only in the feed of each language it exists in. */
+const FEED_ITEMS = 50;
+
 export async function feedFor(locale: Locale): Promise<string> {
   const slots = await getSlots();
   const items = slots
@@ -15,6 +17,8 @@ export async function feedFor(locale: Locale): Promise<string> {
       return v ? [{ slot, v }] : [];
     })
     .sort((a, b) => b.slot.date.getTime() - a.slot.date.getTime())
+    // The newest 50: a feed reader wants what is new, and the whole archive is in the sitemap (audit, 0040).
+    .slice(0, FEED_ITEMS)
     .map(({ slot, v }) => ({
       title: v.entry.data.title,
       link: absolute(pathFor(locale, `/${slot.slug}`)),

@@ -23,6 +23,7 @@
  * entry's form the language is a choice between its two versions; switching
  * keeps what was typed (the browser copy, or a server draft without JavaScript).
  */
+import { localDay } from "../../../src/lib/dates.ts";
 import type { Identity } from "../access.ts";
 import {
   editable,
@@ -52,7 +53,7 @@ import {
 import { html, Safe } from "../html.ts";
 import { log } from "../log.ts";
 import { manifest, pathFor, type Entry, type Lang } from "../manifest.ts";
-import { randomId } from "../crypto.ts";
+import { randomId, sha256Hex } from "../crypto.ts";
 import { required } from "../secrets.ts";
 import { csrfToken } from "../tokens.ts";
 import { clean } from "../validate.ts";
@@ -155,8 +156,7 @@ async function fingerprint(input: EntryInput): Promise<string> {
     clean(input.body, true),
     input.photos.map((p) => [p.key, clean(p.alt, false), clean(p.caption, false)]),
   ]);
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return [...new Uint8Array(digest).slice(0, 16)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return (await sha256Hex(text)).slice(0, 32);
 }
 
 /** The browser copy (autosave key, after "philglov-write:") of an edit of a published entry not yet a draft. */
@@ -182,8 +182,7 @@ export interface Lookup {
 }
 
 export async function lookup(env: Env, slug: string, lang: Lang): Promise<Lookup> {
-  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug))
-    return { kind: "invalid", message: "Lowercase letters, digits and hyphens." };
+  if (!SLUG.test(slug)) return { kind: "invalid", message: "Lowercase letters, digits and hyphens." };
   const site = await manifest(env);
   if (site.taken.includes(slug)) return { kind: "taken", message: `"${slug}" is reserved or used by a page.` };
   const live = (l: Lang) => site.entries.find((e) => e.slug === slug && e.lang === l);
@@ -422,9 +421,9 @@ async function writePage(env: Env, identity: Identity, state: FormState, status 
   const isFixed = fixed(state);
   const found = input.slug && !isFixed ? await lookup(env, input.slug, input.lang).catch(() => null) : null;
   const [drafts, site, open] = await Promise.all([
-    env.DB.prepare(
-      "SELECT id, slug, lang, title, updated_at, base_sha, twin FROM drafts ORDER BY updated_at DESC LIMIT 20",
-    ).all<Pick<DraftRow, "id" | "slug" | "lang" | "title" | "updated_at" | "base_sha" | "twin">>(),
+    env.DB.prepare("SELECT id, slug, lang, title, updated_at, base_sha, twin FROM drafts ORDER BY updated_at DESC").all<
+      Pick<DraftRow, "id" | "slug" | "lang" | "title" | "updated_at" | "base_sha" | "twin">
+    >(),
     manifest(env),
     publications(env),
   ]);
@@ -906,7 +905,7 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
     const from = (current ?? original)?.originalLang;
     const originalLang: Lang = from === "en" || from === "it" ? from : input.lang;
     const now = new Date();
-    const text = edited ?? entryMarkdown(input, originalLang, now.toISOString().slice(0, 10));
+    const text = edited ?? entryMarkdown(input, originalLang, localDay(now));
     const live = pathFor(input.slug, input.lang);
     const cleared = draftId || (isFixed ? editKey(input.lang, input.slug) : "new");
     // The other language next: its edit form, or the form that writes it from this one (0029).

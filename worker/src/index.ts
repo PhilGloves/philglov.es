@@ -11,7 +11,7 @@ import { MODERATION_SCRIPT, WRITE_SCRIPT } from "./admin/client.ts";
 import { moderationAction, moderationPage } from "./admin/moderation.ts";
 import { upload } from "./admin/upload.ts";
 import { referenceJson, writeAction, writeForm } from "./admin/write.ts";
-import { handleComment, handleReport, wantsJson } from "./forms.ts";
+import { handleComment, handleReport, readForm, wantsJson } from "./forms.ts";
 import { adminHeaders, withHeaders } from "./headers.ts";
 import { log } from "./log.ts";
 import { pageHeaders, plain, servePage } from "./page.ts";
@@ -40,13 +40,6 @@ async function api(request: Request, env: Env, ctx: ExecutionContext, path: stri
   // Redirects and plain errors get the site headers here; servePage() already set its own.
   if (response.status === 303) return withHeaders(response, { ...pageHeaders(env), "Cache-Control": "no-store" });
   return response;
-}
-
-async function readAdminForm(request: Request): Promise<URLSearchParams | null> {
-  const type = (request.headers.get("Content-Type") ?? "").split(";")[0]?.trim().toLowerCase();
-  if (type !== "application/x-www-form-urlencoded") return null;
-  if (Number(request.headers.get("Content-Length") ?? "0") > 512 * 1024) return null;
-  return new URLSearchParams(await request.text());
 }
 
 async function admin(request: Request, env: Env, ctx: ExecutionContext, url: URL): Promise<Response> {
@@ -95,7 +88,7 @@ async function adminRoute(
     return upload(request, env);
   }
   if (method !== "POST" || (path !== "/admin/action" && path !== "/admin/write")) return notFound();
-  const form = await readAdminForm(request);
+  const form = await readForm(request, 512 * 1024);
   if (!form) return new Response("Bad request\n", { status: 400 });
   if (!(await checkCsrfToken(required(env.FORM_HMAC_KEY), identity.sub, form.get("csrf") ?? "")))
     return new Response("The page was open too long. Go back, reload it and try again.\n", { status: 403 });

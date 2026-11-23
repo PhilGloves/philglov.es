@@ -75,7 +75,7 @@ async function call<T>(env: Env, step: string, method: string, path: string, bod
   });
   if (res.status === 404 && method === "GET") return null;
   if (!res.ok) throw new GitHubError(res.status, step);
-  return (await res.json()) as T;
+  return res.status === 204 ? null : ((await res.json()) as T);
 }
 
 export interface RepoFile {
@@ -123,21 +123,27 @@ export async function openPullRequest(env: Env, p: Publication): Promise<PullReq
   const main = await call<{ object: { sha: string } }>(env, "read main", "GET", "/git/ref/heads/main");
   if (!main) throw new GitHubError(404, "read main");
   await call(env, "create branch", "POST", "/git/refs", { ref: `refs/heads/${p.branch}`, sha: main.object.sha });
-  await call(env, "write file", "PUT", `/contents/${p.path}`, {
-    message: p.title,
-    content: utf8ToBase64(p.text),
-    branch: p.branch,
-    ...(p.sha ? { sha: p.sha } : {}),
-  });
-  const pr = await call<{ html_url: string; number: number; node_id: string }>(
-    env,
-    "open pull request",
-    "POST",
-    "/pulls",
-    { title: p.title, head: p.branch, base: "main", body: p.body },
-  );
-  if (!pr) throw new GitHubError(500, "open pull request");
-  return { url: pr.html_url, number: pr.number, nodeId: pr.node_id };
+  try {
+    await call(env, "write file", "PUT", `/contents/${p.path}`, {
+      message: p.title,
+      content: utf8ToBase64(p.text),
+      branch: p.branch,
+      ...(p.sha ? { sha: p.sha } : {}),
+    });
+    const pr = await call<{ html_url: string; number: number; node_id: string }>(
+      env,
+      "open pull request",
+      "POST",
+      "/pulls",
+      { title: p.title, head: p.branch, base: "main", body: p.body },
+    );
+    if (!pr) throw new GitHubError(500, "open pull request");
+    return { url: pr.html_url, number: pr.number, nodeId: pr.node_id };
+  } catch (error) {
+    // No pull request: the branch would stay behind on GitHub, one more for every retry (audit, decision 0040).
+    await call(env, "delete branch", "DELETE", `/git/refs/heads/${p.branch}`).catch(() => undefined);
+    throw error;
+  }
 }
 
 /**

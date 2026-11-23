@@ -24,18 +24,24 @@ export async function fetchOriginals(
   force = false,
 ): Promise<FetchReport> {
   const report: FetchReport = { downloaded: [], cached: [], failed: [] };
-  for (const key of keys) {
-    if (!force && have(key)) {
-      report.cached.push(key);
-      continue;
+  const todo = keys.filter((key) => force || !have(key));
+  report.cached = keys.filter((key) => !todo.includes(key));
+  // Six at a time: CI downloads every original on every run (never cached, 0030), so one by one grows with the
+  // portfolio (audit, decision 0040).
+  let next = 0;
+  const download = async (): Promise<void> => {
+    for (let key = todo[next++]; key !== undefined; key = todo[next++]) {
+      try {
+        save(key, await getObject(cfg, key));
+        report.downloaded.push(key);
+      } catch (err) {
+        report.failed.push(`${key}: ${(err as Error).message}`);
+      }
     }
-    try {
-      save(key, await getObject(cfg, key));
-      report.downloaded.push(key);
-    } catch (err) {
-      report.failed.push(`${key}: ${(err as Error).message}`);
-    }
-  }
+  };
+  await Promise.all(Array.from({ length: 6 }, download));
+  report.downloaded.sort();
+  report.failed.sort();
   return report;
 }
 
