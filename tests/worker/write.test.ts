@@ -75,6 +75,25 @@ describe("photo upload", () => {
     expect(new Uint8Array((await kept?.arrayBuffer()) ?? new ArrayBuffer(0))).toEqual(JPEG);
   });
 
+  // Audit, decision 0040: the page sends one upload id per picked photo, the same on every retry.
+  test("a retry of the same upload gets the photo already stored, never a second copy", async () => {
+    const send = async (id: string) =>
+      (
+        await (
+          await adminFetch(`/admin/upload?slug=alps&name=lake.jpg&upload=${id}`, {
+            method: "PUT",
+            headers: { "X-CSRF-Token": await csrf(), "Content-Length": String(JPEG.length) },
+            body: JPEG,
+          })
+        ).json<{ key: string }>()
+      ).key;
+    const first = await send("pick-0001-aaaa");
+    expect(first).toMatch(/^alps\/lake-[a-z0-9]{4}\.jpg$/);
+    expect(await send("pick-0001-aaaa")).toBe(first);
+    expect(await send("pick-0002-bbbb")).not.toBe(first);
+    expect((await env.ORIGINALS.list({ prefix: "alps/lake-" })).objects).toHaveLength(2);
+  });
+
   // Decision 0031: from launch the builds read production's bucket, so staging and preview (PHOTO_UPLOADS "off")
   // refuse a photo with a message instead of storing it where no build would find it.
   test("with PHOTO_UPLOADS off an upload is refused with a clear message and nothing is stored", async () => {
@@ -681,7 +700,12 @@ describe("editing a published entry", () => {
     const res = await save(base);
     expect(res.status).toBe(409);
     expect(await res.text()).toContain("changed on GitHub since you opened it");
-    expect((await calls()).some((c) => c.method === "POST" && c.path.endsWith("/pulls"))).toBe(false);
+    const made = await calls();
+    expect(made.some((c) => c.method === "POST" && c.path.endsWith("/pulls"))).toBe(false);
+    // The branch made for it is deleted again, so a refused Publish leaves nothing on GitHub (0040).
+    expect(
+      made.some((c) => c.method === "DELETE" && /\/git\/refs\/heads\/publish\/en-phone-edit-\d{14}$/.test(c.path)),
+    ).toBe(true);
   });
 
   test("the slug and the language cannot be changed while editing", async () => {

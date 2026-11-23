@@ -20,7 +20,7 @@ import {
   type FormName,
   type FormReply,
 } from "./page.ts";
-import { allow } from "./ratelimit.ts";
+import { allow, RATE_WINDOW } from "./ratelimit.ts";
 import { required } from "./secrets.ts";
 import type { FormError } from "./strings.ts";
 import { checkFormToken, formToken } from "./tokens.ts";
@@ -31,14 +31,28 @@ const MAX_BODY = 64 * 1024;
 
 const isLang = (value: string | null): value is Lang => value === "en" || value === "it";
 
-async function readForm(request: Request): Promise<URLSearchParams | Response | null> {
+/**
+ * An urlencoded form of at most `max` bytes, or null. The bytes are counted as they arrive: a request may leave out
+ * Content-Length, and reading it whole first could take 100 MB into the Worker that serves every page (audit, 0040).
+ */
+export async function readForm(request: Request, max = MAX_BODY): Promise<URLSearchParams | null> {
   const type = (request.headers.get("Content-Type") ?? "").split(";")[0]?.trim().toLowerCase();
   if (type !== "application/x-www-form-urlencoded") return null;
-  const declared = Number(request.headers.get("Content-Length") ?? "0");
-  if (declared > MAX_BODY) return null;
-  const text = await request.text();
-  if (text.length > MAX_BODY) return null;
-  return new URLSearchParams(text);
+  if (Number(request.headers.get("Content-Length") ?? "0") > max) return null;
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  const reader = request.body?.getReader();
+  for (;;) {
+    const read = await reader?.read();
+    if (!read || read.done) break;
+    size += read.value.byteLength;
+    if (size > max) {
+      await reader?.cancel();
+      return null;
+    }
+    chunks.push(read.value);
+  }
+  return new URLSearchParams(await new Blob(chunks).text());
 }
 
 /** A browser posting our own form sends our own origin (or none at all). */
@@ -54,7 +68,6 @@ async function spamCheck(env: Env, form: URLSearchParams): Promise<FormError | n
   return check === "fast" ? "fast" : "expired";
 }
 
-/** The page's own script sends the form in the background and asks for JSON; a plain form post does not. */
 /** The background senders (src/scripts/forms.ts, /admin/moderation.js) ask for JSON. */
 export const wantsJson = (request: Request): boolean =>
   (request.headers.get("Accept") ?? "").includes("application/json");
@@ -113,7 +126,7 @@ export async function handleComment(request: Request, env: Env, ctx: ExecutionCo
   }
   if (!sameOrigin(request)) return plain(env, 403, "Forbidden");
   const form = await readForm(request);
-  if (!(form instanceof URLSearchParams)) return plain(env, 400, "Bad request");
+  if (!form) return plain(env, 400, "Bad request");
 
   const slug = form.get("slug") ?? "";
   const lang = form.get("lang");
@@ -137,13 +150,19 @@ export async function handleComment(request: Request, env: Env, ctx: ExecutionCo
   const errors: Errors = validateComment(input);
   if (Object.keys(errors).length) return again(request, env, ctx, form, path, { form: "comment", errors, values });
 
-  await env.DB.prepare(
-    "INSERT INTO comments (slug, lang, name, email, body, status, created_at, ip_hash) VALUES (?1, ?2, ?3, ?4, ?5, 'pending', ?6, ?7)",
+  // The same text from the same address in the last 10 minutes is a second tap on Send: answered as sent, stored
+  // once, one email (audit, decision 0040). One statement, so two taps at once cannot both insert.
+  const stored = await env.DB.prepare(
+    `INSERT INTO comments (slug, lang, name, email, body, status, created_at, ip_hash)
+     SELECT ?1, ?2, ?3, ?4, ?5, 'pending', ?6, ?7
+     WHERE NOT EXISTS (SELECT 1 FROM comments WHERE slug = ?1 AND ip_hash = ?7 AND body = ?5 AND created_at > ?8)`,
   )
-    .bind(entry.slug, entry.lang, input.name, input.email, input.comment, Date.now(), hash)
+    .bind(entry.slug, entry.lang, input.name, input.email, input.comment, Date.now(), hash, Date.now() - RATE_WINDOW)
     .run();
-  log("comment stored");
-  ctx.waitUntil(notify(env, "comment", entry.title));
+  if (stored.meta.changes) {
+    log("comment stored");
+    ctx.waitUntil(notify(env, "comment", entry.title));
+  } else log("form repeated");
   return done(request, env, form, path, "comment");
 }
 
@@ -154,7 +173,7 @@ export async function handleReport(request: Request, env: Env, ctx: ExecutionCon
   }
   if (!sameOrigin(request)) return plain(env, 403, "Forbidden");
   const form = await readForm(request);
-  if (!(form instanceof URLSearchParams)) return plain(env, 400, "Bad request");
+  if (!form) return plain(env, 400, "Bad request");
 
   const pagePath = sitePath(form.get("url"));
   if (!pagePath) return plain(env, 400, "Bad request");
@@ -188,13 +207,17 @@ export async function handleReport(request: Request, env: Env, ctx: ExecutionCon
   if (Object.keys(errors).length)
     return again(request, env, ctx, form, path, { form: "report", errors, values, url: pagePath });
 
-  await env.DB.prepare(
-    "INSERT INTO reports (page_url, message, email, created_at, ip_hash, status) VALUES (?1, ?2, ?3, ?4, ?5, 'open')",
+  const stored = await env.DB.prepare(
+    `INSERT INTO reports (page_url, message, email, created_at, ip_hash, status)
+     SELECT ?1, ?2, ?3, ?4, ?5, 'open'
+     WHERE NOT EXISTS (SELECT 1 FROM reports WHERE page_url = ?1 AND ip_hash = ?5 AND message = ?2 AND created_at > ?6)`,
   )
-    .bind(pagePath, input.message, input.email || null, Date.now(), hash)
+    .bind(pagePath, input.message, input.email || null, Date.now(), hash, Date.now() - RATE_WINDOW)
     .run();
-  log("report stored");
-  ctx.waitUntil(notify(env, "report", reportTitle(site, pagePath, known.ok)));
+  if (stored.meta.changes) {
+    log("report stored");
+    ctx.waitUntil(notify(env, "report", reportTitle(site, pagePath, known.ok)));
+  } else log("form repeated");
   return done(request, env, form, path, "report");
 }
 

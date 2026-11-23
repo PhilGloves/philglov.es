@@ -91,3 +91,25 @@ test("a token that cannot read the bucket stops the build too, and no secret is 
     await r2.close();
   }
 });
+
+test("many originals download six at a time, each once, and the report lists them in order (0040)", async () => {
+  const { r2, cfg } = await setUp();
+  try {
+    const keys = Array.from({ length: 14 }, (_, i) => `photos/malta/p${String(i).padStart(2, "0")}.jpg`);
+    for (const key of keys) r2.seed(BUCKET, key, jpeg(key));
+    const saved = new Map<string, Uint8Array>();
+    const report = await fetchOriginals(
+      cfg,
+      ["portrait/finisterre.jpg", ...keys],
+      (k) => k.startsWith("portrait/"),
+      (k, b) => {
+        assert.ok(!saved.has(k), `${k} saved twice`);
+        saved.set(k, b);
+      },
+    );
+    assert.deepEqual(report, { downloaded: keys, cached: ["portrait/finisterre.jpg"], failed: [] });
+    for (const key of keys) assert.deepEqual(Buffer.from(saved.get(key) ?? []), jpeg(key));
+  } finally {
+    await r2.close();
+  }
+});

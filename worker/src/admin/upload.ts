@@ -8,11 +8,16 @@
  * Stored as philglov-originals/<slug>/<name>-<4 random>.jpg|png. The Worker picks the random end and never writes
  * over a stored object: the name comes from the request, and replacing a photo a published entry shows would change
  * the site on its next build with no pull request (security audit, decision 0030).
+ * A retry of the same pick sends the same `upload` id (the page draws one per photo), and the Worker derives the random
+ * end from it with its secret key: when the answer to a stored photo was lost, the retry finds that photo and gets its
+ * key, so no unused copy is left in the bucket (audit, decision 0040).
  * Only where PHOTO_UPLOADS is "on": from launch the builds read production's bucket, so staging and preview turn it
  * "off" and say where photos go instead of storing one no build would find (decision 0031).
  */
+import { hmacSign } from "../crypto.ts";
 import { photoName, SLUG } from "../entry-file.ts";
 import { log } from "../log.ts";
+import { required } from "../secrets.ts";
 
 const ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
 
@@ -21,12 +26,30 @@ function randomEnd(): string {
   return Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => ALPHABET[b % ALPHABET.length]).join("");
 }
 
-/** A key in the slug's folder that no stored object has yet, or null after a few tries. */
-async function freshKey(bucket: R2Bucket, slug: string, name: string, ext: "jpg" | "png"): Promise<string | null> {
+const UPLOAD_ID = /^[A-Za-z0-9-]{8,64}$/;
+
+/**
+ * A key in the slug's folder that no stored object has yet (`stored` false), or the key this same upload already
+ * stored (`stored` true), or null after a few tries.
+ */
+async function freshKey(
+  env: Env,
+  slug: string,
+  name: string,
+  ext: "jpg" | "png",
+  id: string,
+): Promise<{ key: string; stored: boolean } | null> {
   const base = photoName(name, ext).slice(0, -(ext.length + 1));
+  if (UPLOAD_ID.test(id)) {
+    const sig = await hmacSign(required(env.FORM_HMAC_KEY), `upload:${slug}/${base}.${ext}:${id}`);
+    const key = `${slug}/${base}-${Array.from(sig.slice(0, 4), (c) => ALPHABET[c.charCodeAt(0) % ALPHABET.length]).join("")}.${ext}`;
+    const head = await env.ORIGINALS.head(key);
+    if (!head) return { key, stored: false };
+    if (head.customMetadata?.["upload"] === id) return { key, stored: true };
+  }
   for (let i = 0; i < 5; i++) {
     const key = `${slug}/${base}-${randomEnd()}.${ext}`;
-    if (!(await bucket.head(key))) return key;
+    if (!(await env.ORIGINALS.head(key))) return { key, stored: false };
   }
   return null;
 }
@@ -84,11 +107,18 @@ export async function upload(request: Request, env: Env): Promise<Response> {
     return json(415, { error: "Only JPEG and PNG photos." });
   }
 
-  const key = await freshKey(env.ORIGINALS, slug, url.searchParams.get("name") ?? "", ext);
-  if (!key) {
+  const id = url.searchParams.get("upload") ?? "";
+  const fresh = await freshKey(env, slug, url.searchParams.get("name") ?? "", ext, id);
+  if (!fresh) {
     await reader.cancel();
     log("photo rejected");
     return json(409, { error: "Could not find a free name for this photo. Try again." });
+  }
+  const { key } = fresh;
+  if (fresh.stored) {
+    await reader.cancel();
+    log("photo stored");
+    return json(200, { key });
   }
   const { readable, writable } = new FixedLengthStream(size);
   const pump = (async () => {
@@ -108,7 +138,10 @@ export async function upload(request: Request, env: Env): Promise<Response> {
   })();
   try {
     await Promise.all([
-      env.ORIGINALS.put(key, readable, { httpMetadata: { contentType: ext === "jpg" ? "image/jpeg" : "image/png" } }),
+      env.ORIGINALS.put(key, readable, {
+        httpMetadata: { contentType: ext === "jpg" ? "image/jpeg" : "image/png" },
+        ...(UPLOAD_ID.test(id) ? { customMetadata: { upload: id } } : {}),
+      }),
       pump,
     ]);
   } catch (error) {

@@ -131,6 +131,8 @@ function fakeGitHub() {
     if (url.pathname.endsWith("/pulls") && request.method === "GET") return json(200, state.pulls);
     if (url.pathname.endsWith("/git/ref/heads/main")) return json(200, { object: { sha: "main-sha" } });
     if (url.pathname.endsWith("/git/refs")) return json(201, {});
+    if (/\/git\/refs\/heads\//.test(url.pathname) && request.method === "DELETE")
+      return new Response(null, { status: 204 });
     if (url.pathname.endsWith("/pulls")) {
       // An opened pull request is open from now on, as on GitHub: the next list of open pull requests has it. The
       // first one of a test is number 99.

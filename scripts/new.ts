@@ -6,6 +6,7 @@
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
+import { localDay } from "../src/lib/dates.ts";
 import { newEntry, type Lang } from "./lib/new-entry.ts";
 
 const { values, positionals } = parseArgs({
@@ -33,7 +34,7 @@ try {
     newEntry({
       slug,
       lang: lang as Lang,
-      today: new Date().toISOString().slice(0, 10),
+      today: localDay(new Date()),
       pageSlugs,
       ...(hasTwin ? { twinText: readFileSync(twin, "utf8") } : {}),
     }),

@@ -2,7 +2,7 @@
 import { createScheduledController, env, SELF } from "cloudflare:test";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { notificationMime, notify } from "../../worker/src/notify.ts";
-import { backup, retention } from "../../worker/src/scheduled.ts";
+import { backup, orphanComments, retention } from "../../worker/src/scheduled.ts";
 import worker from "../../worker/src/index.ts";
 import { agedToken, commentFields, insertComment, ORIGIN, post, resetDb, twinEntry } from "./helpers.ts";
 
@@ -100,6 +100,22 @@ describe("retention", () => {
       { created_at: NOW - 364 * DAY, status: "open", ip_hash: null },
       { created_at: NOW - 10 * DAY, status: "open", ip_hash: "h" },
     ]);
+  });
+});
+
+describe("comments of an entry no longer on the site (0040)", () => {
+  test("go with the entry; a list of no entries (unread, or none yet) deletes nothing", async () => {
+    const { slug } = await twinEntry();
+    const kept = await insertComment({ slug, status: "approved" });
+    await insertComment({ slug: "a-deleted-entry", status: "approved" });
+    await insertComment({ slug: "a-deleted-entry", status: "pending" });
+
+    await orphanComments(env.DB, []);
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM comments").first<{ n: number }>())?.n).toBe(3);
+
+    await orphanComments(env.DB, [slug, slug, "another-entry"]);
+    const left = await env.DB.prepare("SELECT id FROM comments").all<{ id: number }>();
+    expect(left.results).toEqual([{ id: kept }]);
   });
 });
 

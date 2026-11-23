@@ -2,10 +2,11 @@
  * Cron jobs (B6, B9). Daily retention, so the privacy notice stays true:
  * IP hashes after 30 days, rejected comments after 30 days, every error report
  * 12 months after it arrived (open or done, as the privacy notice says;
- * owner decision O3, 2026-11-12), finished rate-limit windows.
+ * owner decision O3, 2026-11-12), finished rate-limit windows, and the comments of an entry no longer on the site.
  * Weekly backup: comments and reports as JSON in the backups bucket, 12 kept.
  */
 import { log } from "./log.ts";
+import { manifest } from "./manifest.ts";
 import { sweep } from "./ratelimit.ts";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -24,6 +25,19 @@ export async function retention(db: D1Database, now = Date.now()): Promise<void>
     db.prepare("DELETE FROM reports WHERE created_at < ?1").bind(now - REPORT_DAYS * DAY),
   ]);
   await sweep(db, now);
+}
+
+/**
+ * The comments of an entry that is no longer on the site go with it, as the privacy notice says ("until ... I delete
+ * the entry"; audit, decision 0040). `slugs` are the entries the deployed site has; none at all means the list could
+ * not be read (or the site has no entry yet), and then nothing is deleted.
+ */
+export async function orphanComments(db: D1Database, slugs: readonly string[]): Promise<void> {
+  if (!slugs.length) return;
+  await db
+    .prepare("DELETE FROM comments WHERE slug NOT IN (SELECT value FROM json_each(?1))")
+    .bind(JSON.stringify([...new Set(slugs)]))
+    .run();
 }
 
 /** backups/YYYY-MM-DD.json: every comment and report, without IP hashes (not needed to restore). */
@@ -64,6 +78,10 @@ export async function runScheduled(controller: ScheduledController, env: Env): P
   }
   try {
     await retention(env.DB, controller.scheduledTime);
+    await orphanComments(
+      env.DB,
+      (await manifest(env)).entries.map((e) => e.slug),
+    );
     log("retention done");
   } catch (error) {
     log("retention failed", error);

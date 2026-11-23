@@ -301,7 +301,7 @@ export const WRITE_SCRIPT = String.raw`"use strict";
     function attempt(n) {
       if (job.cancelled) return;
       var xhr = job.xhr = new XMLHttpRequest();
-      xhr.open("PUT", "/admin/upload?slug=" + encodeURIComponent(job.slug) + "&name=" + encodeURIComponent(job.name));
+      xhr.open("PUT", "/admin/upload?slug=" + encodeURIComponent(job.slug) + "&name=" + encodeURIComponent(job.name) + "&upload=" + job.id);
       xhr.setRequestHeader("X-CSRF-Token", csrf);
       xhr.upload.onprogress = function (e) {
         if (e.lengthComputable) {
@@ -341,7 +341,8 @@ export const WRITE_SCRIPT = String.raw`"use strict";
       if (file.size > maxSize) { say(file.name + " is over 25 MB."); return; }
       var base = file.name.replace(/\.[a-z0-9]{1,5}$/i, "");
       // The Worker adds the random end and never replaces a stored photo (decision 0030).
-      add({ file: file, slug: slug.value, name: slugify(base || "photo") });
+      // One id per pick, the same on every retry: a retry after a lost answer gets the photo already stored (0040).
+      add({ file: file, slug: slug.value, name: slugify(base || "photo"), id: crypto.randomUUID() });
     });
     e.target.value = "";
     next();

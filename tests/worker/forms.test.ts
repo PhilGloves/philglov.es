@@ -127,8 +127,11 @@ describe("POST /api/comment", () => {
     test("the sixth submission in 10 minutes from one address gets 429", async () => {
       const { slug } = await twinEntry();
       const ip = { "CF-Connecting-IP": "203.0.113.7" };
+      // Five different texts: the same text again would be a repeat, stored once (0040).
       for (let i = 0; i < 5; i++)
-        expect((await post("/api/comment", await commentFields(slug, "en"), ip)).status).toBe(303);
+        expect(
+          (await post("/api/comment", await commentFields(slug, "en", { comment: `Comment ${i}` }), ip)).status,
+        ).toBe(303);
       const res = await post("/api/comment", await commentFields(slug, "en"), ip);
       expect(res.status).toBe(429);
       expect(await res.text()).toContain("Too many messages from your connection");
@@ -172,6 +175,32 @@ describe("POST /api/comment", () => {
     expect(get.status).toBe(405);
     expect(get.headers.get("Allow")).toBe("POST");
     expect((await SELF.fetch(`${ORIGIN}/api/other`, { method: "POST" })).status).toBe(404);
+  });
+
+  // Audit, decision 0040: a body without Content-Length is counted as it arrives, never read whole first.
+  test("a body sent without its length is read up to 64 KB: a valid one is stored, a longer one refused", async () => {
+    const { slug } = await twinEntry();
+    const send = (text: string) =>
+      SELF.fetch(`${ORIGIN}/api/comment`, {
+        method: "POST",
+        redirect: "manual",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", Origin: ORIGIN },
+        body: new Blob([text]).stream(),
+      });
+    const fields = new URLSearchParams(await commentFields(slug, "en")).toString();
+    expect((await send(fields)).status).toBe(303);
+    expect((await send(`${fields}&pad=${"x".repeat(64 * 1024)}`)).status).toBe(400);
+  });
+
+  // Audit, decision 0040: a double tap on Send, with or without JavaScript, stores the comment once.
+  test("the same comment sent twice in a row is thanked twice and stored once; another text is a new comment", async () => {
+    const { slug } = await twinEntry();
+    const fields = await commentFields(slug, "en");
+    expect((await post("/api/comment", fields)).status).toBe(303);
+    expect((await post("/api/comment", fields)).status).toBe(303);
+    expect((await post("/api/comment", { ...fields, comment: "And one more thing." })).status).toBe(303);
+    const rows = await env.DB.prepare("SELECT body FROM comments ORDER BY id").all<{ body: string }>();
+    expect(rows.results.map((r) => r.body)).toEqual([fields["comment"], "And one more thing."]);
   });
 });
 

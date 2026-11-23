@@ -7,6 +7,7 @@
 export type LogEvent =
   | "comment stored"
   | "report stored"
+  | "form repeated"
   | "notification sent"
   | "notification skipped"
   | "notification failed"
