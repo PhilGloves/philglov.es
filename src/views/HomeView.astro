@@ -48,9 +48,8 @@ const path = locale === "en" ? "/" : "/it";
     <div class="g hero">
       <div class="lab small">
         <p class="muted">
-          {tf(locale, "heroBased", { city: site.city })}
-          <br />
-          {t(locale, "heroWriting")}
+          <span class="caption-line">{tf(locale, "heroBased", { city: site.city })}</span>
+          <span class="caption-line">{t(locale, "heroWriting")}</span>
         </p>
       </div>
       <h1 class="state">
@@ -98,9 +97,12 @@ const path = locale === "en" ? "/" : "/it";
         )}
         {rows.length > 0 && (
           <p class="small muted">
-            <Arrows text={t(locale, "markLegend")} />
-            <br />
-            <Arrows text={t(locale, "markLegendOnly")} />
+            <span class="caption-line">
+              <Arrows text={t(locale, "markLegend")} />
+            </span>
+            <span class="caption-line">
+              <Arrows text={t(locale, "markLegendOnly")} />
+            </span>
           </p>
         )}
       </div>

@@ -1,4 +1,13 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
+
+async function expectConsecutiveLines(lines: Locator) {
+  await expect(lines).toHaveCount(2);
+  const first = await lines.nth(0).boundingBox();
+  const second = await lines.nth(1).boundingBox();
+  expect(first).not.toBeNull();
+  expect(second).not.toBeNull();
+  if (first && second) expect(Math.abs(first.y + first.height - second.y)).toBeLessThanOrEqual(1);
+}
 
 test("home and journal captions break between sentences and fit their columns", async ({ page }) => {
   for (const width of [360, 768, 1280]) {
@@ -29,12 +38,12 @@ test("home and journal captions break between sentences and fit their columns", 
       const legend = page.locator("main p.small.muted").filter({ hasText: first });
       await expect(legend).toHaveCount(1);
       await expect(legend).toContainText(second);
-      await expect(legend.locator("br")).toHaveCount(1);
+      await expectConsecutiveLines(legend.locator(":scope > .caption-line"));
       expect(await legend.evaluate((el) => getComputedStyle(el).whiteSpace)).toBe("normal");
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
       if (path === "/" || path === "/it") {
         const hero = page.locator(".hero .lab p");
-        await expect(hero.locator("br")).toHaveCount(1);
+        await expectConsecutiveLines(hero.locator(":scope > .caption-line"));
         const lines = (await hero.innerText()).split("\n");
         expect(lines).toEqual(
           path === "/"

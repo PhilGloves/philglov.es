@@ -276,17 +276,10 @@ test("feeds, descriptions, link previews, structured data and the lists of entri
   const main = (html: string): string => /<main\b[\s\S]*<\/main>/.exec(html)?.[0] ?? "";
   for (const file of ["feed.xml", "it/feed.xml", "sitemap.xml"])
     assert.doesNotMatch(built(file), tag, `${file} has a line-break tag`);
-  // The home pages split the location sentence and language legend; the journal indexes split the legend.
-  // Entry descriptions and the rest of the listing markup have no line-break tags.
-  for (const [file, allowed] of [
-    ["index.html", 2],
-    ["it.html", 2],
-    ["journal.html", 1],
-    ["it/journal.html", 1],
-  ] as const) {
+  // The home pages and journal indexes list one-roll (its title, its description as the latest entry's summary).
+  for (const file of ["index.html", "it.html", "journal.html", "it/journal.html"]) {
     assert.match(built(file), /href="\/one-roll"/, `${file} lists one-roll`);
-    assert.equal(tags(head(built(file))), 0, `${file} head has a line-break tag`);
-    assert.equal(tags(main(built(file))), allowed, `${file} has unexpected line-break tags`);
+    assert.equal(tags(head(built(file))) + tags(main(built(file))), 0, `${file} has a line-break tag`);
   }
   // The entry's own page: everything in <head> (description, Open Graph, JSON-LD) is free of it ...
   const page = built("one-roll.html");
