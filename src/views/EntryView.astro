@@ -7,17 +7,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import { render } from "astro:content";
 import { t, tf, type Locale } from "../i18n";
 import { getSlots, type JournalEntry } from "../lib/collections.ts";
-import {
-  isoDate,
-  journalPath,
-  longDate,
-  otherLocale,
-  pathFor,
-  rowsFor,
-  type Slot,
-  type Row,
-  type EntryLike,
-} from "../lib/entries.ts";
+import { displayDate, isoDate } from "../lib/dates.ts";
+import { journalPath, otherLocale, pathFor, rowsFor, type Slot, type Row, type EntryLike } from "../lib/entries.ts";
 import { absolute, blogPostingJsonLd } from "../lib/seo.ts";
 
 interface Props {
@@ -83,7 +74,7 @@ const neighbours = [
             <span>
               {t(locale, "noShort")} {number}
             </span>{" "}
-            <time datetime={isoDate(slot.date)}>{longDate(locale, slot.date)}</time>{" "}
+            <time datetime={isoDate(slot.date)}>{displayDate(locale, slot.date, true)}</time>{" "}
             <span>{tf(locale, "readTime", { n: version.minutes })}</span>
           </p>
           <LanguageLabel locale={locale} originalLang={version.originalLang} rest={`/${slot.slug}`} hasTwin={hasTwin} />

@@ -6,7 +6,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 /** Home page (Home.dc.html): statement, one photograph, latest entry, journal table, Now band, photos. */
 import { t, tf, type Locale } from "../i18n";
 import { getPage, getSeries, getSlots } from "../lib/collections.ts";
-import { journalPath, pathFor, rowsFor, isoDate, type EntryLike, type Row } from "../lib/entries.ts";
+import { displayDate, isoDate } from "../lib/dates.ts";
+import { journalPath, pathFor, rowsFor, type EntryLike, type Row } from "../lib/entries.ts";
 import { SIZES } from "../lib/photo-sizes.ts";
 import site from "../data/site.json" with { type: "json" };
 import { portraitImage } from "../lib/portrait.ts";
@@ -104,7 +105,7 @@ const path = locale === "en" ? "/" : "/it";
               <span>
                 {t(locale, "noShort")} {latest.number}
               </span>
-              <time datetime={isoDate(latest.slot.date)}>{isoDate(latest.slot.date)}</time>
+              <time datetime={isoDate(latest.slot.date)}>{displayDate(locale, latest.slot.date)}</time>
               <b>
                 <Arrows text={latest.marker} />
               </b>
@@ -145,7 +146,7 @@ const path = locale === "en" ? "/" : "/it";
       <div class="page g">
         <div class="lab">
           <h2>{t(locale, "navNow")}</h2>
-          <p class="small fine">{tf(locale, "nowUpdated", { date: isoDate(now.data.date) })}</p>
+          <p class="small fine">{tf(locale, "nowUpdated", { date: displayDate(locale, now.data.date) })}</p>
         </div>
         <div class="con">
           <p>{now.data.description}</p>

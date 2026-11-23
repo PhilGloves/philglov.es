@@ -2,7 +2,8 @@
  * The list of public pages for the sitemap, as a pure function of the content, so a unit test can give it any
  * collection (feeds.ts reads the real one). hreflang alternates only where both language versions exist.
  */
-import { isoDate, journalPath, paginate, pathFor, rowsFor, slugOf, type Locale, type Slot } from "./entries.ts";
+import { isoDate } from "./dates.ts";
+import { journalPath, paginate, pathFor, rowsFor, slugOf, type Locale, type Slot } from "./entries.ts";
 import type { EntryLike } from "./entries.ts";
 import { absolute } from "./seo.ts";
 import type { SitemapUrl } from "./xml.ts";

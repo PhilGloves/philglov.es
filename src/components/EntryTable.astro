@@ -6,7 +6,8 @@ import Arrows from "./Arrows.astro";
  * language are marked "IT only" / "solo EN" and link to the version that exists.
  */
 import { t, tf, type Locale } from "../i18n";
-import { isoDate, type EntryLike, type Row } from "../lib/entries.ts";
+import { displayDate, isoDate } from "../lib/dates.ts";
+import type { EntryLike, Row } from "../lib/entries.ts";
 
 interface Props {
   locale: Locale;
@@ -37,7 +38,7 @@ const { locale, rows, caption, captionHidden = false } = Astro.props;
       <tr>
         <td class="n">{row.number}</td>
         <td class="dt">
-          <time datetime={isoDate(row.slot.date)}>{isoDate(row.slot.date)}</time>
+          <time datetime={isoDate(row.slot.date)}>{displayDate(locale, row.slot.date)}</time>
         </td>
         <td class="t">
           <a
