@@ -84,7 +84,8 @@ test("every environment keeps Workers Logs for the Worker's own lines and has in
   const { unstable_readConfig } = await import("wrangler");
   const path = new URL("../../wrangler.jsonc", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
   for (const env of [undefined, ...Object.keys(config().env)]) {
-    const resolved = unstable_readConfig({ config: path, env }, { hideWarnings: true });
+    const args = env === undefined ? { config: path } : { config: path, env };
+    const resolved = unstable_readConfig(args, { hideWarnings: true });
     const name = env ?? "top level";
     assert.equal(resolved.observability?.enabled, true, `${name}: the Worker's own log lines are kept`);
     assert.equal(resolved.observability?.logs?.invocation_logs, false, `${name}: invocation logs are off`);
