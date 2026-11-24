@@ -1,6 +1,7 @@
 ---
 import Arrows from "../components/Arrows.astro";
 import EntryTable from "../components/EntryTable.astro";
+import MarkerLegend from "../components/MarkerLegend.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 /**
  * The journal index, by year, paginated at 50: /journal, /journal/page/2. Entries that exist in the other
@@ -37,14 +38,7 @@ const path = journalPath(locale, page);
       {rows.length > 0 && (
         <div class="lab">
           {page > 1 && <h2>{tf(locale, "pageOf", { page, pages: paged.pages })}</h2>}
-          <p class="small muted">
-            <span class="caption-line">
-              <Arrows text={t(locale, "markLegend")} />
-            </span>
-            <span class="caption-line">
-              <Arrows text={t(locale, "markLegendOnly")} />
-            </span>
-          </p>
+          <MarkerLegend locale={locale} rows={paged.items} />
         </div>
       )}
       <div class="con">

@@ -1,6 +1,7 @@
 ---
 import Arrows from "../components/Arrows.astro";
 import EntryTable from "../components/EntryTable.astro";
+import MarkerLegend from "../components/MarkerLegend.astro";
 import Photo from "../components/Photo.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 /** Home page (Home.dc.html): statement, one photograph, latest entry, journal table, Now band, photos. */
@@ -95,16 +96,7 @@ const path = locale === "en" ? "/" : "/it";
               : tf(locale, "journalCount", { n: rows.length, year: firstYear })}
           </p>
         )}
-        {rows.length > 0 && (
-          <p class="small muted">
-            <span class="caption-line">
-              <Arrows text={t(locale, "markLegend")} />
-            </span>
-            <span class="caption-line">
-              <Arrows text={t(locale, "markLegendOnly")} />
-            </span>
-          </p>
-        )}
+        <MarkerLegend locale={locale} rows={latest ? [latest] : []} />
       </div>
       <div class="con">
         {latest ? (

@@ -5,6 +5,7 @@ import {
   fmt,
   journalPath,
   labelState,
+  legendFor,
   markerFor,
   paginate,
   pathFor,
@@ -87,6 +88,29 @@ test("the journal lists entries that exist in the other language only, marked IT
       ["001", "roll", true, "solo EN", "/roll"],
     ],
   );
+});
+
+test("the legend lists exactly the markers of the rows shown, plain, then translated, then one language only", () => {
+  const slots = buildSlots([...entries, entry("it/roma", "2026-11-02", "en")]);
+  const lines = (rows: ReturnType<typeof rowsFor>) => legendFor(rows).map((l) => [l.marker, l.key]);
+  const en = rowsFor(slots, "en");
+  assert.deepEqual(lines(en), [
+    ["EN", "legendPlain"],
+    ["IT→EN", "legendTranslated"],
+    ["IT only", "legendOnly"],
+  ]);
+  assert.deepEqual(lines(en.slice(0, 1)), [["IT only", "legendOnly"]]);
+  assert.deepEqual(lines(en.filter((r) => !r.only)), [
+    ["EN", "legendPlain"],
+    ["IT→EN", "legendTranslated"],
+  ]);
+  const it = rowsFor(slots, "it");
+  assert.deepEqual(lines(it), [
+    ["IT", "legendPlain"],
+    ["EN→IT", "legendTranslated"],
+    ["solo EN", "legendOnly"],
+  ]);
+  assert.deepEqual(lines([]), []);
 });
 
 test("markers: an own translation shows the direction, an original shows its language", () => {

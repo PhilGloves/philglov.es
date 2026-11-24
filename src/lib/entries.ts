@@ -122,6 +122,24 @@ export function markerFor(version: { lang: Locale; originalLang: Locale }, viewi
   return version.lang.toUpperCase();
 }
 
+export type LegendKey = "legendPlain" | "legendTranslated" | "legendOnly";
+
+/** Legend order: plain language first, then translated, then one language only. */
+const LEGEND: readonly LegendKey[] = ["legendPlain", "legendTranslated", "legendOnly"];
+
+const legendKey = (row: Pick<Row<EntryLike>, "version" | "only">): LegendKey =>
+  row.only ? "legendOnly" : row.version.lang !== row.version.originalLang ? "legendTranslated" : "legendPlain";
+
+/** One legend line per marker shown among `rows`, in legend order: the marker and its i18n explanation key. */
+export function legendFor(
+  rows: readonly Pick<Row<EntryLike>, "version" | "only" | "marker">[],
+): { marker: string; key: LegendKey }[] {
+  return LEGEND.flatMap((key) => {
+    const row = rows.find((r) => legendKey(r) === key);
+    return row ? [{ marker: row.marker, key }] : [];
+  });
+}
+
 export type LabelState = "original-twin" | "translation" | "original-only";
 
 /** Which row of the guide's "originally written in" table applies to a page. */
