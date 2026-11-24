@@ -1,44 +1,40 @@
 import { expect, test, type Locator } from "@playwright/test";
 
-async function expectConsecutiveLines(lines: Locator) {
-  await expect(lines).toHaveCount(2);
-  const first = await lines.nth(0).boundingBox();
-  const second = await lines.nth(1).boundingBox();
-  expect(first).not.toBeNull();
-  expect(second).not.toBeNull();
-  if (first && second) expect(Math.abs(first.y + first.height - second.y)).toBeLessThanOrEqual(1);
+async function expectConsecutiveLines(lines: Locator, count = 2) {
+  await expect(lines).toHaveCount(count);
+  for (let i = 1; i < count; i++) {
+    const above = await lines.nth(i - 1).boundingBox();
+    const below = await lines.nth(i).boundingBox();
+    expect(above).not.toBeNull();
+    expect(below).not.toBeNull();
+    if (above && below) expect(Math.abs(above.y + above.height - below.y)).toBeLessThanOrEqual(1);
+  }
 }
 
 test("home and journal captions break between sentences and fit their columns", async ({ page }) => {
   for (const width of [360, 768, 1280]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const [path, first, second] of [
-      [
-        "/",
-        "mark entries I wrote in one language and translated myself.",
-        "IT only and solo EN exist in one language so far.",
-      ],
+    // The fixtures' newest entry is "we", English only; the Italian journal has no EN→IT entry.
+    for (const [path, expected] of [
+      ["/", ["EN - written in English"]],
       [
         "/journal",
-        "mark entries I wrote in one language and translated myself.",
-        "IT only and solo EN exist in one language so far.",
+        [
+          "EN - written in English",
+          "IT→EN - written in Italian, translated to English",
+          "IT only - exists only in Italian so far",
+        ],
       ],
-      [
-        "/it",
-        "segnano le voci che ho scritto in una lingua e tradotto io.",
-        "IT only e solo EN esistono per ora in una sola lingua.",
-      ],
-      [
-        "/it/journal",
-        "segnano le voci che ho scritto in una lingua e tradotto io.",
-        "IT only e solo EN esistono per ora in una sola lingua.",
-      ],
+      ["/it", ["solo EN - ad oggi esiste solo in inglese"]],
+      ["/it/journal", ["IT - scritto in italiano", "solo EN - ad oggi esiste solo in inglese"]],
     ] as const) {
       await page.goto(path);
-      const legend = page.locator("main p.small.muted").filter({ hasText: first });
+      const legend = page.locator("main .sec .lab p.small.muted").filter({ has: page.locator(".caption-line") });
       await expect(legend).toHaveCount(1);
-      await expect(legend).toContainText(second);
-      await expectConsecutiveLines(legend.locator(":scope > .caption-line"));
+      await expectConsecutiveLines(legend.locator(":scope > .caption-line"), expected.length);
+      // The arrow is an inline SVG (Arrows), so the text has none.
+      expect((await legend.innerText()).split("\n")).toEqual(expected.map((line) => line.replace("→", "")));
+      await expect(legend.locator("svg.arr")).toHaveCount(expected.filter((line) => line.includes("→")).length);
       expect(await legend.evaluate((el) => getComputedStyle(el).whiteSpace)).toBe("normal");
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
       if (path === "/" || path === "/it") {

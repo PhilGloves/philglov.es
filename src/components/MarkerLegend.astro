@@ -1,0 +1,27 @@
+---
+/**
+ * The journal legend: one line per marker shown among `rows` ("IT→EN - written in Italian, translated to English"),
+ * plain language first, then translated, then one language only. Nothing when no row is listed.
+ */
+import Arrows from "./Arrows.astro";
+import { t, type Locale } from "../i18n";
+import { legendFor, type EntryLike, type Row } from "../lib/entries.ts";
+
+interface Props {
+  locale: Locale;
+  rows: readonly Row<EntryLike>[];
+}
+
+const { locale, rows } = Astro.props;
+const lines = legendFor(rows);
+---
+
+{lines.length > 0 && (
+  <p class="small muted">
+    {lines.map(({ marker, key }) => (
+      <span class="caption-line">
+        <Arrows text={`${marker} - ${t(locale, key)}`} />
+      </span>
+    ))}
+  </p>
+)}
