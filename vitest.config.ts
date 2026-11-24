@@ -199,6 +199,10 @@ export default defineConfig(async () => {
     test: {
       include: ["tests/worker/**/*.test.ts"],
       setupFiles: ["tests/worker/setup.ts"],
+      // Vitest 5.1.1 (vitest-dev/vitest#11750) ends each cached module with a `//# vitestSourceMap=` line of raw JSON;
+      // the U+2028/U+2029 in worker/src/frontmatter.ts end that comment line inside workerd, and every file fails to
+      // load ("Invalid or unexpected token"). The cache only speeds up reruns.
+      fsModuleCache: false,
     },
   };
 });
