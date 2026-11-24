@@ -155,10 +155,11 @@
         "PHOTO_UPLOADS": "on",
         "ACCESS_TEAM_DOMAIN": "gentle-hall-eae9.cloudflareaccess.com",
         "ACCESS_AUD": "7997bf530e60fa48f8a90433b8af1979f7fcfa6e61e77c566b249c62a48f8360",
-        "NOTIFY": "off",
+        "NOTIFY": "on",
         "NOTIFY_FROM": "notify@philglov.es",
         "GITHUB_REPO": "PhilGloves/philglov.es",
       },
+      "send_email": [{ "name": "EMAIL" }],
       "triggers": { "crons": ["0 3 * * *", "0 4 * * 1"] },
       "d1_databases": [
         {
