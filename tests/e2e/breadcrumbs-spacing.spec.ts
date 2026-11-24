@@ -62,7 +62,7 @@ test("no heading repeats the page title; the heading order stays valid", async (
   await page.goto("/journal");
   await expect(page.locator("h1")).toHaveText("Journal");
   await expect(page.locator("h2", { hasText: /^Journal$/ })).toHaveCount(0);
-  await expect(page.locator(".sec .lab p")).toContainText("mark entries I wrote in one language"); // the note about the language marks stays
+  await expect(page.locator(".sec .lab p")).toContainText("EN - written in English"); // the legend of the language marks stays
 
   // A series page keeps its "Photos" heading: the title there is the series name.
   await page.goto("/photos/lisbon");
