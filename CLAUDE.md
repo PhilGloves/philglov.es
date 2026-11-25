@@ -242,6 +242,10 @@ contatto]` …) and a bracket starting with "Placeholder"/"Segnaposto" on the bu
   drafts list has no limit; a Publish that opens no pull request deletes its branch; CI fetches originals six at a time;
   the same comment or report sent twice within 10 minutes is stored once; a retried photo upload (same `upload` id)
   gets the photo already stored; the RSS feeds list the newest 50 entries.
+- 2026-11-25: redline pass ([0042](docs/decisions/0042-redline-spacing-type-emphasis.md)): home spacing on the 4 px grid
+  (Now band 72 px like a section, footer 56/56), the latest title at 300, 19 px for the excerpt and footer links, 16 px
+  for the small header text, 22 px `.lab` headings; the home statement's `<em>` is upright moss and **nothing preloads
+  the italic** (`preloadItalic` is gone, amends 0025).
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map

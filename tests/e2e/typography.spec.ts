@@ -29,9 +29,7 @@ async function fontPreloads(page: import("@playwright/test").Page): Promise<stri
     .evaluateAll((links) => links.map((l) => new URL((l as HTMLLinkElement).href).pathname));
 }
 
-test("the home page preloads the upright font, then the italic (the statement's emphasis is above the fold)", async ({
-  page,
-}) => {
+test("the home page loads only the upright font: its statement is upright (0042)", async ({ page }) => {
   for (const path of ["/", "/it"]) {
     const fonts: string[] = [];
     page.on("response", (res) => {
@@ -39,11 +37,8 @@ test("the home page preloads the upright font, then the italic (the statement's 
     });
     await page.goto(path);
     await page.evaluate(() => document.fonts.ready);
-    expect(fonts, path).toContain(UPRIGHT);
-    expect(fonts, path).toContain(ITALIC);
-    for (const font of fonts) expect(font).toMatch(/^\/_assets\/fonts\/crimson-pro(-italic)?\.woff2$/);
-    // the upright first, the italic after it, and the italic link carries crossorigin like the upright one
-    expect(await fontPreloads(page), path).toEqual([UPRIGHT, ITALIC]);
+    expect(fonts, path).toEqual([UPRIGHT]);
+    expect(await page.locator(".state em").evaluate((em) => getComputedStyle(em).fontStyle), path).toBe("normal");
     const crossorigin = await page
       .locator('link[rel="preload"][as="font"]')
       .evaluateAll((links) => links.map((l) => l.getAttribute("crossorigin")));
@@ -52,8 +47,10 @@ test("the home page preloads the upright font, then the italic (the statement's 
   }
 });
 
-test("no other page preloads the italic", async ({ page }) => {
+test("no page preloads the italic", async ({ page }) => {
   for (const path of [
+    "/",
+    "/it",
     "/journal",
     "/photos",
     "/now",
