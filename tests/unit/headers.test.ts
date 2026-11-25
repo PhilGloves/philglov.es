@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { assetHeaderLines, baseHeaders, contentSecurityPolicy, isIndexable } from "../../worker/src/headers.ts";
+import {
+  assetHeaderLines,
+  baseHeaders,
+  contentSecurityPolicy,
+  isIndexable,
+  largeHeaderLines,
+} from "../../worker/src/headers.ts";
 
 test("only production is indexable", () => {
   assert.equal(isIndexable("production"), true);
@@ -43,6 +49,15 @@ test("staging assets are noindex too (rule 15), said by the /_assets/* rule itse
   }
   assert.deepEqual(assetHeaderLines("production"), ["X-Robots-Tag: noai, noimageai"]);
   assert.equal(served([siteRule("production"), assetHeaderLines("production")]).get("x-robots-tag"), "noai, noimageai");
+});
+
+test("a photograph's large version is noindex in every environment, production included (0043)", () => {
+  for (const env of ["production", "staging", "preview", "local"])
+    assert.equal(
+      served([siteRule(env), assetHeaderLines(env), largeHeaderLines()]).get("x-robots-tag"),
+      "noindex, noai, noimageai",
+      env,
+    );
 });
 
 test("CSP is strict: self only, no unsafe-inline, no framing", () => {

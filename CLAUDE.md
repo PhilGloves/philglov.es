@@ -246,6 +246,11 @@ contatto]` …) and a bracket starting with "Placeholder"/"Segnaposto" on the bu
   (Now band 72 px like a section, footer 56/56), the latest title at 300, 19 px for the excerpt and footer links, 16 px
   for the small header text, 22 px `.lab` headings; the home statement's `<em>` is upright moss and **nothing preloads
   the italic** (`preloadItalic` is gone, amends 0025).
+- 2026-11-25: a click on a photograph opens its large version ([0043](docs/decisions/0043-watermarked-large-version.md)):
+  the single photo page and the photos in entries are a plain link (no script) to a JPEG of at most 2400 px on its long
+  edge with "© Filippo Guanti" burned into the corner (`src/lib/watermark.ts`, the image service's `watermark`
+  option); the files live in `/_assets/large/` (noindex everywhere), get the rights step like every photo, and the
+  originals stay private: no file in `dist` is longer than 2400 px. Link text "Open the large version" / "Apri la foto".
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -332,6 +337,7 @@ node scripts/contrast.ts         every colour pair with its measured contrast (u
 node scripts/restore-backup.ts <backup.json> <restore.sql>   a backup as SQL (UTF-8, no BOM) for wrangler d1 execute (README)
 node scripts/copy-originals.ts   at launch only: the originals to production's bucket (five R2_* variables, setup.md 12b)
 python scripts/build-fonts.py    rebuild the fonts from the pinned sources (by hand, only when they change)
+python scripts/build-watermark.py  redraw the watermark outlines from the font (by hand, only when text or font change)
 ```
 
 ## Rules the scaffold already enforces — keep them
@@ -377,7 +383,10 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
 - Photos: draw them only with `<Photo>` (never a bare `<img>`); alt text in the page language, hand-written. Pass
   `sizes` from `src/lib/photo-sizes.ts` and `priority` on the first image of a page only. Per-photo colours are
   generated classes (`.c-<hex>`), never inline styles. Every output image gets rights metadata and must carry no GPS:
-  `scripts/photo-rights.ts` fails the build otherwise. Originals never enter git (0019).
+  `scripts/photo-rights.ts` fails the build otherwise. Originals never enter git (0019). A photo links to its large version only
+  through `<Photo large=…>` and `EntryPhotoLinks` (0043); never read an original's `src` (Astro then copies the
+  original into `dist`), and the watermark text is drawn from `src/lib/watermark-glyphs.ts` (by hand:
+  `scripts/build-watermark.py`), never a system font.
 - Photo uploads (0031): the Worker stores one only when its var `PHOTO_UPLOADS` is `"on"`. Production always is;
   staging and preview are until launch and then `"off"`, both the same (`tests/unit/wrangler-config.test.ts`). Never
   bind staging or preview to production's bucket. The launch copy never writes over an object; tests of R2 code run

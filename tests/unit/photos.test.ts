@@ -18,6 +18,7 @@ import {
   rightsArgs,
 } from "../../scripts/lib/photo-rights.ts";
 import { authorization } from "../../scripts/lib/r2.ts";
+import { burnWatermark, JPEG_QUALITY, LARGE_EDGE, largeSize, TEXT_SHARE } from "../../src/lib/watermark.ts";
 
 // ---- R2 download: Signature V4 -------------------------------------------------
 
@@ -104,6 +105,50 @@ test("rights fields: creator, notice, credit, web statement, PLUS data-mining pr
 
 const noExiftool = hasExiftool() ? false : "exiftool is not installed (CI installs it)";
 
+// ---- the large version a click opens (decision 0043) ------------------------------------
+
+test("the large version is LARGE_EDGE px on its long edge at most, and never enlarged", () => {
+  assert.equal(LARGE_EDGE, 2400);
+  assert.deepEqual(largeSize(4000, 2667), { width: 2400, height: 1600 });
+  assert.deepEqual(largeSize(2667, 4000), { width: 1600, height: 2400 });
+  assert.deepEqual(largeSize(1600, 1200), { width: 1600, height: 1200 });
+});
+
+test("the watermark: bottom right, about 1.2 % of the long edge high, readable on light and dark, the same every time", async () => {
+  const [w, h] = [2400, 1600];
+  for (const [bg, level] of [
+    ["#e8e4da", 0xe0],
+    ["#1c1d1a", 0x1c],
+  ] as const) {
+    const plain = await sharp({ create: { width: w, height: h, channels: 3, background: bg } })
+      .png()
+      .toBuffer();
+    const marked = await burnWatermark(plain);
+    assert.ok(marked.equals(await burnWatermark(plain)), `${bg}: the same bytes every time`);
+    const meta = await sharp(marked).metadata();
+    assert.deepEqual([meta.format, meta.width, meta.height], ["jpeg", w, h]);
+    assert.equal(meta.exif, undefined, "no metadata of its own: photo-rights writes the notice");
+    const a = await sharp(marked).greyscale().raw().toBuffer();
+    const b = await sharp(plain).jpeg({ quality: JPEG_QUALITY }).greyscale().raw().toBuffer();
+    let [x0, y0, x1, y1, lighter, darker] = [w, h, 0, 0, 0, 0];
+    for (let i = 0; i < a.length; i++) {
+      const d = (a[i] ?? 0) - (b[i] ?? 0);
+      if (Math.abs(d) < 24) continue;
+      const [x, y] = [i % w, Math.floor(i / w)];
+      [x0, y0, x1, y1] = [Math.min(x0, x), Math.min(y0, y), Math.max(x1, x), Math.max(y1, y)];
+      if (d > 0) lighter++;
+      else darker++;
+    }
+    const cap = w * TEXT_SHARE;
+    assert.ok(x0 > w * 0.8 && y0 > h * 0.9, `${bg}: the mark starts at ${x0},${y0}, not in the corner`);
+    assert.ok(x1 < w - cap && y1 < h - cap, `${bg}: the mark keeps a margin (ends at ${x1},${y1})`);
+    // From the top of "F" to the bottom of "pp": a little under twice the height of the capitals.
+    assert.ok(y1 - y0 > cap && y1 - y0 < 2 * cap, `${bg}: the mark is ${y1 - y0} px high`);
+    if (level > 0x80) assert.ok(darker > 100, `${bg}: the dark edge shows on a light photo`);
+    else assert.ok(lighter > 1000, `${bg}: the white text shows on a dark photo`);
+  }
+});
+
 test(
   "a photo with a GPS position comes out with the rights fields and no position, in every format",
   { skip: noExiftool },
@@ -183,10 +228,8 @@ test(
   "no photograph in dist carries GPS data or lacks the copyright notice",
   { skip: built && hasExiftool() ? false : "needs a build and exiftool" },
   () => {
-    const assets = new URL("_assets/", dist);
-    const images = readdirSync(assets)
-      .filter((f) => /\.(avif|webp|jpe?g)$/i.test(f))
-      .map((f) => fileURLToPath(new URL(f, assets)));
+    // The large versions too, in their own folder (0043).
+    const images = filesUnder(new URL("_assets/", dist), /\.(avif|webp|jpe?g)$/i).map((f) => fileURLToPath(f));
     if (images.length === 0) return;
     const rows = JSON.parse(
       execFileSync("exiftool", ["-json", "-a", "-G1", "-Copyright", "-Rights", "-GPS*", ...images], {
@@ -222,6 +265,11 @@ test("an entry photo is capped at 1600 px with the text column as its sizes, wha
   assert.deepEqual(out.widths, [480, 800, 1200, 1600]);
   assert.equal(out.sizes, ENTRY_SIZES);
   assert.match(ENTRY_SIZES, /36rem/);
+  // A tall photo is capped by its height too, so no file is longer than 2400 px (0043).
+  const tall = capEntryImage({ "data-astro-image": "constrained", width: 1080, height: 1920, widths: [] as number[] });
+  assert.deepEqual([tall.width, tall.height], [1080, 1920]);
+  const phone = capEntryImage({ "data-astro-image": "constrained", width: 2160, height: 3840, widths: [] as number[] });
+  assert.deepEqual([phone.width, phone.height, phone.widths], [1350, 2400, [480, 800, 1200, 1350]]);
   // Portfolio photographs (<Photo>, layout "none") carry no data-astro-image and pass through untouched.
   const portfolio = { width: 2400, widths: [480, 2400], sizes: "100vw" };
   assert.deepEqual(capEntryImage(portfolio), portfolio);
@@ -287,5 +335,79 @@ test(
     }
     assert.ok(seen > 0, "the build has photographs (the fixtures do; the real site has the portrait)");
     assert.deepEqual([...big], []);
+  },
+);
+
+// ---- the large versions in the build (decision 0043) ------------------------------------
+
+test(
+  "no file in dist is longer than 2400 px on either side: the originals never reach the site",
+  { skip: built ? false : "run `pnpm build` first" },
+  async () => {
+    const big: string[] = [];
+    const images = filesUnder(dist, /\.(avif|webp|jpe?g|png|gif)$/i);
+    for (const file of images) {
+      const { width = 0, height = 0 } = await sharp(fileURLToPath(file)).metadata();
+      if (Math.max(width, height) > LARGE_EDGE) big.push(`${fileURLToPath(file)}: ${width} × ${height}`);
+    }
+    assert.ok(images.length > 0);
+    assert.deepEqual(big, []);
+  },
+);
+
+test(
+  "each large version a page links to is a JPEG in /_assets/large/, at most 2400 px, with the link text of its language",
+  { skip: built ? false : "run `pnpm build` first" },
+  async () => {
+    const text = { en: "Open the large version", it: "Apri la foto" };
+    const linked = new Map<string, string>();
+    for (const file of htmlFiles(dist)) {
+      const html = readFileSync(file, "utf8");
+      const lang = /<html lang="(en|it)"/.exec(html)?.[1] as "en" | "it";
+      const page = fileURLToPath(file).split(/[\\/]dist[\\/]/)[1] ?? "";
+      if (page === "styleguide.html") continue; // its specimen links to the top of the page
+      for (const m of html.matchAll(/<a class="large" href="([^"]+)">([^]*?)<\/a>/g)) {
+        const [, href = "", inner = ""] = m;
+        assert.match(href, /^\/_assets\/large\/[^/]+\.jpeg$/, page);
+        assert.equal((inner.match(/<img\b/g) ?? []).length, 1, `${page}: one photograph per link`);
+        assert.ok(inner.endsWith(`<span class="sr-only">${text[lang]}</span>`), `${page}: the link text`);
+        linked.set(page.replaceAll("\\", "/"), href);
+        // The page's own JPEG of the same width carries no mark: the two differ in the corner only.
+        const large = fileURLToPath(new URL(href.slice(1), dist));
+        const { width = 0, height = 0 } = await sharp(large).metadata();
+        const same = new RegExp(`(/_assets/[^ "]+\\.jpeg) ${width}w`).exec(inner)?.[1];
+        if (!same) continue;
+        const corner = (f: string, right: boolean) =>
+          sharp(f)
+            .extract({ left: right ? width - 400 : 0, top: height - 120, width: 400, height: 120 })
+            .greyscale()
+            .raw()
+            .toBuffer();
+        const plainFile = fileURLToPath(new URL(same.slice(1), dist));
+        const diff = async (right: boolean) => {
+          const [a, b] = [await corner(large, right), await corner(plainFile, right)];
+          return a.reduce((sum, v, i) => sum + Math.abs(v - (b[i] ?? 0)), 0) / a.length;
+        };
+        assert.ok((await diff(true)) > 4 * (await diff(false)) + 1, `${page}: the mark is in the large file only`);
+      }
+    }
+    for (const href of new Set(linked.values())) {
+      const meta = await sharp(fileURLToPath(new URL(href.slice(1), dist))).metadata();
+      assert.equal(meta.format, "jpeg", href);
+      assert.ok(Math.max(meta.width, meta.height) <= LARGE_EDGE, `${href}: ${meta.width} × ${meta.height}`);
+    }
+    // The fixtures cover a series photo and an entry photo, in both languages (0033).
+    if (existsSync(new URL("photos/lisbon/tram-28.html", dist)))
+      for (const page of [
+        "photos/lisbon/tram-28.html",
+        "it/photos/lisbon/alfama.html",
+        "foto.html",
+        "it/provafoto.html",
+      ])
+        assert.ok(linked.has(page), `${page} links its photograph to the large version`);
+    // A series page and the home page link their photos to the photo pages, never to a large version.
+    for (const page of ["index.html", "photos/lisbon.html", "about.html"]) assert.ok(!linked.has(page), page);
+    const sitemap = readFileSync(new URL("sitemap.xml", dist), "utf8");
+    assert.doesNotMatch(sitemap, /_assets/);
   },
 );

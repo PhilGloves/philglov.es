@@ -1,0 +1,31 @@
+---
+/**
+ * The text of a journal entry, with each of its photographs a plain link to its large version (decision 0043).
+ * Astro names every output of an original "<asset>_<hash>.<ext>", <asset> being the name Vite gave the original, so
+ * the large file's name up to its last "_" finds the <img> of the same original in the rendered text, which is then
+ * wrapped in the link. Two originals with the same bytes share one asset, and so one large version too. Astro
+ * escapes ">" in attribute values, so an <img> tag ends at the first ">". A grey stand-in gets no link (BUG-6).
+ */
+import { entryKeys } from "../../scripts/lib/photo-keys.ts";
+import { largePhoto } from "../lib/large-photo.ts";
+
+interface Props {
+  /** The entry's Markdown. */
+  body: string | undefined;
+  /** The link text after the alt text ("Open the large version"). */
+  label: string;
+}
+
+const { body, label } = Astro.props;
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+let html = await Astro.slots.render("default");
+for (const key of new Set(entryKeys(body ?? ""))) {
+  const href = await largePhoto(key);
+  if (!href) continue;
+  const stem = href.slice(0, href.lastIndexOf("_"));
+  const img = new RegExp(`<img\\b[^>]*\\bsrc="${escapeRe(stem)}_[^"]*"[^>]*>`, "g");
+  html = html.replace(img, (tag) => `<a class="large" href="${href}">${tag}<span class="sr-only">${label}</span></a>`);
+}
+---
+
+<Fragment set:html={html} />

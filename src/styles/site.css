@@ -795,6 +795,12 @@
     display: block;
   }
 
+  /* The link to a photograph's large version (0043): a block too, with a zoom-in cursor. */
+  .large {
+    display: block;
+    cursor: zoom-in;
+  }
+
   .frame picture {
     display: contents;
   }
@@ -2545,6 +2551,10 @@
       font-family: var(--font-code);
       font-size: 0.75em;
       word-break: break-all;
+    }
+
+    .prose a.large::after {
+      content: none;
     }
   }
 }

@@ -97,6 +97,16 @@ export function assetHeaderLines(env: string): string[] {
   return ["! X-Robots-Tag", "X-Robots-Tag: noindex, noai, noimageai"];
 }
 
+/** The folder of the large versions a click on a photograph opens (decision 0043); scripts/postbuild.ts moves them. */
+export const LARGE_DIR = "/_assets/large/";
+
+/**
+ * The lines of the /_assets/large/* rule, after the /_assets/* rule: in every environment a large version is never
+ * a search result of its own (noindex), and never AI training material. It detaches the earlier rules' value and
+ * writes the whole one, like assetHeaderLines.
+ */
+export const largeHeaderLines = (): string[] => ["! X-Robots-Tag", "X-Robots-Tag: noindex, noai, noimageai"];
+
 /** Apply `headers` to a response, returning a new mutable response. */
 export function withHeaders(response: Response, headers: Record<string, string>): Response {
   const out = new Response(response.body, response);

@@ -5,6 +5,9 @@
  * every one must carry the copyright notice. Fails the build otherwise, so a
  * photo can never go live without its rights fields or with a location.
  *
+ * The large versions a click opens (decision 0043) are JPEGs in dist/_assets/ like the others, so they get the same
+ * fields and the same proof; each one a page links to must also exist and be no longer than LARGE_EDGE.
+ *
  * The copyright year is the year the photo was taken: the series file's
  * `takenAt`, else the year in the file's EXIF, else the year of the build.
  * Astro names outputs "<original name>.<hash>.<ext>", which is how an output
@@ -13,9 +16,12 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import sharp from "sharp";
+import { LARGE_EDGE } from "../src/lib/watermark.ts";
+import { filesUnder } from "./lib/files.ts";
 import { collectionDir, originalsDir } from "./lib/content-root.ts";
 import type { PhotoRecord } from "./lib/photo-meta.ts";
-import { applyRights, copyrightNotice, hasExiftool } from "./lib/photo-rights.ts";
+import { applyRights, copyrightNotice, hasExiftool, largeLinks } from "./lib/photo-rights.ts";
 
 const dist = new URL("../dist/_assets/", import.meta.url);
 
@@ -61,6 +67,21 @@ const out = JSON.parse(
   }),
 ) as Record<string, unknown>[];
 const bad: string[] = [];
+// Every page but the style guide, whose specimen links nowhere real (like postbuild's `specimens`).
+const large = new Set(
+  filesUnder(new URL("../dist/", import.meta.url), /\.html$/)
+    .filter((f) => !f.pathname.endsWith("/styleguide.html"))
+    .flatMap((f) => largeLinks(readFileSync(f, "utf8"))),
+);
+for (const href of large) {
+  const name = href.startsWith("/_assets/") ? href.slice("/_assets/".length) : "";
+  if (!images.includes(name)) {
+    bad.push(`${href}: a page links to this large version, which is not a photograph in dist/_assets`);
+    continue;
+  }
+  const { width = 0, height = 0 } = await sharp(fileURLToPath(new URL(name, dist))).metadata();
+  if (Math.max(width, height) > LARGE_EDGE) bad.push(`${href}: large version is ${width} x ${height}`);
+}
 for (const row of out) {
   const keys = Object.keys(row);
   if (keys.some((k) => /GPS/i.test(k))) bad.push(`${String(row["SourceFile"])}: carries GPS data`);
@@ -71,5 +92,6 @@ if (bad.length) {
   process.exit(1);
 }
 console.log(
-  `photo-rights: rights written to ${items.length} images; none carries GPS (e.g. ${copyrightNotice(nowYear)})`,
+  `photo-rights: rights written to ${items.length} images (${large.size} large versions); none carries GPS ` +
+    `(e.g. ${copyrightNotice(nowYear)})`,
 );
