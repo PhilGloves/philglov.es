@@ -246,7 +246,7 @@ contatto]` …) and a bracket starting with "Placeholder"/"Segnaposto" on the bu
   for the small header text, 22 px `.lab` headings; the home statement's `<em>` is upright moss and **nothing preloads
   the italic** (`preloadItalic` is gone, amends 0025).
 - 2026-11-25: a click on a photograph opens its large version ([0043](docs/decisions/0043-watermarked-large-version.md)):
-  the single photo page and the photos in entries are a plain link (no script) to a JPEG of at most 2400 px on its long
+  the single photo page, the photos in entries and the About portrait are a plain link (no script) to a JPEG of at most 2400 px on its long
   edge with "© Filippo Guanti" burned into the corner (`src/lib/watermark.ts`, the image service's `watermark`
   option); the files live in `/_assets/large/` (noindex everywhere), get the rights step like every photo, and the
   originals stay private: no file in `dist` is longer than 2400 px. Link text "Open the large version" / "Apri la foto".

@@ -396,17 +396,19 @@ test(
       assert.equal(meta.format, "jpeg", href);
       assert.ok(Math.max(meta.width, meta.height) <= LARGE_EDGE, `${href}: ${meta.width} × ${meta.height}`);
     }
-    // The fixtures cover a series photo and an entry photo, in both languages (0033).
+    // The fixtures cover a series photo, an entry photo and the About portrait, in both languages (0033).
     if (existsSync(new URL("photos/lisbon/tram-28.html", dist)))
       for (const page of [
         "photos/lisbon/tram-28.html",
         "it/photos/lisbon/alfama.html",
         "foto.html",
         "it/provafoto.html",
+        "about.html",
+        "it/about.html",
       ])
         assert.ok(linked.has(page), `${page} links its photograph to the large version`);
     // A series page and the home page link their photos to the photo pages, never to a large version.
-    for (const page of ["index.html", "photos/lisbon.html", "about.html"]) assert.ok(!linked.has(page), page);
+    for (const page of ["index.html", "photos/lisbon.html"]) assert.ok(!linked.has(page), page);
     const sitemap = readFileSync(new URL("sitemap.xml", dist), "utf8");
     assert.doesNotMatch(sitemap, /_assets/);
   },

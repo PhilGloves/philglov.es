@@ -9,7 +9,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
  */
 import { render } from "astro:content";
 import site from "../data/site.json" with { type: "json" };
-import { tf, type Locale } from "../i18n";
+import { t, tf, type Locale } from "../i18n";
 import { type PageEntry } from "../lib/collections.ts";
 import { displayDate } from "../lib/dates.ts";
 import { pathFor } from "../lib/entries.ts";
@@ -54,7 +54,15 @@ const isRealEmail = /^[^@\s[\]]+@[^@\s[\]]+\.[^@\s[\]]+$/.test(email);
       {isAbout && (
         <div class="lab">
           <div class="portrait">
-            <Photo tone={3} alt={portraitAlt(locale)} src={portraitKey} sizes={SIZES.portrait} priority portrait />
+            <Photo
+              tone={3}
+              alt={portraitAlt(locale)}
+              src={portraitKey}
+              sizes={SIZES.portrait}
+              priority
+              portrait
+              large={t(locale, "openLarge")}
+            />
             <ul class="contact">
               <li>{isRealEmail ? <a href={`mailto:${email}`}>{email}</a> : email}</li>
               <li>{site.city}</li>
