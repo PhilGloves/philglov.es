@@ -57,7 +57,7 @@ test.describe("with JavaScript", () => {
       ['header nav a[href="/it/journal"]', /\/it\/journal$/],
       ["header .name a", /\/it$/],
     ] as const) {
-      await page.locator(link).first().click();
+      await page.locator(`${link}:visible`).click();
       await page.waitForURL(url);
       await expect(page.locator("html"), `after going to ${link}`).toHaveAttribute("data-theme", "dark");
       await expect(page.locator("[data-theme-toggle]")).toHaveAccessibleName(

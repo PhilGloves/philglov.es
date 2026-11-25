@@ -20,7 +20,10 @@ const lines = legendFor(rows);
   <p class="small muted">
     {lines.map(({ marker, key }) => (
       <span class="caption-line">
-        <Arrows text={`${marker} - ${t(locale, key)}`} />
+        <span aria-hidden="true">
+          <Arrows text={`${marker} - `} />
+        </span>
+        {t(locale, key)}
       </span>
     ))}
   </p>

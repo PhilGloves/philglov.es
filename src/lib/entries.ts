@@ -127,7 +127,7 @@ export type LegendKey = "legendPlain" | "legendTranslated" | "legendOnly";
 /** Legend order: plain language first, then translated, then one language only. */
 const LEGEND: readonly LegendKey[] = ["legendPlain", "legendTranslated", "legendOnly"];
 
-const legendKey = (row: Pick<Row<EntryLike>, "version" | "only">): LegendKey =>
+export const legendKey = (row: Pick<Row<EntryLike>, "version" | "only">): LegendKey =>
   row.only ? "legendOnly" : row.version.lang !== row.version.originalLang ? "legendTranslated" : "legendPlain";
 
 /** One legend line per marker shown among `rows`, in legend order: the marker and its i18n explanation key. */

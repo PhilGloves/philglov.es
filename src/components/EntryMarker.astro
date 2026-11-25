@@ -1,0 +1,17 @@
+---
+import Arrows from "./Arrows.astro";
+import { t, type Locale } from "../i18n";
+import { legendKey, type EntryLike, type Row } from "../lib/entries.ts";
+
+interface Props {
+  locale: Locale;
+  row: Pick<Row<EntryLike>, "marker" | "only" | "version">;
+}
+
+const { locale, row } = Astro.props;
+---
+
+<span aria-hidden="true">
+  <Arrows text={row.marker} />
+</span>
+<span class="sr-only">{t(locale, legendKey(row))}</span>

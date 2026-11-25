@@ -1,0 +1,36 @@
+---
+import { t, type Locale } from "../i18n";
+
+interface Props {
+  locale: Locale;
+  current?: "journal" | "photos" | "now" | "about" | undefined;
+  wide?: boolean;
+  demo?: boolean;
+}
+
+const { locale, current, wide = false, demo = false } = Astro.props;
+const prefix = locale === "en" ? "" : "/it";
+const links = [
+  { key: "journal", label: t(locale, "navJournal") },
+  { key: "photos", label: t(locale, "navPhotos") },
+  { key: "now", label: t(locale, "navNow") },
+  { key: "about", label: t(locale, "navAbout") },
+] as const;
+const Nav = demo ? "div" : "nav";
+---
+
+<Nav
+  class:list={["nav", wide ? "nav--wide" : "nav--compact"]}
+  hidden={wide}
+  aria-label={demo ? undefined : t(locale, wide ? "navWideLabel" : "navLabel")}
+>
+  <ul>
+    {links.map(({ key, label }) => (
+      <li>
+        <a href={`${prefix}/${key}`} aria-current={key === current ? "page" : undefined}>
+          {label}
+        </a>
+      </li>
+    ))}
+  </ul>
+</Nav>

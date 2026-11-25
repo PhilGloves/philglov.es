@@ -1,7 +1,7 @@
 ---
 /**
  * A photograph in a .frame. With an original in src/.originals it draws a
- * <picture>: AVIF + WebP + JPEG at 480/800/1200/1600/2400 px wide, width and
+ * <picture>: AVIF + WebP + JPEG, with smaller variants for the About portrait, width and
  * height always set, lazy except the one `priority` image per page, and the
  * photo's dominant colour as the box background through a generated class
  * (never an inline style: the CSP blocks those). Photos that have art direction
@@ -34,11 +34,13 @@ interface Props {
   sizes?: string | undefined;
   /** The first image on the page: eager and fetchpriority high. All others are lazy. */
   priority?: boolean | undefined;
+  /** The About portrait is displayed at no more than 256 CSS px. */
+  portrait?: boolean | undefined;
 }
 
-const { tone, alt, ratio, src, art, sizes = "100vw", priority = false } = Astro.props;
+const { tone, alt, ratio, src, art, sizes = "100vw", priority = false, portrait = false } = Astro.props;
 
-const WIDTHS = [480, 800, 1200, 1600, 2400];
+const WIDTHS = portrait ? [256, 512, 768] : [480, 800, 1200, 1600, 2400];
 // The plain <img>'s own file: the largest published width, never the original's size (final review T3-01). Without
 // a width, Astro writes that file at the original's full size, a print-quality copy in the page source.
 const LARGEST = Math.max(...WIDTHS);
@@ -141,7 +143,7 @@ const loading = priority ? "eager" : "lazy";
       width={capped(meta.width)}
       layout="none"
       sizes={sizes}
-      quality={QUALITY.jpeg}
+      quality={portrait ? 52 : QUALITY.jpeg}
       loading={loading}
       fetchpriority={priority ? "high" : "auto"}
       decoding="async"
