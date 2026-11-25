@@ -84,7 +84,7 @@ WAY OF WORKING
 Now uses its description for metadata and the home summary only; its page starts with the authored body (decision 0035).
 
 The header follows visual order for keyboard users at both layouts. The stacked Journal retains column headers and
-spoken language markers, and About uses portrait-sized image variants ([0041](docs/decisions/0041-front-end-audit.md)).
+spoken language markers, and About uses portrait-sized image widths at the usual JPEG quality ([0041](docs/decisions/0041-front-end-audit.md)).
 
 ## Current state (update as it changes)
 
