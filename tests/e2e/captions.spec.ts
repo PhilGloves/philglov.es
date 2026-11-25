@@ -12,21 +12,20 @@ async function expectConsecutiveLines(lines: Locator, count = 2) {
 }
 
 test("home and journal captions break between sentences and fit their columns", async ({ page }) => {
+  // Every fixture marker fits among the six entries shown on each homepage.
+  const english = [
+    "EN - written in English",
+    "IT→EN - written in Italian, translated to English",
+    "IT only - exists only in Italian so far",
+  ];
+  const italian = ["IT - scritto in italiano", "solo EN - ad oggi esiste solo in inglese"];
   for (const width of [360, 768, 1280]) {
     await page.setViewportSize({ width, height: 900 });
-    // The fixtures' newest entry is "we", English only; the Italian journal has no EN→IT entry.
     for (const [path, expected] of [
-      ["/", ["EN - written in English"]],
-      [
-        "/journal",
-        [
-          "EN - written in English",
-          "IT→EN - written in Italian, translated to English",
-          "IT only - exists only in Italian so far",
-        ],
-      ],
-      ["/it", ["solo EN - ad oggi esiste solo in inglese"]],
-      ["/it/journal", ["IT - scritto in italiano", "solo EN - ad oggi esiste solo in inglese"]],
+      ["/", english],
+      ["/journal", english],
+      ["/it", italian],
+      ["/it/journal", italian],
     ] as const) {
       await page.goto(path);
       const legend = page.locator("main .sec .lab p.small.muted").filter({ has: page.locator(".caption-line") });
