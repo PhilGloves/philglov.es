@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
+import { filesUnder } from "../../scripts/lib/files.ts";
 import { colourClass, colourCss } from "../../scripts/lib/photo-meta.ts";
 import { entryKeys, seriesKeys } from "../../scripts/lib/photo-keys.ts";
 import {
@@ -149,11 +150,7 @@ test(
 const dist = new URL("../../dist/", import.meta.url);
 const built = existsSync(new URL("index.html", dist));
 
-function htmlFiles(dir: URL): URL[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-    e.isDirectory() ? htmlFiles(new URL(`${e.name}/`, dir)) : e.name.endsWith(".html") ? [new URL(e.name, dir)] : [],
-  );
-}
+const htmlFiles = (dir: URL): URL[] => filesUnder(dir, /\.html$/);
 
 test(
   "every photograph on every page has alt text, width and height, lazy loading except one priority image",

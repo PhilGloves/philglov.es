@@ -12,28 +12,18 @@
  * (the CSP blocks those). No blur script.
  */
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { originalsDir as originals } from "./lib/content-root.ts";
+import { filesUnder } from "./lib/files.ts";
 import { colourCss, type PhotoRecord } from "./lib/photo-meta.ts";
 import { hasExiftool, readExif } from "./lib/photo-rights.ts";
 import { isStandIn } from "./lib/standins.ts";
 
 const metaFile = new URL("meta.json", originals);
 const cssFile = new URL("../src/styles/photo-colours.generated.css", import.meta.url);
-
-function walk(dir: URL): string[] {
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-    e.isDirectory()
-      ? walk(new URL(`${e.name}/`, dir))
-      : /\.(jpe?g|png)$/i.test(e.name)
-        ? [fileURLToPath(new URL(e.name, dir))]
-        : [],
-  );
-}
 
 const previous: Record<string, PhotoRecord> = existsSync(metaFile)
   ? (JSON.parse(readFileSync(metaFile, "utf8")) as Record<string, PhotoRecord>)
@@ -43,7 +33,12 @@ const root = fileURLToPath(originals);
 const next: Record<string, PhotoRecord> = {};
 let fresh = 0;
 
-for (const file of walk(originals).sort()) {
+const files = existsSync(originals)
+  ? filesUnder(originals, /\.(jpe?g|png)$/i)
+      .map((file) => fileURLToPath(file))
+      .sort()
+  : [];
+for (const file of files) {
   const key = relative(root, file).split(sep).join("/");
   // A grey stand-in for a missing original (BUG-6) has no colour or camera data to record.
   if (isStandIn(root, key)) continue;

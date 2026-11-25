@@ -3,17 +3,11 @@
  * are not (and stops), or, with ALLOW_MISSING_ORIGINALS=1 on a local machine, builds with a stand-in and a warning.
  * See scripts/lib/standins.ts (BUG-6, decision 0028).
  */
-import { readdirSync, readFileSync } from "node:fs";
 import { collectionDir, originalsPath } from "./lib/content-root.ts";
-import { entryKeys } from "./lib/photo-keys.ts";
+import { journalPhotoKeys } from "./lib/photo-keys.ts";
 import { checkOriginals } from "./lib/standins.ts";
 
-const journal = collectionDir("journal");
-const keys = readdirSync(journal).flatMap((lang) =>
-  readdirSync(new URL(`${lang}/`, journal))
-    .filter((file) => file.endsWith(".md"))
-    .flatMap((file) => entryKeys(readFileSync(new URL(`${lang}/${file}`, journal), "utf8"))),
-);
+const keys = journalPhotoKeys(collectionDir("journal"));
 
 try {
   const { missing, warning } = await checkOriginals(originalsPath, keys, process.env);

@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
+import { filesUnder } from "../../scripts/lib/files.ts";
 import { localiseFootnotes } from "../../scripts/lib/footnotes.ts";
 import { inlineScripts, sha256 } from "../../scripts/lib/inline-scripts.ts";
 import { fixtureJournal } from "../fixtures/content.ts";
@@ -10,12 +11,7 @@ const dist = new URL("../../dist/", import.meta.url);
 const built = existsSync(new URL("index.html", dist));
 const skip = built ? false : "run `pnpm build` first";
 
-function walk(dir: URL): URL[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-    e.isDirectory() ? walk(new URL(`${e.name}/`, dir)) : [new URL(e.name, dir)],
-  );
-}
-const htmlFiles = (): URL[] => walk(dist).filter((f) => f.pathname.endsWith(".html"));
+const htmlFiles = (): URL[] => filesUnder(dist, /\.html$/);
 
 test("footnote back-links get the SVG arrow and the page's language, never the ↩ glyph", () => {
   const page = (lang: string) =>
@@ -198,9 +194,9 @@ test(
       assert.doesNotMatch(html, /<[^>]+\son[a-z]+=/i, `${file.pathname}: inline event handler`);
     }
     // Every script file under /_assets/ is one a page loads, and there is only the form script.
-    const assets = walk(new URL("_assets/", dist))
-      .filter((f) => f.pathname.endsWith(".js"))
-      .map((f) => `/${f.pathname.slice(f.pathname.indexOf("_assets/"))}`);
+    const assets = filesUnder(new URL("_assets/", dist), /\.js$/).map(
+      (f) => `/${f.pathname.slice(f.pathname.indexOf("_assets/"))}`,
+    );
     assert.deepEqual(assets.sort(), [...files].sort());
     assert.equal(files.size, 1, [...files].join(", "));
   },

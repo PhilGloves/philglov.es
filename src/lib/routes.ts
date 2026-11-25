@@ -1,6 +1,6 @@
 /** getStaticPaths helpers for the four dynamic routes (entries and pages, journal, photos), shared by en and it. */
 import { getPages, getSeries, getSlots } from "./collections.ts";
-import { otherLocale, paginate, rowsFor, slugOf, type Locale } from "./entries.ts";
+import { otherLocale, pageCount, slugOf, type Locale } from "./entries.ts";
 
 /** /<slug> and /it/<slug>: journal entries and standalone pages (about, now, rights, privacy). */
 export async function slugPaths(locale: Locale) {
@@ -19,9 +19,8 @@ export async function slugPaths(locale: Locale) {
 }
 
 /** /journal, /journal/page/2 … */
-export async function journalPaths(locale: Locale) {
-  const rows = rowsFor(await getSlots(), locale);
-  const { pages } = paginate(rows, 1);
+export async function journalPaths() {
+  const pages = pageCount((await getSlots()).length);
   return Array.from({ length: pages }, (_, i) => {
     const page = i + 1;
     return { params: { rest: page === 1 ? undefined : `page/${page}` }, props: { page } };
