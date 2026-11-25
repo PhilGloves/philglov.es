@@ -54,12 +54,13 @@ NON-NEGOTIABLES
     on-request AI assistants allowed. Form data stays in the EU jurisdiction. Follow the "Rights, AI training and
     privacy" section of docs/guide.md and publish its texts unchanged.
 14. The full guide is docs/guide.md and the approved prototypes are in docs/design/. When a prompt says "the guide",
-    read the named section there instead of guessing.
+    read the named section there instead of guessing. The guide changes only on the owner's word, with a decision
+    record that says so (as in [0042](docs/decisions/0042-redline-spacing-type-emphasis.md)); the prototypes never change.
 15. Two environments. Staging: a Cloudflare workers.dev address, the whole Worker behind Cloudflare Access and
-    X-Robots-Tag: noindex on every response; all building and testing happens here until launch. Production:
-    philglov.es, added only at launch. Canonical URLs, the sitemap and metadata always use https://philglov.es. Features
-    that need the domain (notification email, Cloudflare zone settings, Search Console) are built and unit-tested now
-    behind a config switch and turned on at launch.
+    X-Robots-Tag: noindex on every response; every change is built and tested here first. Production: philglov.es,
+    live and indexable. Canonical URLs, the sitemap and metadata always use https://philglov.es. Features that need the
+    domain (notification email, Cloudflare zone settings, Search Console) sit behind a config switch, turned on in
+    production at launch (`docs/setup.md` Part 2).
 
 DESIGN DIRECTION — Calm, type-led, artistic and professional, set in a single serif typeface with light titles. Familiar layout, surprising details (MAYA principle). The approved visual spec is the two v3 prototype files,
 Home.dc.html (home page) and Article.dc.html (journal entry with comments and reply form), saved in docs/design/: match
@@ -87,12 +88,10 @@ spoken language markers, and About uses portrait-sized image variants ([0041](do
 
 ## Current state (update as it changes)
 
-- **Today (2026-11-20):** build phase. No domain yet; the site deploys only to the private staging Worker on
-  workers.dev. Repository is **public**. Everything in `TICKETS.md` is built; what is left waits for the owner: the
-  entries and photos (Home, About, Now and the facts are the owner's since 0034; the launch date is the one gap left), the security
-  checklist (O6), Lighthouse on Windows (Q17), and launch (`docs/setup.md` Part 2). `docs/setup.md` Part 1 is done
-  except passkeys (owner to confirm) and two settings: `CLOUDFLARE_ACCOUNT_ID` as a Dependabot secret (step 5) and the
-  live-check service token (step 8b). Read [docs/handover.md](docs/handover.md) first; the owner's own how-to for
+- **Today (2026-11-25):** launched. The site is live at **https://philglov.es** (production Worker, no noindex);
+  staging stays the private workers.dev Worker behind Access. Repository is **public**. Everything in `TICKETS.md` is
+  built. Which steps of `docs/setup.md` Part 2 and the owner checklists (O6 security, Q17 Lighthouse on Windows) are
+  done is not recorded here yet: ask the owner before assuming either way, and note the answer here. Read [docs/handover.md](docs/handover.md) first; the owner's own how-to for
   failures is [docs/owner-playbook.md](docs/owner-playbook.md).
 - `main` is protected (ruleset "Protect main", 2026-11-11): every change goes through a pull request, the `Test`
   check must pass, no force pushes, no deletion, nobody can bypass.
@@ -289,7 +288,7 @@ tests/site/                   smoke.spec.ts: every page of the owner's own build
 scripts/lib/content-root.ts   which content a build reads (SITE_CONTENT unset = the site; fixtures; empty) (0033)
 docs/qa/                      bug-reports.md, manual-checklist.md; QA-REPORT.md at the root is the coverage report
 SECURITY-REPORT.md            security audit findings and the owner checklist (0030)
-docs/guide.md docs/design/    owner's guide and prototypes — never edit
+docs/guide.md docs/design/    owner's guide (only on the owner's word, with a decision) and prototypes (never edit)
 docs/decisions/               one record per architectural decision
 docs/setup.md                 steps only the owner can do (Git Bash)
 docs/owner-playbook.md        the owner's step lists when something breaks: red Test, failed deploy, leaked key …
