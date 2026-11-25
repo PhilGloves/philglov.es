@@ -1,5 +1,6 @@
 ---
 import Arrows from "../components/Arrows.astro";
+import EntryMarker from "../components/EntryMarker.astro";
 import EntryTable from "../components/EntryTable.astro";
 import MarkerLegend from "../components/MarkerLegend.astro";
 import Photo from "../components/Photo.astro";
@@ -22,6 +23,7 @@ const { locale } = Astro.props;
 const rows = rowsFor(await getSlots(), locale) as Row<EntryLike>[];
 const [latest, ...older] = rows;
 const earlier = older.slice(0, 5);
+const [beforeLatest, afterLatest] = t(locale, "heroLede3").split("{latest}");
 const series = await getSeries();
 const photos = series.flatMap((s) => s.photos.map((p) => ({ ...p, seriesTitle: s.title[locale] })));
 const hero = photos[0];
@@ -60,7 +62,17 @@ const path = locale === "en" ? "/" : "/it";
       <p class="lede">
         {t(locale, "heroLede1")} <a href={pathFor(locale, "/now")}>{t(locale, "heroNow")}</a>
         {t(locale, "heroLede2")} <a href={pathFor(locale, "/about")}>{t(locale, "heroAbout")}</a>
-        {t(locale, "heroLede3")}
+        {latest ? (
+          <>
+            {beforeLatest}
+            <a href={latest.href} hreflang={latest.only ? latest.version.lang : undefined}>
+              {t(locale, "heroLatest")}
+            </a>
+            {afterLatest}
+          </>
+        ) : (
+          "."
+        )}
       </p>
     </div>
 
@@ -96,7 +108,7 @@ const path = locale === "en" ? "/" : "/it";
               : tf(locale, "journalCount", { n: rows.length, year: firstYear })}
           </p>
         )}
-        <MarkerLegend locale={locale} rows={latest ? [latest] : []} />
+        <MarkerLegend locale={locale} rows={rows.slice(0, earlier.length + 1)} />
       </div>
       <div class="con">
         {latest ? (
@@ -107,7 +119,7 @@ const path = locale === "en" ? "/" : "/it";
               </span>
               <time datetime={isoDate(latest.slot.date)}>{displayDate(locale, latest.slot.date)}</time>
               <b>
-                <Arrows text={latest.marker} />
+                <EntryMarker locale={locale} row={latest} />
               </b>
             </p>
             <h3>
@@ -121,9 +133,7 @@ const path = locale === "en" ? "/" : "/it";
             </h3>
             <div class="ex">
               <p>{latest.version.entry.data.description}</p>
-              <a class="go" href={latest.href}>
-                <Arrows text={tf(locale, "readMin", { n: latest.version.minutes })} />
-              </a>
+              <span class="small muted">{tf(locale, "minutes", { n: latest.version.minutes })}</span>
             </div>
           </div>
         ) : (

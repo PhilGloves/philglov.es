@@ -38,6 +38,15 @@ const describeViolations = (list: Violation[]) =>
 
 test.describe.configure({ mode: "parallel" });
 
+test("the stacked journal keeps its column labels and announces the meaning of language markers", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/journal");
+  const index = page.getByRole("table").first();
+  await expect(index.getByRole("columnheader", { name: "Date" })).toHaveCount(1);
+  await expect(index.getByRole("columnheader", { name: "Title" })).toHaveCount(1);
+  await expect(index.getByRole("cell", { name: "written in Italian, translated to English" })).toHaveCount(1);
+});
+
 for (const built of builtPages()) {
   test(`axe: ${built.path} has no violations in light and dark, at 1440 and 390 px`, async ({
     page,
@@ -57,11 +66,6 @@ for (const built of builtPages()) {
         await page.evaluate(() => document.fonts.ready);
         const violations = await axe(page, {
           runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"] },
-          // BUG-1 has its own test below. The styleguide's demo footer places two controls closer than 24 px.
-          rules: {
-            "label-content-name-mismatch": { enabled: false },
-            ...(built.path === "/styleguide" ? { "target-size": { enabled: false } } : {}),
-          },
           resultTypes: ["violations"],
         });
         found.push(...describeViolations(violations).map((v) => `${theme} ${width}px: ${v}`));

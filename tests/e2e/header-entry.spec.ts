@@ -135,6 +135,20 @@ for (const [path, signOff] of [
   });
 }
 
+test("header tab order follows the visible rows at phone and desktop widths", async ({ page }) => {
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await page.keyboard.press("Tab");
+    await expect(page.locator("a.skip")).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.locator("header .name a")).toBeFocused();
+    await page.keyboard.press("Tab");
+    const next = width === 390 ? "header .lang-switch" : 'header nav a[href="/journal"]:visible';
+    await expect(page.locator(next)).toBeFocused();
+  }
+});
+
 // TO-02 (third review, fixed in fix round 2): on phones every main navigation link is at least 44 × 44 px to tap, in both
 // languages, and the menu looks the same: the hit area grows by padding that a negative margin takes back, so the words
 // keep their place and the 22 px between them.
@@ -145,7 +159,7 @@ for (const path of ["/", "/it", "/lisbona", "/it/journal"]) {
     }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(path);
-      const links = page.locator("header nav a");
+      const links = page.locator("header nav a:visible");
       expect(await links.count()).toBe(4);
       const boxes = await links.evaluateAll((all) =>
         all.map((a) => {

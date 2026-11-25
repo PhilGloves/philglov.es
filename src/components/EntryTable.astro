@@ -1,5 +1,5 @@
 ---
-import Arrows from "./Arrows.astro";
+import EntryMarker from "./EntryMarker.astro";
 /**
  * The journal table (markup from /styleguide, "Home"): number, date, title,
  * language marker, minutes. Entries that exist only in the other
@@ -51,7 +51,7 @@ const { locale, rows, caption, captionHidden = false } = Astro.props;
         </td>
         <td class="ln">
           <span class:list={{ only: row.only }}>
-            <Arrows text={row.marker} />
+            <EntryMarker locale={locale} row={row} />
           </span>
         </td>
         <td class="mn">

@@ -54,7 +54,7 @@ const isRealEmail = /^[^@\s[\]]+@[^@\s[\]]+\.[^@\s[\]]+$/.test(email);
       {isAbout && (
         <div class="lab">
           <div class="portrait">
-            <Photo tone={3} alt={portraitAlt(locale)} src={portraitKey} sizes={SIZES.portrait} priority />
+            <Photo tone={3} alt={portraitAlt(locale)} src={portraitKey} sizes={SIZES.portrait} priority portrait />
             <ul class="contact">
               <li>{isRealEmail ? <a href={`mailto:${email}`}>{email}</a> : email}</li>
               <li>{site.city}</li>

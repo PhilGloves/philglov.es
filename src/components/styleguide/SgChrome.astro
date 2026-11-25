@@ -1,5 +1,4 @@
 ---
-import Arrows from "../Arrows.astro";
 /** Skip link, header and navigation (both languages), buttons, theme toggle, focus. */
 import SiteHeader from "../SiteHeader.astro";
 ---
@@ -15,7 +14,7 @@ import SiteHeader from "../SiteHeader.astro";
 <SiteHeader locale="en" path="/styleguide" current="journal" demo />
 <SiteHeader locale="it" path="/it/styleguide" current="photos" demo />
 <div class="page sg-type">
-  <p class="sg-theme">Buttons, toggle, links</p>
+  <p class="sg-theme">Buttons</p>
   <p class="ffoot">
     <button type="button" class="btn">
       Send
@@ -32,75 +31,5 @@ import SiteHeader from "../SiteHeader.astro";
     <button type="button" class="btn sg-focus">
       Keyboard focus
     </button>
-  </p>
-  <p class="ffoot">
-    <button type="button" class="rbtn theme-toggle">
-      <span class="sr-only to-dark">Switch to dark theme</span>
-      <span class="sr-only to-light">Switch to light theme</span>
-      <svg
-        class="i-moon"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.6"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"></path>
-      </svg>
-      <svg
-        class="i-sun"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.6"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <circle cx="12" cy="12" r="4"></circle>
-        <path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"></path>
-      </svg>
-    </button>
-    <button type="button" class="rbtn theme-toggle">
-      <span class="sr-only to-dark">Switch to dark theme</span>
-      <span class="sr-only to-light">Switch to light theme</span>
-      <svg
-        class="i-moon"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.6"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"></path>
-      </svg>
-      <svg
-        class="i-sun"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.6"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <circle cx="12" cy="12" r="4"></circle>
-        <path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"></path>
-      </svg>
-    </button>
-    <a class="rbtn lang-switch" href="#sg-top" lang="it" hreflang="it" aria-label="Italiano">
-      IT
-    </a>
-    <a class="go" href="#sg-top">
-      <Arrows text="Read · 8 min →" />
-    </a>
   </p>
 </div>

@@ -7,6 +7,7 @@
  * `demo` renders the same markup without landmarks, for /styleguide.
  */
 import { t, twinPath, type Locale } from "../i18n";
+import SiteNav from "./SiteNav.astro";
 
 interface Props {
   locale: Locale;
@@ -20,48 +21,30 @@ interface Props {
 
 const { locale, path, hasTwin = true, current, demo = false } = Astro.props;
 const other: Locale = locale === "en" ? "it" : "en";
-const prefix = locale === "en" ? "" : "/it";
 const home = locale === "en" ? "/" : "/it";
-const switchHref = hasTwin ? twinPath(locale, path) : twinPath(locale, home);
-const links = [
-  { key: "journal", href: `${prefix}/journal`, label: t(locale, "navJournal") },
-  { key: "photos", href: `${prefix}/photos`, label: t(locale, "navPhotos") },
-  { key: "now", href: `${prefix}/now`, label: t(locale, "navNow") },
-  { key: "about", href: `${prefix}/about`, label: t(locale, "navAbout") },
-] as const;
+const switchHref = hasTwin && !demo ? twinPath(locale, path) : twinPath(locale, home);
 // The visible text is the language code; the name starts with it (WCAG 2.5.3, BUG-1) and goes on with the whole
 // language name, in that language, plus the note when this page has no twin (the link then opens the other home page).
 const switchName =
   `${other.toUpperCase()}, ${t(locale, "otherLanguageName")}` +
   (!hasTwin && !demo ? ` - ${t(locale, "switchNoTwin")}` : "");
 const Header = demo ? "div" : "header";
-const Nav = demo ? "div" : "nav";
 ---
 
 <div class="page">
   <Header class="head">
     <p class="name">
-      <a href={demo ? "#" : home}>
+      <a href={home}>
         <b>Filippo Guanti</b>
         <span>philglov.es</span>
       </a>
     </p>
-    <Nav class="nav" aria-label={demo ? undefined : t(locale, "navLabel")}>
-      <ul>
-        {links.map((link) => (
-          <li>
-            <a href={demo ? "#" : link.href} aria-current={link.key === current ? "page" : undefined}>
-              {link.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </Nav>
+    <SiteNav locale={locale} current={current} demo={demo} wide />
     <div class="tools">
-      <a class="rbtn lang-switch" href={demo ? "#" : switchHref} hreflang={other} lang={other} aria-label={switchName}>
+      <a class="rbtn lang-switch" href={switchHref} hreflang={other} lang={other} aria-label={switchName}>
         {other.toUpperCase()}
       </a>
-      <button type="button" class="rbtn theme-toggle" data-theme-toggle>
+      <button type="button" class="rbtn theme-toggle" disabled={demo} data-theme-toggle={demo ? undefined : true}>
         <span class="sr-only to-dark">{t(locale, "themeToDark")}</span>
         <span class="sr-only to-light">{t(locale, "themeToLight")}</span>
         <svg
@@ -93,5 +76,6 @@ const Nav = demo ? "div" : "nav";
         </svg>
       </button>
     </div>
+    <SiteNav locale={locale} current={current} demo={demo} />
   </Header>
 </div>
