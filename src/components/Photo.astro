@@ -7,11 +7,14 @@
  * (never an inline style: the CSP blocks those). Photos that have art direction
  * (photos.json `art`) get one <source media> per breakpoint. Without an
  * original it draws the tone placeholder, so the site builds before any photo
- * is uploaded (ticket P2).
+ * is uploaded (ticket P2). With `large` (the link text) and a real original, the photo is a plain link to its
+ * watermarked large version (src/lib/large-photo.ts, decision 0043); a placeholder or a grey stand-in gets none.
  */
 import { Picture, getImage } from "astro:assets";
 import { colourClass } from "../../scripts/lib/photo-meta.ts";
+import { largePhoto } from "../lib/large-photo.ts";
 import { originals, records } from "../lib/photo-meta.ts";
+import { JPEG_QUALITY, LARGE_EDGE } from "../lib/watermark.ts";
 
 type Gravity =
   "center" | "top" | "bottom" | "left" | "right" | "top left" | "top right" | "bottom left" | "bottom right";
@@ -36,16 +39,25 @@ interface Props {
   priority?: boolean | undefined;
   /** The About portrait is displayed at no more than 256 CSS px. */
   portrait?: boolean | undefined;
+  /** The link text after the alt text ("Open the large version"): the photo links to its large version. */
+  large?: string | undefined;
 }
 
-const { tone, alt, ratio, src, art, sizes = "100vw", priority = false, portrait = false } = Astro.props;
+const { tone, alt, ratio, src, art, sizes = "100vw", priority = false, portrait = false, large } = Astro.props;
 
 const WIDTHS = portrait ? [256, 512, 768] : [480, 800, 1200, 1600, 2400];
 // The plain <img>'s own file: the largest published width, never the original's size (final review T3-01). Without
 // a width, Astro writes that file at the original's full size, a print-quality copy in the page source.
 const LARGEST = Math.max(...WIDTHS);
-const capped = (width: number): number => Math.min(width, LARGEST);
-const QUALITY = { avif: 55, webp: 70, jpeg: 78 } as const;
+// No file is longer than LARGE_EDGE on either side either: a tall photo 2400 px wide would be 3600 px high (0043).
+const maxWidth = (width: number, height: number): number =>
+  Math.min(LARGEST, Math.floor((LARGE_EDGE * width) / Math.max(width, height)));
+const capped = (width: number, height: number): number => Math.min(width, maxWidth(width, height));
+const widthsFor = (width: number, height: number): number[] => {
+  const max = maxWidth(width, height);
+  return max >= LARGEST ? WIDTHS : [...WIDTHS.filter((w) => w < max), max];
+};
+const QUALITY = { avif: 55, webp: 70, jpeg: JPEG_QUALITY } as const;
 const record = src ? records[src] : undefined;
 const load = src ? originals[src] : undefined;
 const meta = record && load ? (await load()).default : undefined;
@@ -81,7 +93,7 @@ async function sourcesFor(crop: Crop | undefined, media: string | undefined) {
         src: c.image,
         format,
         layout: "none",
-        widths: WIDTHS,
+        widths: c.fit ? widthsFor(c.width, c.height) : widthsFor(c.image.width, c.image.height),
         sizes,
         quality: QUALITY[format],
         ...(c.fit && { width: c.width, height: c.height, fit: c.fit, position: c.position }),
@@ -112,43 +124,50 @@ const fallbackImg =
         src: fallback.image,
         format: "jpeg",
         layout: "none",
-        widths: WIDTHS,
+        widths: fallback.fit
+          ? widthsFor(fallback.width, fallback.height)
+          : widthsFor(fallback.image.width, fallback.image.height),
         sizes,
         quality: QUALITY.jpeg,
         ...(fallback.fit
           ? {
               // The crop at its ratio, scaled down to the largest published width.
-              width: capped(fallback.width),
-              height: Math.round((fallback.height * capped(fallback.width)) / fallback.width),
+              width: capped(fallback.width, fallback.height),
+              height: Math.round((fallback.height * capped(fallback.width, fallback.height)) / fallback.width),
               fit: fallback.fit,
               position: fallback.position,
             }
-          : { width: capped(fallback.image.width) }),
+          : { width: capped(fallback.image.width, fallback.image.height) }),
       })
     : undefined;
 
 const boxClass = ["frame", ratio && `frame--${ratio}`, record ? colourClass(record.colour) : `tone-${tone}`];
 const placeholderClass = ratio === "auto" ? [...boxClass.slice(0, 1), "frame--land", ...boxClass.slice(2)] : boxClass;
 const loading = priority ? "eager" : "lazy";
+const largeSrc = large && !directed ? await largePhoto(src) : undefined;
+const Link = largeSrc ? "a" : Fragment;
 ---
 
 {meta && !directed ? (
-  <div class:list={boxClass}>
-    <Picture
-      src={meta}
-      alt={alt}
-      formats={["avif", "webp"]}
-      fallbackFormat="jpeg"
-      widths={WIDTHS}
-      width={capped(meta.width)}
-      layout="none"
-      sizes={sizes}
-      quality={portrait ? 52 : QUALITY.jpeg}
-      loading={loading}
-      fetchpriority={priority ? "high" : "auto"}
-      decoding="async"
-    />
-  </div>
+  <Link {...(largeSrc && { class: "large", href: largeSrc })}>
+    <div class:list={boxClass}>
+      <Picture
+        src={meta}
+        alt={alt}
+        formats={["avif", "webp"]}
+        fallbackFormat="jpeg"
+        widths={widthsFor(meta.width, meta.height)}
+        width={capped(meta.width, meta.height)}
+        layout="none"
+        sizes={sizes}
+        quality={portrait ? 52 : QUALITY.jpeg}
+        loading={loading}
+        fetchpriority={priority ? "high" : "auto"}
+        decoding="async"
+      />
+    </div>
+    {largeSrc && <span class="sr-only">{large}</span>}
+  </Link>
 ) : meta && directed && fallbackImg ? (
   <div class:list={boxClass}>
     <picture>

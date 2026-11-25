@@ -6,6 +6,8 @@ _Amended by [0030](0030-security-audit.md): CI no longer caches `src/.originals`
 
 _Amended by [0031](0031-photos-at-launch.md): at launch the originals the content uses are copied once from the staging bucket to production's, the builds switch to production's bucket, and staging and preview stop taking uploads (`PHOTO_UPLOADS`)._
 
+_Amended by [0043](0043-watermarked-large-version.md): a click on a photograph opens a watermarked JPEG, 2400 px on its long edge at most, made at build time; the originals stay private, and no file in `dist` is longer than 2400 px._
+
 **Context.** Photos must look as good as the camera made them and still load on a bad connection, with no third-party
 requests, no inline styles (CSP) and no location data in any published file. The originals live only in the private
 R2 bucket; the repository holds `photos.json` per series.

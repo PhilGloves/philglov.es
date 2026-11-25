@@ -1,6 +1,6 @@
 ---
 import Arrows from "../Arrows.astro";
-/** Photos: series cards, a series grid, the single photo page and paging. */
+/** Photos: series cards, a series grid, the single photo page (its photo a link to the large version) and paging. */
 const series = [
   { title: "Lisbon", meta: "12 photos · 2026", tone: "tone-1" },
   { title: "Vienna", meta: "8 photos · 2026", tone: "tone-3" },
@@ -69,9 +69,14 @@ const grid = [
     </div>
     <div class="con">
       <figure>
-        <div class="frame frame--land tone-6" role="img" aria-label="Placeholder photograph at its own proportions">
-          <span aria-hidden="true">[ large photo ]</span>
-        </div>
+        {/* The photo links to its watermarked large version (0043): a plain link, a block, a zoom-in cursor; its
+            name is the alt text, then the link text. Photo.astro draws it (prop `large`), only for a real original. */}
+        <a class="large" href="#sg-top">
+          <div class="frame frame--land tone-6" role="img" aria-label="Placeholder photograph at its own proportions">
+            <span aria-hidden="true">[ large photo ]</span>
+          </div>
+          <span class="sr-only">Open the large version</span>
+        </a>
         <figcaption class="cap">
           <span>Tram 28 on Rua da Graça · Lisbon, 2026</span>
           <a href="#sg-top">

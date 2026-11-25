@@ -247,6 +247,11 @@ test(
         ? /\/_assets\/\*\n {2}X-Robots-Tag: noai, noimageai\n/
         : /\/_assets\/\*\n {2}! X-Robots-Tag\n {2}X-Robots-Tag: noindex, noai, noimageai\n/,
     );
+    // The large versions of the photographs: noindex in every environment, after the /_assets/* rule (0043).
+    assert.match(
+      headers,
+      /\/_assets\/\*\n(?: {2}.*\n)+\n\/_assets\/large\/\*\n {2}! X-Robots-Tag\n {2}X-Robots-Tag: noindex, noai, noimageai\n/,
+    );
     assert.match(headers, /tdm-reservation: 1/);
     assert.match(headers, /script-src 'self' 'sha256-/);
   },

@@ -1,6 +1,7 @@
 ---
 import Arrows from "../components/Arrows.astro";
 import CommentSection from "../components/CommentSection.astro";
+import EntryPhotoLinks from "../components/EntryPhotoLinks.astro";
 import LanguageLabel from "../components/LanguageLabel.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 /** A journal entry (Article.dc.html): the title, then the text at once; the details block, previous/next, comments. */
@@ -65,7 +66,9 @@ const neighbours = [
     <div class="g">
       <div class="con">
         <div class="prose">
-          <Content />
+          <EntryPhotoLinks body={entry.body} label={t(locale, "openLarge")}>
+            <Content />
+          </EntryPhotoLinks>
           <p class="sign">{t(locale, "signOff")}</p>
         </div>
 

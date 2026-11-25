@@ -45,6 +45,11 @@ export function hasExiftool(): boolean {
   }
 }
 
+/** The large versions a built page links to (decision 0043): the `href` of each `<a class="large">`. */
+export function largeLinks(html: string): string[] {
+  return [...html.matchAll(/<a class="large" href="([^"]+)"/g)].map((m) => m[1] ?? "");
+}
+
 /** Writes the rights fields into each file in place. `items` are absolute paths with their copyright year. */
 export function applyRights(items: { file: string; year: number }[]): void {
   if (items.length === 0) return;
