@@ -226,8 +226,7 @@ const invalid = (errors: EntryErrors | undefined, field: keyof EntryErrors): Saf
  * version's alt text and caption under the fields, in its own language (`data-hint`, which the page's script keeps
  * when it restores a browser copy).
  */
-function photoItem(photo: PhotoRef, index: number, hint?: PhotoRef, hintLang?: Lang): Safe {
-  const id = `ph-${index}`;
+function photoItem(id: string, photo?: PhotoRef, hint?: PhotoRef, hintLang?: Lang): Safe {
   const said = (field: "alt" | "cap", text: string): Safe | string => {
     if (!hint || !hintLang) return "";
     const what = field === "alt" ? "alt text" : "caption";
@@ -241,16 +240,16 @@ function photoItem(photo: PhotoRef, index: number, hint?: PhotoRef, hintLang?: L
   };
   const described = (field: "alt" | "cap"): Safe => new Safe(hint ? ` aria-describedby="${id}-${field}-hint"` : "");
   return html`<li class="card photo-item">
-    <input type="hidden" name="photo_key" value="${photo.key}" />
-    <p class="fine">${photo.key.split("/").pop() ?? photo.key}</p>
+    <input type="hidden" name="photo_key"${photo ? html` value="${photo.key}"` : ""} />
+    <p class="fine">${photo?.key.split("/").pop() ?? ""}</p>
     <div class="field">
       <label for="${id}-alt">Alt text: what is in it and why it matters</label
-      ><input id="${id}-alt" name="photo_alt" required maxlength="300" value="${photo.alt}"${described("alt")} />
+      ><input id="${id}-alt" name="photo_alt" required maxlength="300"${photo ? html` value="${photo.alt}"` : ""}${described("alt")} />
       ${said("alt", hint?.alt ?? "")}
     </div>
     <div class="field">
       <label for="${id}-cap">Caption</label
-      ><input id="${id}-cap" name="photo_caption" maxlength="300" value="${photo.caption}"${described("cap")} />
+      ><input id="${id}-cap" name="photo_caption" maxlength="300"${photo ? html` value="${photo.caption}"` : ""}${described("cap")} />
       ${said("cap", hint?.caption ?? "")}
     </div>
     <div class="actions"><button type="button" class="btn btn--ghost" data-remove>Remove</button></div>
@@ -568,8 +567,9 @@ ${input.body}</textarea
       <noscript><p class="fine">Adding photos needs JavaScript; the text works without it.</p></noscript>
       ${fieldError(errors, "photos", "w-photos")}
       <ol class="queue" id="photo-list">
-        ${input.photos.map((p, i) => photoItem(p, i, hints.get(p.key), twin?.lang))}
+        ${input.photos.map((p, i) => photoItem(`ph-${i}`, p, hints.get(p.key), twin?.lang))}
       </ol>
+      <template id="photo-row">${photoItem("ph-template")}</template>
       <div class="actions">
         <button type="submit" name="intent" value="publish" class="btn">${isEdit ? "Save changes" : "Publish"}</button>
         <button type="submit" name="intent" value="save" class="btn btn--ghost" formnovalidate>Save draft</button>
@@ -910,9 +910,10 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
     const cleared = draftId || (isFixed ? editKey(input.lang, input.slug) : "new");
     // The other language next: its edit form, or the form that writes it from this one (0029).
     const next = other(input.lang);
-    const otherLink = html`<p>
-      <a href="${editLink(input.slug, next)}">${twin ? "Edit" : "Write"} the ${LANG_NAME[next]} version</a>
-    </p>`;
+    const afterPublish = html`<p>
+        <a href="${editLink(input.slug, next)}">${twin ? "Edit" : "Write"} the ${LANG_NAME[next]} version</a>
+      </p>
+      <p><a href="/admin/write">Write another entry</a></p>`;
 
     // This file already has a publisher pull request open (T2-03): the same text again is a resend (a double tap,
     // or the "Published" page reloaded), answered with that pull request; another text waits until it has merged.
@@ -933,8 +934,7 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
             It goes live once the checks pass. If it is still waiting after 15 minutes, the write page shows it as
             needing attention, with the link: <a href="${resent.url}">the pull request</a>.
           </p>
-          ${otherLink}
-          <p><a href="/admin/write">Write another entry</a></p>`;
+          ${afterPublish}`;
         return adminPage(env, { title: "Already on its way", current: "write", body, script: "write" });
       }
       const newest = waiting[waiting.length - 1];
@@ -979,8 +979,7 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
             green.
           </div>
           <p><a class="btn" href="${pr.url}">Open the pull request</a></p>
-          ${otherLink}
-          <p><a href="/admin/write">Write another entry</a></p>`
+          ${afterPublish}`
       : html`<h2 class="admin-title">${isEdit ? "Saved" : "Published"}</h2>
           <p class="notice" role="status" id="published" data-clear="${cleared}">
             ${isEdit ? "Your changes" : "The entry"} will be live in a few minutes at
@@ -990,8 +989,7 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
             It goes live once the checks pass. If it is still waiting after 15 minutes, this page shows it as needing
             attention, with the link: <a href="${pr.url}">the pull request</a>.
           </p>
-          ${otherLink}
-          <p><a href="/admin/write">Write another entry</a></p>`;
+          ${afterPublish}`;
     return adminPage(env, { title: isEdit ? "Saved" : "Published", current: "write", body, script: "write" });
   } catch (error) {
     if (isEdit && error instanceof GitHubError && error.status === 409 && error.step === "write file") {

@@ -148,27 +148,24 @@ export const WRITE_SCRIPT = String.raw`"use strict";
 
   function photoItem(photoKey, alt, caption) {
     var id = "phn-" + (counter++);
-    var li = el("li", { class: "card photo-item" });
-    li.appendChild(el("input", { type: "hidden", name: "photo_key", value: photoKey }));
-    li.appendChild(el("p", { class: "fine" }, photoKey.split("/").pop()));
-    [["alt", "Alt text: what is in it and why it matters", alt, true], ["cap", "Caption", caption, false]].forEach(function (f) {
-      var field = el("div", { class: "field" });
-      field.appendChild(el("label", { for: id + "-" + f[0] }, f[1]));
-      var input = el("input", { id: id + "-" + f[0], name: f[0] === "alt" ? "photo_alt" : "photo_caption", maxlength: "300" });
-      if (f[3]) input.required = true;
-      input.value = f[2] || "";
-      field.appendChild(input);
-      var hint = (hints[photoKey] || {})[f[0]];
+    var li = $("photo-row").content.firstElementChild.cloneNode(true);
+    li.querySelector('input[name="photo_key"]').value = photoKey;
+    li.querySelector(".fine").textContent = photoKey.split("/").pop();
+    function fill(suffix, value) {
+      var input = li.querySelector("#ph-template-" + suffix);
+      var field = input.parentNode;
+      input.id = id + "-" + suffix;
+      field.querySelector("label").htmlFor = input.id;
+      input.value = value || "";
+      var hint = (hints[photoKey] || {})[suffix];
       if (hint) {
-        hint.id = id + "-" + f[0] + "-hint";
+        hint.id = input.id + "-hint";
         input.setAttribute("aria-describedby", hint.id);
         field.appendChild(hint);
       }
-      li.appendChild(field);
-    });
-    var actions = el("div", { class: "actions" });
-    actions.appendChild(el("button", { type: "button", class: "btn btn--ghost", "data-remove": "" }, "Remove"));
-    li.appendChild(actions);
+    }
+    fill("alt", alt);
+    fill("cap", caption);
     return li;
   }
 

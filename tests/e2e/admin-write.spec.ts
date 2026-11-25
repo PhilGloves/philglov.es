@@ -110,6 +110,7 @@ const FOTO_KEY = "foto/1000029179-9gp7.jpg";
 
 test("a missing language is a link that opens its form: slug fixed, text empty, the same photos with hints", async ({
   page,
+  javaScriptEnabled,
 }) => {
   const uploads: string[] = [];
   page.on("request", (r) => {
@@ -145,6 +146,15 @@ test("a missing language is a link that opens its form: slug fixed, text empty, 
   await expect(page.locator("#published")).toHaveCount(0);
   expect(admin.github.calls.filter((c) => c.method === "PUT")).toEqual([]);
   await alt.fill("Pinzette su un tavolo");
+  if (javaScriptEnabled) {
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("philglov-write:edit-it-foto")))
+      .toContain("Pinzette su un tavolo");
+    await page.reload();
+    await expect(page.getByRole("status").filter({ hasText: "Restored what you typed" })).toBeVisible();
+    await expect(alt).toHaveValue("Pinzette su un tavolo");
+    await expect(alt).toHaveAccessibleDescription("English version: Pinzette");
+  }
   await page.getByRole("button", { name: "Publish" }).click();
   await expect(page.locator("#published")).toBeVisible();
   const puts = admin.github.calls.filter((c) => c.method === "PUT");

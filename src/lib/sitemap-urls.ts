@@ -3,7 +3,7 @@
  * collection (feeds.ts reads the real one). hreflang alternates only where both language versions exist.
  */
 import { isoDate } from "./dates.ts";
-import { journalPath, paginate, pathFor, rowsFor, slugOf, type Locale, type Slot } from "./entries.ts";
+import { journalPath, pageCount, pathFor, slugOf, type Locale, type Slot } from "./entries.ts";
 import type { EntryLike } from "./entries.ts";
 import { absolute } from "./seo.ts";
 import type { SitemapUrl } from "./xml.ts";
@@ -34,7 +34,7 @@ export function sitemapUrls<E extends EntryLike>({ slots, pages, series }: Sitem
   urls.push(...both("/journal"));
   // /journal/page/2 and on, once an index holds more than 50 entries (SO-07). Both languages list every entry (the
   // ones in the other language only are marked), so both have the same number of pages.
-  const journalPages = Math.max(...(["en", "it"] as const).map((l) => paginate(rowsFor(slots, l), 1).pages));
+  const journalPages = pageCount(slots.length);
   for (let page = 2; page <= journalPages; page++) urls.push(...pair(journalPath("en", page), journalPath("it", page)));
   urls.push(...both("/photos"));
 

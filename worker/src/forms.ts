@@ -119,6 +119,28 @@ async function again(
   return servePage(request, env, ctx, { path, status, failure });
 }
 
+/** Reject bots before touching the rate limit. Successful checks yield the hash used for storage. */
+async function checkSubmission(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  form: URLSearchParams,
+  path: string,
+  submission: Pick<Failure, "form" | "values" | "url">,
+): Promise<string | Response> {
+  const spam = await spamCheck(env, form);
+  if (spam) {
+    log("spam rejected");
+    return again(request, env, ctx, form, path, { ...submission, errors: {}, formError: spam });
+  }
+  const hash = await ipHash(request, required(env.IP_SALT));
+  if (!(await allow(env.DB, hash))) {
+    log("rate limited");
+    return again(request, env, ctx, form, path, { ...submission, errors: {}, formError: "rate" }, 429);
+  }
+  return hash;
+}
+
 export async function handleComment(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   if (!env.FORM_HMAC_KEY || !env.IP_SALT) {
     log("config missing");
@@ -137,16 +159,8 @@ export async function handleComment(request: Request, env: Env, ctx: ExecutionCo
 
   const input = readComment(form);
   const values = { name: input.name, email: input.email, comment: input.comment };
-  const spam = await spamCheck(env, form);
-  if (spam) {
-    log("spam rejected");
-    return again(request, env, ctx, form, path, { form: "comment", errors: {}, formError: spam, values });
-  }
-  const hash = await ipHash(request, env.IP_SALT);
-  if (!(await allow(env.DB, hash))) {
-    log("rate limited");
-    return again(request, env, ctx, form, path, { form: "comment", errors: {}, formError: "rate", values }, 429);
-  }
+  const hash = await checkSubmission(request, env, ctx, form, path, { form: "comment", values });
+  if (typeof hash !== "string") return hash;
   const errors: Errors = validateComment(input);
   if (Object.keys(errors).length) return again(request, env, ctx, form, path, { form: "comment", errors, values });
 
@@ -185,24 +199,8 @@ export async function handleReport(request: Request, env: Env, ctx: ExecutionCon
 
   const input = readReport(form);
   const values = { message: input.message, email: input.email };
-  const spam = await spamCheck(env, form);
-  if (spam) {
-    log("spam rejected");
-    return again(request, env, ctx, form, path, { form: "report", errors: {}, formError: spam, values, url: pagePath });
-  }
-  const hash = await ipHash(request, env.IP_SALT);
-  if (!(await allow(env.DB, hash))) {
-    log("rate limited");
-    return again(
-      request,
-      env,
-      ctx,
-      form,
-      path,
-      { form: "report", errors: {}, formError: "rate", values, url: pagePath },
-      429,
-    );
-  }
+  const hash = await checkSubmission(request, env, ctx, form, path, { form: "report", values, url: pagePath });
+  if (typeof hash !== "string") return hash;
   const errors = validateReport(input);
   if (Object.keys(errors).length)
     return again(request, env, ctx, form, path, { form: "report", errors, values, url: pagePath });

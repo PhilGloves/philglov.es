@@ -14,10 +14,10 @@
  * over a stored key, decision 0030, so a stand-in that had every key would leave it no free name). The stylesheet and
  * entries.json come from dist/, so run `pnpm build` first.
  */
-import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
-import { entryKeys } from "../../scripts/lib/photo-keys.ts";
+import { journalPhotoKeys } from "../../scripts/lib/photo-keys.ts";
 import { fixtureJournal } from "../fixtures/content.ts";
+import { fakeGitHub, githubFetch, type FakeGitHub } from "../fixtures/github.ts";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
@@ -40,92 +40,18 @@ const jwt = await new SignJWT({ email: "owner@example.test" })
 
 const appKey = await exportPKCS8((await generateKeyPair("RS256", { extractable: true })).privateKey);
 
-export interface GitHubCall {
-  method: string;
-  path: string;
-  body: Record<string, unknown> | null;
-}
-
-/** What the GitHub stand-in knows and has been asked; reset by each serveAdmin(). */
-export interface FakeGitHub {
-  /** Open pull requests, as GitHub lists them; the ones the Worker opens are added, as on GitHub. */
-  pulls: {
-    html_url: string;
-    title: string;
-    created_at: string;
-    user: { login: string };
-    head?: { ref: string };
-  }[];
-  /** Files the Worker wrote on a branch, as "<path>@<branch>". */
-  branches: Record<string, string>;
-  calls: GitHubCall[];
-}
-let github: FakeGitHub = { pulls: [], branches: {}, calls: [] };
-
-async function fakeGitHub(request: Request): Promise<Response> {
-  const url = new URL(request.url);
-  const body = request.method === "GET" ? null : ((await request.json()) as Record<string, unknown>);
-  github.calls.push({ method: request.method, path: url.pathname + url.search, body });
-  if (/^\/app\/installations\/\d+\/access_tokens$/.test(url.pathname))
-    return Response.json(
-      { token: "ghs_e2e", expires_at: new Date(Date.now() + 3600_000).toISOString() },
-      { status: 201 },
-    );
-  if (url.pathname === "/graphql")
-    return Response.json({ data: { enablePullRequestAutoMerge: { clientMutationId: null } } });
-  const contents = /^\/repos\/[^/]+\/[^/]+\/contents\/(.+)$/.exec(url.pathname);
-  const ref = url.searchParams.get("ref") ?? "main";
-  if (contents && request.method === "GET" && ref !== "main") {
-    const text = github.branches[`${contents[1]}@${ref}`];
-    if (text === undefined) return Response.json({ message: "Not Found" }, { status: 404 });
-    const sha = createHash("sha1").update(text).digest("hex");
-    return Response.json({ sha, encoding: "base64", content: Buffer.from(text).toString("base64") });
-  }
-  if (contents && request.method === "GET") {
-    try {
-      // The fixtures play the repository's content on main (decision 0033): src/content/… is read from them.
-      const path = (contents[1] ?? "").replace(/^src\/content\//, "tests/fixtures/content/");
-      const text = readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
-      const sha = createHash("sha1").update(text).digest("hex");
-      return Response.json({ sha, encoding: "base64", content: Buffer.from(text).toString("base64") });
-    } catch {
-      return Response.json({ message: "Not Found" }, { status: 404 });
-    }
-  }
-  if (contents) {
-    const branch = String(body?.["branch"] ?? "");
-    github.branches[`${contents[1]}@${branch}`] = Buffer.from(String(body?.["content"] ?? ""), "base64").toString();
-    return Response.json({ content: {} }, { status: 201 });
-  }
-  if (url.pathname.endsWith("/git/ref/heads/main")) return Response.json({ object: { sha: "main-sha" } });
-  if (url.pathname.endsWith("/git/refs")) return Response.json({}, { status: 201 });
-  if (url.pathname.endsWith("/pulls") && request.method === "GET") return Response.json(github.pulls);
-  if (url.pathname.endsWith("/pulls")) {
-    // Open from now on, as on GitHub: the next list has it. The first one of a test is number 99.
-    const number = 99 + github.calls.filter((c) => c.method === "POST" && c.path.endsWith("/pulls")).length - 1;
-    const html_url = `https://github.com/test/repo/pull/${number}`;
-    github.pulls.push({
-      html_url,
-      title: String(body?.["title"] ?? ""),
-      created_at: new Date().toISOString(),
-      user: { login: "philglov-publisher[bot]" },
-      head: { ref: String(body?.["head"] ?? "") },
-    });
-    return Response.json({ html_url, number, node_id: "PR_e2e" }, { status: 201 });
-  }
-  return Response.json({ message: "Not Found" }, { status: 404 });
-}
+let github = fakeGitHub();
 
 // The Worker's outbound requests: jose fetching the team's keys, and the GitHub App. Answer both here. Nothing else
 // leaves this process: no test may open a real pull request or write to the real repository, so every other host
-// (api.github.com is answered by fakeGitHub, never forwarded) is refused and listed in `blockedOutbound`.
+// (api.github.com is answered by the stand-in, never forwarded) is refused and listed in `blockedOutbound`.
 const realFetch = globalThis.fetch;
 export const blockedOutbound: string[] = [];
 globalThis.fetch = (input, init) => {
   const request = new Request(input, init);
   const url = new URL(request.url);
   if (request.url === `https://${TEAM}/cdn-cgi/access/certs`) return Promise.resolve(Response.json(jwks));
-  if (url.host === "api.github.com") return fakeGitHub(request);
+  if (url.host === "api.github.com") return githubFetch(github, request);
   if (url.hostname === "127.0.0.1" || url.hostname === "localhost") return realFetch(request);
   blockedOutbound.push(`${request.method} ${url.origin}${url.pathname}`);
   return Promise.reject(new TypeError(`test server: outbound request to ${url.host} refused`));
@@ -213,16 +139,9 @@ export async function serveAdmin(): Promise<Admin> {
     .filter((f) => f.endsWith(".sql"))
     .sort())
     db.exec(readFileSync(new URL(file, migrations), "utf8"));
-  github = { pulls: [], branches: {}, calls: [] };
+  github = fakeGitHub();
   // What the originals bucket holds at the start: every photo a fixture entry shows (the suites run on the fixtures, 0033).
-  const journal = fixtureJournal;
-  const stored = new Set(
-    readdirSync(journal).flatMap((lang) =>
-      readdirSync(new URL(`${lang}/`, journal))
-        .filter((file) => file.endsWith(".md"))
-        .flatMap((file) => entryKeys(readFileSync(new URL(`${lang}/${file}`, journal), "utf8"))),
-    ),
-  );
+  const stored = new Set(journalPhotoKeys(fixtureJournal));
   const env = {
     SITE_ENV: "local",
     PHOTO_UPLOADS: "on",

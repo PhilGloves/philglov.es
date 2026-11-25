@@ -14,12 +14,11 @@
  *    Worker wrote on a branch and lists the pull requests it opened as open, until
  *    a test merges or closes them (/__set pulls).
  */
-import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import { exportJWK, exportPKCS8, generateKeyPair, SignJWT } from "jose";
 import { defineConfig } from "vitest/config";
 import { assertFixtureBuild } from "./tests/fixtures/content.ts";
+import { fakeGitHub, githubFetch, type FakeGitHub } from "./tests/fixtures/github.ts";
 
 const TEAM = "test-team.cloudflareaccess.com";
 const AUD = "test-aud";
@@ -49,113 +48,23 @@ async function accessFixtures() {
   return { jwks: { keys: [jwk] }, good: await sign(AUD), wrongAud: await sign("someone-else"), forged };
 }
 
-interface Recorded {
-  method: string;
-  path: string;
-  body: unknown;
-}
-
-interface FakeState {
-  files: Record<string, string>;
-  pulls: unknown[];
-  autoMergeRefused: boolean;
-  writeConflict: boolean;
-}
-
-const fresh = (): FakeState => ({ files: {}, pulls: [], autoMergeRefused: false, writeConflict: false });
-/** A blob sha that changes with the text, like GitHub's. */
-const blobSha = (text: string): string => createHash("sha1").update(text).digest("hex");
-
-/** The fixtures play the repository's content on main (decision 0033): a request for src/content/… reads them. */
-const onDisk = (path: string): string => path.replace(/^src\/content\//, "tests/fixtures/content/");
-
-function fakeGitHub() {
-  let state = fresh();
-  const recorded: Recorded[] = [];
-  // Every call since the start: the installation token is cached per isolate, so it is asked for once.
-  const all: Recorded[] = [];
-  const json = (status: number, body: unknown) =>
-    new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+/** Miniflare runs in another process, so the Worker tests control the stand-in over fetch. */
+function githubAdapter() {
+  let state = fakeGitHub();
+  // The installation token is cached per isolate, so this history survives individual test resets.
+  const history: FakeGitHub["calls"] = [];
   return async (request: Request): Promise<Response> => {
     const url = new URL(request.url);
-    if (url.pathname === "/__recorded") return json(200, url.searchParams.has("all") ? all : recorded);
+    if (url.pathname === "/__recorded") return Response.json(url.searchParams.has("all") ? history : state.calls);
     if (url.pathname === "/__reset") {
-      recorded.length = 0;
-      state = fresh();
-      return json(200, {});
+      state = fakeGitHub();
+      return Response.json({});
     }
     if (url.pathname === "/__set") {
-      state = { ...state, ...((await request.json()) as Partial<FakeState>) };
-      return json(200, {});
+      Object.assign(state, (await request.json()) as Partial<Omit<FakeGitHub, "calls">>);
+      return Response.json({});
     }
-    const body = request.method === "GET" ? null : await request.json().catch(() => null);
-    recorded.push({ method: request.method, path: url.pathname + url.search, body });
-    all.push({ method: request.method, path: url.pathname + url.search, body });
-    if (/^\/app\/installations\/\d+\/access_tokens$/.test(url.pathname))
-      return json(201, { token: "ghs_test", expires_at: new Date(Date.now() + 3600_000).toISOString() });
-    const contents = /^\/repos\/[^/]+\/[^/]+\/contents\/(.+)$/.exec(url.pathname);
-    if (contents && request.method === "GET") {
-      try {
-        const path = contents[1] ?? "";
-        // A file on another branch (an open publisher pull request) only when a test sets "<path>@<branch>".
-        const ref = url.searchParams.get("ref") ?? "main";
-        const text =
-          ref === "main"
-            ? (state.files[path] ?? readFileSync(new URL(`./${onDisk(path)}`, import.meta.url), "utf8"))
-            : state.files[`${path}@${ref}`];
-        if (text === undefined) throw new Error("not on that branch");
-        return json(200, {
-          sha: blobSha(text),
-          encoding: "base64",
-          content: Buffer.from(text).toString("base64"),
-        });
-      } catch {
-        return json(404, { message: "Not Found" });
-      }
-    }
-    if (contents && request.method === "PUT") {
-      if (state.writeConflict) return json(409, { message: "does not match" });
-      // The file is on its branch from now on, as on GitHub: a later read of that branch finds it.
-      const put = body as { content?: string; branch?: string } | null;
-      if (put?.branch)
-        state.files[`${contents[1]}@${put.branch}`] = Buffer.from(put.content ?? "", "base64").toString();
-      return json(201, { content: {} });
-    }
-    if (url.pathname === "/graphql")
-      return json(
-        200,
-        state.autoMergeRefused
-          ? { errors: [{ message: "Auto merge is not allowed for this repository" }] }
-          : { data: { enablePullRequestAutoMerge: { clientMutationId: null } } },
-      );
-    if (url.pathname.endsWith("/pulls") && request.method === "GET") return json(200, state.pulls);
-    if (url.pathname.endsWith("/git/ref/heads/main")) return json(200, { object: { sha: "main-sha" } });
-    if (url.pathname.endsWith("/git/refs")) return json(201, {});
-    if (/\/git\/refs\/heads\//.test(url.pathname) && request.method === "DELETE")
-      return new Response(null, { status: 204 });
-    if (url.pathname.endsWith("/pulls")) {
-      // An opened pull request is open from now on, as on GitHub: the next list of open pull requests has it. The
-      // first one of a test is number 99.
-      const opened = body as { title?: string; head?: string } | null;
-      const number = 99 + state.pulls.filter((p) => (p as { number?: number }).number !== undefined).length;
-      state.pulls = [
-        ...state.pulls,
-        {
-          number,
-          html_url: `https://github.com/test/repo/pull/${number}`,
-          title: opened?.title ?? "",
-          created_at: new Date().toISOString(),
-          user: { login: "philglov-publisher[bot]" },
-          head: { ref: opened?.head ?? "" },
-        },
-      ];
-      return json(201, {
-        html_url: `https://github.com/test/repo/pull/${number}`,
-        number,
-        node_id: `PR_node${number}`,
-      });
-    }
-    return json(404, { message: "Not Found" });
+    return githubFetch(state, request, history);
   };
 }
 
@@ -163,7 +72,7 @@ export default defineConfig(async () => {
   assertFixtureBuild();
   const migrations = await readD1Migrations("worker/migrations");
   const access = await accessFixtures();
-  const github = fakeGitHub();
+  const github = githubAdapter();
   const { privateKey: appKey } = await generateKeyPair("RS256", { extractable: true });
   return {
     plugins: [

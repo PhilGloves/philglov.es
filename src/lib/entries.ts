@@ -170,6 +170,7 @@ export function rowsFor<E extends EntryLike>(slots: readonly Slot<E>[], locale: 
 }
 
 export const PAGE_SIZE = 50;
+export const pageCount = (count: number, size = PAGE_SIZE): number => Math.max(1, Math.ceil(count / size));
 
 export interface Paged<T> {
   items: T[];
@@ -179,8 +180,7 @@ export interface Paged<T> {
 
 /** Page `page` (1-based) of `items`, 50 to a page. There is always at least one page. */
 export function paginate<T>(items: readonly T[], page: number, size = PAGE_SIZE): Paged<T> {
-  const pages = Math.max(1, Math.ceil(items.length / size));
-  return { items: items.slice((page - 1) * size, page * size), page, pages };
+  return { items: items.slice((page - 1) * size, page * size), page, pages: pageCount(items.length, size) };
 }
 
 /** "/journal" and "/journal/page/2" in one language. */

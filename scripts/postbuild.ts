@@ -21,7 +21,8 @@
  * SITE_ENV=production only in the production deploy; anything else (the
  * default) adds X-Robots-Tag: noindex, so a stray build is never indexable.
  */
-import { readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { filesUnder } from "./lib/files.ts";
 import { pngToIco } from "./lib/ico.ts";
 import { originalsPath } from "./lib/content-root.ts";
 import { removeStandIns } from "./lib/standins.ts";
@@ -32,15 +33,9 @@ import { pageProblems } from "./lib/page-check.ts";
 
 const dist = new URL("../dist/", import.meta.url);
 
-function htmlFiles(dir: URL): URL[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-    e.isDirectory() ? htmlFiles(new URL(`${e.name}/`, dir)) : e.name.endsWith(".html") ? [new URL(e.name, dir)] : [],
-  );
-}
-
 const hashes = new Set<string>();
 const refused: string[] = [];
-for (const file of htmlFiles(dist)) {
+for (const file of filesUnder(dist, /\.html$/)) {
   const original = readFileSync(file, "utf8");
   const html = localiseFootnotes(original);
   if (html.includes("↩")) throw new Error(`${file.pathname}: a footnote back-link still uses the "↩" glyph`);

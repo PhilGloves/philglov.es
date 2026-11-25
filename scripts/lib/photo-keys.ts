@@ -34,6 +34,14 @@ export function entryKeys(markdown: string): string[] {
   return [...markdown.matchAll(/\]\(\s*(?:\.\.\/)+\.originals\/([^)\s"]+)/g)].map((m) => m[1] ?? "");
 }
 
+export function journalPhotoKeys(journal: URL): string[] {
+  return readdirSync(journal).flatMap((lang) =>
+    readdirSync(new URL(`${lang}/`, journal))
+      .filter((file) => file.endsWith(".md"))
+      .flatMap((file) => entryKeys(readFileSync(new URL(`${lang}/${file}`, journal), "utf8"))),
+  );
+}
+
 /**
  * Every original a content folder uses (`content` holds photos/ and journal/: src/content, or the fixtures'; the series
  * files, the journal entries in both languages, and the portrait that src/data/site.json names, TO-03), sorted, each
@@ -47,13 +55,7 @@ export function contentKeys(content: URL): string[] {
     const file = new URL(`${e.name}/photos.json`, dir);
     if (e.isDirectory() && existsSync(file)) series[e.name] = readFileSync(file, "utf8");
   }
-  const keys = seriesKeys(series);
-  const journal = new URL("journal/", content);
-  for (const lang of readdirSync(journal)) {
-    for (const f of readdirSync(new URL(`${lang}/`, journal))) {
-      if (f.endsWith(".md")) keys.push(...entryKeys(readFileSync(new URL(`${lang}/${f}`, journal), "utf8")));
-    }
-  }
+  const keys = [...seriesKeys(series), ...journalPhotoKeys(new URL("journal/", content))];
   // The site's facts are the same file for every content set, so the fixtures get a portrait to draw as well.
   const siteFile = new URL("../../src/data/site.json", import.meta.url);
   if (existsSync(siteFile)) {
