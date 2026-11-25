@@ -132,13 +132,12 @@ test("one family only: no other web font anywhere in the styles or templates", (
   assert.doesNotMatch(css + tokens, /Archivo|Source Serif|PG Serif|JetBrains/);
 });
 
-test("fonts: the upright file is preloaded everywhere, the italic only on the home page (0025)", () => {
+test("fonts: the upright file is preloaded everywhere, the italic nowhere (0042)", () => {
   const layout = readFileSync(new URL("../../src/layouts/BaseLayout.astro", import.meta.url), "utf8");
   assert.match(layout, /preload" href="\/_assets\/fonts\/crimson-pro\.woff2"/);
-  // the italic preload exists once, behind the preloadItalic prop...
-  assert.equal((layout.match(/rel="preload"/g) ?? []).length, 2);
-  assert.match(layout, /preloadItalic && \(\s*<link rel="preload" href="\/_assets\/fonts\/crimson-pro-italic\.woff2"/);
-  // ...and only the home page's view turns it on
+  assert.equal((layout.match(/rel="preload"/g) ?? []).length, 1);
+  assert.doesNotMatch(layout, /crimson-pro-italic|preloadItalic/);
+  // and no view asks for it
   const views = new URL("../../src/", import.meta.url);
   const users = [
     "views/HomeView.astro",
@@ -149,7 +148,7 @@ test("fonts: the upright file is preloaded everywhere, the italic only on the ho
     "pages/404.astro",
     "pages/styleguide.astro",
   ].filter((f) => /preloadItalic/.test(readFileSync(new URL(f, views), "utf8")));
-  assert.deepEqual(users, ["views/HomeView.astro"]);
+  assert.deepEqual(users, []);
 });
 
 test("weight 300 is used only at 28 px and larger", () => {
@@ -162,6 +161,7 @@ test("weight 300 is used only at 28 px and larger", () => {
   for (const [, name, rem] of tokens.matchAll(/--(fs-[0-9-]+):\s*([\d.]+)rem/g))
     px.set(`var(--${name})`, Number(rem) * 16);
   px.set("var(--fs-display)", 40);
+  px.set("var(--latest-title)", 32); // the latest entry's title: --fs-32 on phones, --fs-42 from 40rem
   px.set("var(--fs-err)", 80); // the big "404": at least 5rem
   for (const [, body] of css.matchAll(/\{([^{}]*font-weight:\s*300\s*;[^{}]*)\}/g)) {
     const size = /font-size:\s*(var\(--[a-z0-9-]+\)|clamp[^;]*)/.exec(body ?? "");

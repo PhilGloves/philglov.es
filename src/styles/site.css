@@ -301,7 +301,7 @@
 
   .lab :is(h2, h3) {
     margin-block-end: var(--sp-8);
-    font-size: var(--fs-23);
+    font-size: var(--fs-22);
     line-height: 1.2;
   }
 
@@ -442,7 +442,7 @@
   .name span {
     margin-block-start: 1px;
     color: var(--muted);
-    font-size: var(--fs-15);
+    font-size: var(--fs-16);
     font-weight: 400;
   }
 
@@ -503,7 +503,7 @@
     border-radius: 50%;
     background: none;
     color: var(--text);
-    font-size: var(--fs-15);
+    font-size: var(--fs-16);
     font-weight: 600;
     letter-spacing: 0.04em;
     cursor: pointer;
@@ -703,7 +703,7 @@
   }
 
   .state em {
-    font-style: italic;
+    font-style: normal;
     color: var(--accent);
   }
 
@@ -927,14 +927,14 @@
 
     margin-block-end: var(--sp-8);
     padding-block-end: var(--sp-40);
-    border-block-end: 1px solid var(--text);
+    border-block-end: 1px solid var(--rule);
   }
 
   .latest-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--sp-4) var(--sp-18);
-    margin-block-end: var(--sp-14);
+    gap: var(--sp-4) var(--sp-16);
+    margin-block-end: var(--sp-16);
     color: var(--muted);
   }
 
@@ -946,14 +946,14 @@
   .latest h3 {
     margin-block-end: var(--sp-16);
     font-size: var(--latest-title);
-    font-weight: 400;
+    font-weight: 300;
     line-height: 1.06;
     letter-spacing: -0.012em;
   }
 
   .latest .ex p {
-    margin-block-end: var(--sp-14);
-    font-size: var(--fs-20);
+    margin-block-end: var(--sp-16);
+    font-size: var(--fs-19);
     line-height: 1.5;
   }
 
@@ -1077,7 +1077,7 @@
   }
 
   .idx-more {
-    margin-block-start: var(--sp-22);
+    margin-block-start: var(--sp-24);
   }
 
   /* stacked rows when the table has little room */
@@ -1165,7 +1165,7 @@
 
   .band .con p {
     max-inline-size: 34ch;
-    margin-block-end: var(--sp-14);
+    margin-block-end: var(--sp-16);
     font-size: var(--fs-23);
     line-height: 1.32;
   }
@@ -1183,7 +1183,7 @@
 
   @container page (width > 40rem) {
     .band {
-      padding-block: var(--sp-64);
+      padding-block: var(--sp-72);
     }
 
     .band .con p {
@@ -1967,7 +1967,7 @@
   /* ===== footer with the error-report form ===== */
   .foot {
     row-gap: var(--sp-24);
-    padding-block: var(--sp-48) var(--sp-56);
+    padding-block: var(--sp-56);
   }
 
   .foot--rule {
@@ -1976,18 +1976,18 @@
   }
 
   .foot .txt p {
-    margin-block-end: var(--sp-10);
+    margin-block-end: var(--sp-12);
     font-size: var(--fs-19);
   }
 
   .foot .links ul {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--sp-2) var(--sp-18);
-    margin: 0 0 var(--sp-14);
+    gap: var(--sp-4) var(--sp-16);
+    margin: 0 0 var(--sp-16);
     padding: 0;
     list-style: none;
-    font-size: var(--fs-18);
+    font-size: var(--fs-19);
     font-weight: 400;
   }
 

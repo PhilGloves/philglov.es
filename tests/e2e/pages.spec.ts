@@ -12,8 +12,8 @@ test("a font that really fails is still reported: 404 on the italic file", async
     if (res.status() >= 400) problems.push(`HTTP ${res.status()}: ${new URL(res.url()).pathname}`);
   });
   await page.route("**/_assets/fonts/crimson-pro-italic.woff2", (route) => route.fulfill({ status: 404, body: "" }));
-  // The home page draws italic text (the hero's emphasis), so the italic file is fetched.
-  await page.goto("/");
+  // The sample entry draws italic text (its _italics_), so the italic file is fetched.
+  await page.goto("/lisbona");
   problems.push(...(await fontsSettled(page)));
   expect(problems).toContain("HTTP 404: /_assets/fonts/crimson-pro-italic.woff2");
   expect(problems.some((p) => /^font failed: .+ italic /.test(p))).toBe(true);
