@@ -90,3 +90,11 @@ test("the deploy token is read only by jobs that name an environment; the Test j
   ]);
   assert.ok(use.get("CLOUDFLARE_ACCOUNT_ID")?.some((j) => j.job === "test" && j.environment === ""));
 });
+
+// Decision 0046: anyone signed in to GitHub can download a public repository's artifacts, and the CV is unlisted.
+test("the CV is left out of the dist artifact, and every deploy that uses the artifact fetches it again", () => {
+  assert.match(ci, /name: dist\n(?: +#.*\n)* +path: \|\n +dist\/\n +!dist\/cv\/\*\*\n/);
+  const downloads = ci.match(/uses: actions\/download-artifact@/g) ?? [];
+  assert.ok(downloads.length > 0);
+  assert.equal(ci.match(/run: node scripts\/publish-cv\.ts/g)?.length, downloads.length);
+});

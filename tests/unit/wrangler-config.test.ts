@@ -92,3 +92,8 @@ test("every environment keeps Workers Logs for the Worker's own lines and has in
   }
   assert.deepEqual(Object.keys(config().env).sort(), ["preview", "production", "staging"]);
 });
+
+test("the CV's PDF is served without the Worker, so its _headers rules apply (0046)", () => {
+  const text = readFileSync(new URL("../../wrangler.jsonc", import.meta.url), "utf8");
+  assert.match(text, /"run_worker_first": \[[^\]]*"!\/cv\/filippo-guanti-cv\.pdf",/);
+});

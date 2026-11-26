@@ -107,6 +107,25 @@ export const LARGE_DIR = "/_assets/large/";
  */
 export const largeHeaderLines = (): string[] => ["! X-Robots-Tag", "X-Robots-Tag: noindex, noai, noimageai"];
 
+/** The CV (decision 0046): the unlisted page, the published PDF and the name a download gets. */
+export const CV_PAGE = "/cv";
+export const CV_PDF = "/cv/filippo-guanti-cv.pdf";
+export const CV_FILENAME = "Filippo-Guanti-CV.pdf";
+
+/**
+ * The _headers rules of the CV, after the "/*" rule: the page and everything under it are noindex in every
+ * environment, and the PDF is a download. They detach X-Robots-Tag first, like assetHeaderLines. The PDF is served
+ * without the Worker (wrangler.jsonc), because _headers never applies to the Worker's own responses.
+ */
+export function cvHeaderRules(): [path: string, lines: string[]][] {
+  const noindex = ["! X-Robots-Tag", "X-Robots-Tag: noindex"];
+  return [
+    [CV_PAGE, noindex],
+    [`${CV_PAGE}/*`, noindex],
+    [CV_PDF, [`Content-Disposition: attachment; filename="${CV_FILENAME}"`]],
+  ];
+}
+
 /** Apply `headers` to a response, returning a new mutable response. */
 export function withHeaders(response: Response, headers: Record<string, string>): Response {
   const out = new Response(response.body, response);

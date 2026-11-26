@@ -1,16 +1,21 @@
 ---
+import CvView from "../views/CvView.astro";
 import EntryView from "../views/EntryView.astro";
 import PageView from "../views/PageView.astro";
 import { slugPaths } from "../lib/routes.ts";
 
 export async function getStaticPaths() {
-  return slugPaths("en");
+  // /cv (decision 0046): English only, and only when the build has the PDF.
+  const cv = __CV__;
+  return [...(await slugPaths("en")), ...(cv ? [{ params: { slug: "cv" }, props: { kind: "cv" as const, cv } }] : [])];
 }
 
 const props = Astro.props;
 ---
 
-{props.kind === "entry" ? (
+{props.kind === "cv" ? (
+  <CvView size={props.cv.size} modified={props.cv.modified} />
+) : props.kind === "entry" ? (
   <EntryView locale="en" item={props.item} />
 ) : (
   <PageView locale="en" slug={props.slug} page={props.page} hasTwin={props.hasTwin} />

@@ -258,6 +258,9 @@ contatto]` …) and a bracket starting with "Placeholder"/"Segnaposto" on the bu
   other language's pull request for its slug is open (no second original); Delete draft needs its box ticked and
   says "Draft deleted."; the Publish lock's takeover and wait are tested; the page check reads `\`, tabs and `&` in a
   loaded address as a browser does.
+- 2026-11-26: an unlisted `/cv` (English only) offers the CV from R2 ([0046](docs/decisions/0046-unlisted-cv.md)): never
+  in git, never linked, noindex, left out of the public manifest and of the CI artifact. The owner uploads it and
+  re-runs CI on `main` (playbook, "Updating the CV").
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -287,6 +290,7 @@ tests/worker/                 Vitest inside workerd (vitest.config.ts: test JWKS
 scripts/check-originals.ts      before the build: entry photos present, or the opt-in's grey stand-ins (lib/standins.ts)
 scripts/lib/content-check.ts    the build check; scripts/lib/new-entry.ts the `pnpm new` template
 scripts/lib/page-check.ts       what a built page may contain; postbuild fails on anything else (0030)
+scripts/lib/cv.ts, publish-cv.ts  the CV behind /cv; publish-cv puts it back in the deploy jobs' dist/ (0046)
 scripts/restore-backup.ts       a weekly backup back into SQL (lib/backup-restore.ts; README "Restoring", 0030)
 scripts/copy-originals.ts       at launch, once: originals staging bucket → production's (lib/copy-originals.ts, 0031)
 scripts/                      build helpers, run with plain `node` (type stripping); build-fonts.py by hand
@@ -398,6 +402,9 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
   staging and preview are until launch and then `"off"`, both the same (`tests/unit/wrangler-config.test.ts`). Never
   bind staging or preview to production's bucket. The launch copy never writes over an object; tests of R2 code run
   against `tests/unit/r2-stand-in.ts`, which checks signatures and each token's buckets.
+- The CV (0046): `/cv` is unlisted. No link to it from any page or feed, never in the sitemap, `robots.txt` or
+  `entries.json`; `cv` stays a reserved slug. `dist/cv/` never goes into a workflow artifact (the repository is
+  public). Its words are in `src/lib/cv.ts`: the page has no Italian version.
 - Security audit rules (0030): CI never caches `src/.originals` (fork pull requests read main's caches;
   `tests/unit/ci-workflow.test.ts`). Raw HTML in content is limited by `scripts/lib/page-check.ts`: to allow a new
   element or attribute, change its allow-list there with a test, never by skipping the check. The publisher guard

@@ -1,5 +1,5 @@
 /**
- * Downloads the photo originals the site needs from the private R2 bucket the
+ * Downloads the photo originals the site needs, and the CV site.json names, from the private R2 bucket the
  * builds read (R2_BUCKET: philglov-originals-staging until launch, then
  * philglov-originals, decision 0031) into the git-ignored src/.originals/, so Astro can
  * optimise them as local files. Files already there are skipped (a laptop
@@ -15,7 +15,7 @@
  * `--force` downloads everything again.
  * RAW files never leave the owner's drives; the bucket holds JPEG/PNG only.
  */
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, utimesSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { contentKeys } from "./lib/photo-keys.ts";
@@ -52,9 +52,11 @@ const report = await fetchOriginals(
   cfg,
   keys,
   have,
-  (key, bytes) => {
+  (key, bytes, modified) => {
     mkdirSync(dirname(fileURLToPath(local(key))), { recursive: true });
     writeFileSync(local(key), bytes);
+    // The file keeps R2's date: /cv shows it as "Last updated" (decision 0046).
+    if (modified) utimesSync(local(key), modified, modified);
   },
   force,
 );

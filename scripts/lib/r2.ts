@@ -132,8 +132,18 @@ export async function listKeys(cfg: R2Config, prefix: string): Promise<string[]>
   return keys;
 }
 
+/** The object's bytes and when it was last stored (R2's Last-Modified). */
+export async function downloadObject(
+  cfg: R2Config,
+  key: string,
+): Promise<{ bytes: Uint8Array<ArrayBuffer>; modified: Date | undefined }> {
+  const res = await request(cfg, keyPath(key));
+  const header = res.headers.get("last-modified");
+  return { bytes: new Uint8Array(await res.arrayBuffer()), modified: header ? new Date(header) : undefined };
+}
+
 export async function getObject(cfg: R2Config, key: string): Promise<Uint8Array<ArrayBuffer>> {
-  return new Uint8Array(await (await request(cfg, keyPath(key))).arrayBuffer());
+  return (await downloadObject(cfg, key)).bytes;
 }
 
 export interface ObjectHead {

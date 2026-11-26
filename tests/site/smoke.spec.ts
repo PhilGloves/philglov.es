@@ -131,6 +131,16 @@ for (const feed of ["/feed.xml", "/it/feed.xml"]) {
   });
 }
 
+// Built only when site.json names a CV and it was fetched (decision 0046): not on the empty site or without R2.
+test("the CV behind /cv is a noindex PDF download", async ({ request }) => {
+  test.skip(!pages.some((p) => p.path === "/cv"), "this build has no /cv page");
+  const res = await request.get("/cv/filippo-guanti-cv.pdf");
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toBe("application/pdf");
+  expect(res.headers()["content-disposition"]).toBe('attachment; filename="Filippo-Guanti-CV.pdf"');
+  expect(res.headers()["x-robots-tag"]).toBe("noindex");
+});
+
 test("robots.txt, security.txt and tdmrep.json are served", async ({ request }) => {
   for (const path of ["/robots.txt", "/.well-known/security.txt", "/.well-known/tdmrep.json"])
     expect((await request.get(path)).status(), path).toBe(200);

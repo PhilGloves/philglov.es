@@ -5,7 +5,7 @@
  * size and dominant colour of the sample original it stands for, so the pages lay out as before. Same input, same
  * bytes: a file already there with the right content is left alone. The folder is git-ignored.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
@@ -37,16 +37,28 @@ function fixtureSvg([w, h, bg]: [number, number, string]): string {
   );
 }
 
+/** The placeholder for the CV (decision 0046): one empty page. Its date is fixed, so the tests can name it. */
+const PDF = Buffer.from(
+  "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n" +
+    "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n",
+);
+const PDF_DATE = new Date("2026-11-01T12:00:00Z");
+
 const keys = contentKeys(new URL("content/", fixtures));
 let drawn = 0;
 for (const key of keys) {
   const file = new URL(key, originals);
-  const bytes = await sharp(Buffer.from(fixtureSvg(SPECS[key] ?? FALLBACK)))
-    .jpeg({ quality: 70 })
-    .toBuffer();
-  if (existsSync(file) && readFileSync(file).equals(bytes)) continue;
-  mkdirSync(dirname(fileURLToPath(file)), { recursive: true });
-  writeFileSync(file, bytes);
-  drawn++;
+  const pdf = key.endsWith(".pdf");
+  const bytes = pdf
+    ? PDF
+    : await sharp(Buffer.from(fixtureSvg(SPECS[key] ?? FALLBACK)))
+        .jpeg({ quality: 70 })
+        .toBuffer();
+  if (!existsSync(file) || !readFileSync(file).equals(bytes)) {
+    mkdirSync(dirname(fileURLToPath(file)), { recursive: true });
+    writeFileSync(file, bytes);
+    drawn++;
+  }
+  if (pdf) utimesSync(file, PDF_DATE, PDF_DATE);
 }
 console.log(`fixture-photos: ${keys.length} fixture originals in tests/fixtures/.originals (${drawn} drawn)`);

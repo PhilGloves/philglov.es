@@ -221,5 +221,12 @@ for (const p of pages) {
       expect(noindex, `${p.path} is indexable by accident (${header} / ${robotsMeta})`).toBe(false);
     else if (!PROD) expect(noindex, `${p.path}: staging must say noindex`).toBe(true);
     else if (p.file === "styleguide.html") expect(noindex, "/styleguide is never indexed").toBe(true);
+    else if (p.file === "cv.html") {
+      // Unlisted (0046): noindex in production too, by the header and by the page, for the page and the PDF.
+      expect(header, "/cv header").toContain("noindex");
+      expect(robotsMeta, "/cv meta").toBe("noindex");
+      const pdf = await request.get("/cv/filippo-guanti-cv.pdf");
+      expect(pdf.headers()["x-robots-tag"], "the PDF").toBe("noindex");
+    }
   });
 }

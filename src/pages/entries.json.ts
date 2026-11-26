@@ -27,6 +27,7 @@ export const GET: APIRoute = async () => {
     })),
   );
   const pageSlugs = (await getPages()).map((p) => slugOf(p.id));
-  const taken = [...new Set([...RESERVED_SLUGS, ...pageSlugs])].sort();
+  // Without "cv": this file is public and /cv is unlisted (decision 0046). The Worker adds it back (manifest.ts).
+  const taken = [...new Set([...RESERVED_SLUGS, ...pageSlugs])].filter((slug) => slug !== "cv").sort();
   return new Response(JSON.stringify({ entries, taken }), { headers: { "Content-Type": "application/json" } });
 };

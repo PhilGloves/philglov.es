@@ -22,7 +22,7 @@ export interface BuiltPage {
   lang: "en" | "it";
   /** 404.html answers with status 404; the rest with 200. */
   status: 200 | 404;
-  /** Listed in the sitemap by design: not the 404 page and not /styleguide. */
+  /** Listed in the sitemap by design: not the 404 page, not /styleguide and not the unlisted /cv. */
   indexable: boolean;
 }
 
@@ -51,7 +51,7 @@ export function builtPages(): BuiltPage[] {
         file,
         lang: path === "/it" || path.startsWith("/it/") ? "it" : "en",
         status: file === "404.html" ? 404 : 200,
-        indexable: file !== "404.html" && file !== "styleguide.html",
+        indexable: !["404.html", "styleguide.html", "cv.html"].includes(file),
       } satisfies BuiltPage;
     });
 }

@@ -23,7 +23,7 @@ Three rules hold everywhere:
      and push the result.
    - **Typecheck**: names the file and line; the code needs a fix.
    - **Fetch photo originals from R2**: `could not fetch N from <bucket>` lists photos the site uses (entry photos,
-     the portrait, series photos) that are not in that bucket. Upload the missing ones to that bucket, or check that
+     the portrait, series photos, the CV) that are not in that bucket. Upload the missing ones to that bucket, or check that
      the R2 secrets and the `R2_ORIGINALS_BUCKET` variable name the bucket the builds should read (after launch:
      `philglov-originals`). Without the photo the page would show a grey frame, so the build stops instead.
    - **Build**: the first error line says which check stopped it.
@@ -186,6 +186,33 @@ The words of the interface (menus, buttons, form labels, footer) are in `src/i18
    **Build**. When it is green, the run's summary has the preview address: open the Italian page there, check the
    words, and merge.
 
+## Updating the CV
+
+`philglov.es/cv` is unlisted: nothing links to it, search engines are told not to index it, and you give the address
+to whoever should have it. There is no login, so anyone with the address can download the file, and the address is
+easy to guess: put nothing in the CV that a stranger may not read. The PDF is published byte for byte, with whatever
+document properties (author, title, comments) your editor wrote into it.
+
+The file lives only in the photo bucket, as `cv/filippo-guanti-cv.pdf`, never in the repository. Visitors download it
+as `Filippo-Guanti-CV.pdf`. The page shows its size and the day you uploaded it.
+
+1. Save the new PDF as `imgs/cv.pdf` in the repository folder (`imgs/` is never committed).
+2. Upload it, from PowerShell in the repository folder (log in first with `pnpm exec wrangler login` if Wrangler
+   asks). It replaces the old one:
+
+   ```powershell
+   pnpm exec wrangler r2 object put philglov-originals/cv/filippo-guanti-cv.pdf --file imgs/cv.pdf --content-type application/pdf --jurisdiction eu --remote
+   ```
+
+3. Rebuild the site; an upload alone changes nothing. GitHub → **Actions** → **CI** → the newest run on `main` →
+   top right, **Re-run all jobs**. When **Deploy production** is green, open https://philglov.es/cv: the date is
+   today's. GitHub re-runs a run for 30 days only; if the newest one on `main` is older, merging any pull request
+   rebuilds the site too.
+
+To take the page down, remove the `"cv"` line from `src/data/site.json` in a pull request (and delete the object in
+the Cloudflare dashboard if you like). While `site.json` names a CV, the file must be in the bucket: without it Test
+fails at **Fetch photo originals from R2**.
+
 ## Change a field in site.json
 
 `src/data/site.json` holds a few facts about you that several pages use. Edit it as in the section above (steps 1–4).
@@ -199,6 +226,7 @@ JSON's rules: text in double quotes, a comma between items and none after the la
 | `contactEmail`  | Your public address: About page and `/.well-known/security.txt` (`phil@philglov.es`).                    |
 | `city`          | About page and the home line "Based in …" / "Vivo a …" (`"Msida, Malta"`).                               |
 | `partitaIva`    | `null`, or your number as text (`"01234567890"`): then the footer shows "P.IVA …". Only if you have one. |
+| `cv`            | `file`: the CV's key in the photo bucket, behind the unlisted `/cv`; see "Updating the CV".              |
 | `sameAs`        | Your profiles, full addresses in a list: `["https://github.com/…", "https://www.instagram.com/…"]`.      |
 | `portrait`      | `file` (the original's key in the photo bucket) and `alt` (`"en"`, `"it"`); see "Change the portrait".   |
 
