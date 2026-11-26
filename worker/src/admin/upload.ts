@@ -146,7 +146,8 @@ export async function upload(request: Request, env: Env): Promise<Response> {
     ]);
   } catch (error) {
     log("photo rejected", error);
-    return json(400, { error: "The upload broke off. It will be retried." });
+    // 503, not 400: the page retries only a 5xx (or a lost connection), and says so (audit finding 4).
+    return json(503, { error: "The upload broke off. It will be retried." });
   }
   log("photo stored");
   return json(200, { key });

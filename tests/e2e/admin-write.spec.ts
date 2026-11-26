@@ -3,7 +3,9 @@
  * (tests/e2e/admin-worker.ts: test Access, GitHub and R2 stand-ins): the list of published entries, editing one with
  * its slug and language fixed, saving it (one file, auto-merge), and the publisher's pull requests still open.
  */
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+import { fixtureJournal } from "../fixtures/content.ts";
 import { serveAdmin, type Admin } from "./admin-worker.ts";
 
 let consoleNoise: string[] = [];
@@ -168,6 +170,29 @@ test("a missing language is a link that opens its form: slug fixed, text empty, 
     "href",
     "/admin/write?edit=1&slug=foto&lang=en",
   );
+});
+
+// Audit finding 1: a copy typed on the phone against one version of a published file never comes back over a newer
+// one (an edit merged from the laptop meanwhile); it is shown to copy from instead, and the form keeps the new file.
+test("a browser copy typed against an older version of the file is not restored over the new one", async ({
+  page,
+  javaScriptEnabled,
+}) => {
+  test.skip(!javaScriptEnabled, "the browser copy is the script's");
+  const path = "src/content/journal/en/foto.md";
+  await page.goto(`${admin.origin}/admin/write?edit=1&slug=foto&lang=en`);
+  await page.fill("#w-title", "Typed on the phone");
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("philglov-write:edit-en-foto")))
+    .toContain("Typed on the phone");
+  const current = readFileSync(new URL("en/foto.md", fixtureJournal), "utf8");
+  admin.github.files[path] = current.replace(/^title: .*$/m, "title: Changed on the laptop");
+  await page.reload();
+  await expect(page.locator("#w-title")).toHaveValue("Changed on the laptop");
+  const note = page.getByRole("status").filter({ hasText: "Not restored: what you typed in this browser at" });
+  await expect(note).toBeVisible();
+  await note.locator("summary").click();
+  await expect(note.locator("details")).toContainText("Typed on the phone");
 });
 
 test("switching language and back keeps what was typed", async ({ page, javaScriptEnabled }) => {

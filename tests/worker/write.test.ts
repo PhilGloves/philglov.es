@@ -111,6 +111,26 @@ describe("photo upload", () => {
     expect((await put("after-launch", "lake.jpg", JPEG)).status).toBe(200);
   });
 
+  // Audit finding 4: a store that breaks off answers 503, the status the page retries; a 400 left the photo's row
+  // saying "It will be retried" while nothing retried it.
+  test("an upload the bucket fails to store answers 503, so the page retries it", async () => {
+    const { upload } = await import("../../worker/src/admin/upload.ts");
+    const failing = new Proxy(env.ORIGINALS, {
+      get: (bucket, name) =>
+        name === "put"
+          ? () => Promise.reject(new Error("R2 is down"))
+          : (Reflect.get(bucket, name) as (...args: unknown[]) => unknown).bind(bucket),
+    });
+    const request = new Request("https://philglov.es/admin/upload?slug=alps&name=lake.jpg", {
+      method: "PUT",
+      headers: { "Content-Length": String(JPEG.length) },
+      body: JPEG,
+    });
+    const res = await upload(request, { ...env, ORIGINALS: failing } as unknown as Env);
+    expect(res.status).toBe(503);
+    expect((await res.json<{ error: string }>()).error).toBe("The upload broke off. It will be retried.");
+  });
+
   test("a GIF named .jpg is refused", async () => {
     expect((await put("alps", "cat.jpg", GIF)).status).toBe(415);
   });

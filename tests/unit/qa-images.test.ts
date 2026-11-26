@@ -11,7 +11,10 @@ import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
 const assets = fileURLToPath(new URL("../../dist/_assets/", import.meta.url));
-const images = existsSync(assets) ? readdirSync(assets).filter((f) => /\.(avif|webp|jpe?g|png)$/i.test(f)) : [];
+// Every folder, large/ included: the large versions are the biggest photographs published (audit finding 10).
+const images = existsSync(assets)
+  ? readdirSync(assets, { recursive: true, encoding: "utf8" }).filter((f) => /\.(avif|webp|jpe?g|png)$/i.test(f))
+  : [];
 const photographs = images.filter((f) => /\.(avif|webp|jpe?g)$/i.test(f));
 
 function exiftool(files: string[]): Record<string, string>[] {
