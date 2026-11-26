@@ -89,6 +89,15 @@ test("every way an entry could redirect, embed, collect or run something is refu
       '<img src="/a.png" srcset="https://example.invalid/t.png 2x" alt="t">',
       /example\.invalid/,
     ],
+    // Audit finding 12: a browser reads "\" as "/" and drops tabs, so these are "//example.invalid" too.
+    ["a picture from another host, by a backslash", '<img src="/\\example.invalid/t.png" alt="t">', /another host/],
+    ["a picture from another host, by a tab", '<img src="/&#9;/example.invalid/t.png" alt="t">', /another host/],
+    ["a picture from another host, by a raw tab", '<img src="/\t/example.invalid/t.png" alt="t">', /another host/],
+    [
+      "a picture set from another host, by a backslash",
+      '<img src="/a.png" srcset="\\\\example.invalid/t.png 2x" alt="t">',
+      /another host/,
+    ],
     ["an event handler", '<img src="/a.png" alt="a" onerror="alert(1)">', /onerror/],
     ["a style attribute", '<p style="color:red">x</p>', /style/],
     ["a ping", '<a href="/x" ping="https://example.invalid/">x</a>', /ping/],

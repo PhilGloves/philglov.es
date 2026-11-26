@@ -68,8 +68,18 @@ export function safeAddress(value: string): boolean {
   return colon === -1 || /^(?:https?|mailto|tel)$/i.test(head.slice(0, colon));
 }
 
-/** An address the page loads: relative and on this site (not `//other.host/`). */
-const ownFile = (value: string): boolean => safeAddress(value) && !/^[a-z][a-z0-9+.-]*:|^\s*\/\//i.test(value.trim());
+/**
+ * An address the page loads: relative and on this site (not `//other.host/`). Browsers drop tabs and line breaks
+ * and read `\` as `/`, so `/\other.host` and `/<tab>/other.host` are read as that too, and an entity such as `&#9;`
+ * is a tab once decoded: a file of this site has no `&` in its path (audit finding 12).
+ */
+const ownFile = (value: string): boolean => {
+  const url = value
+    .replace(/[\t\n\r]/g, "")
+    .replace(/\\/g, "/")
+    .trim();
+  return safeAddress(value) && !/^[a-z][a-z0-9+.-]*:|^\/\/|^[^?#]*&/i.test(url);
+};
 
 const short = (value: string): string => (value.length > 80 ? `${value.slice(0, 77)}...` : value);
 
