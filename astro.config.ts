@@ -1,5 +1,6 @@
 import { defineConfig } from "astro/config";
 import { originalsPath } from "./scripts/lib/content-root.ts";
+import { cvInfo } from "./scripts/lib/cv.ts";
 import { entryLineBreaks } from "./src/lib/entry-line-breaks.ts";
 
 // See docs/decisions/0009-assets-and-routing.md for why each option is set.
@@ -41,6 +42,8 @@ export default defineConfig({
   // test build (scripts/lib/content-root.ts, decision 0033).
   vite: {
     build: { assetsInlineLimit: 0, cssCodeSplit: false },
+    // What /cv shows about the CV (null: no page). Read here: bundled page code cannot find the originals' folder.
+    define: { __CV__: JSON.stringify(cvInfo(originalsPath) ?? null) },
     resolve: { alias: { "@originals": originalsPath } },
   },
   devToolbar: { enabled: false },

@@ -43,6 +43,7 @@ test("reserved and taken slugs fail", () => {
   // Audit finding 5: an entry at /index would be written over the home page (and /it/index next to /it).
   assert.match(checkContent([file("journal/en/index.md", "en", "en")]).join(), /reserved slug/);
   assert.match(checkContent([file("journal/it/index.md", "it", "it")]).join(), /reserved slug/);
+  assert.match(checkContent([file("journal/en/cv.md", "en", "en")]).join(), /reserved slug/);
   const taken = [file("journal/en/colophon.md", "en", "en"), file("pages/en/colophon.md", "en", "en")];
   assert.match(checkContent(taken).join(), /already taken/);
   assert.match(checkContent([file("journal/en/Bad_Slug.md", "en", "en")]).join(), /lowercase ASCII/);

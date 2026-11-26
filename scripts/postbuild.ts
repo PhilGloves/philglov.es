@@ -21,15 +21,25 @@
  * 4. Moves the content manifest to dist/_assets/entries.json for the Worker
  *    (entry paths, taken slugs, the stylesheet the admin pages link; 0017).
  *
+ * It also copies the CV to dist/cv/ and writes its headers, when site.json names one that was fetched (0046).
+ *
  * SITE_ENV=production only in the production deploy; anything else (the
  * default) adds X-Robots-Tag: noindex, so a stray build is never indexable.
  */
-import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { filesUnder } from "./lib/files.ts";
 import { pngToIco } from "./lib/ico.ts";
 import { originalsPath } from "./lib/content-root.ts";
 import { removeStandIns } from "./lib/standins.ts";
-import { assetHeaderLines, baseHeaders, LARGE_DIR, largeHeaderLines } from "../worker/src/headers.ts";
+import { cvInfo } from "./lib/cv.ts";
+import {
+  assetHeaderLines,
+  baseHeaders,
+  CV_PDF,
+  cvHeaderRules,
+  LARGE_DIR,
+  largeHeaderLines,
+} from "../worker/src/headers.ts";
 import { localiseFootnotes } from "./lib/footnotes.ts";
 import { largeLinks } from "./lib/photo-rights.ts";
 import { inlineScripts, scriptHashesFile, sha256 } from "./lib/inline-scripts.ts";
@@ -82,6 +92,13 @@ writeFileSync(
   pngToIco(readFileSync(new URL("../src/assets/brand/favicon-32.png", import.meta.url))),
 );
 
+// 3b. The CV, its bytes unchanged, when site.json names one and it was fetched (decision 0046).
+const cv = cvInfo(originalsPath);
+if (cv) {
+  mkdirSync(new URL("cv/", dist), { recursive: true });
+  copyFileSync(cv.path, new URL(`.${CV_PDF}`, dist));
+} else if (existsSync(new URL("cv.html", dist))) throw new Error("postbuild: dist/cv.html has no PDF to offer");
+
 // 4. The content manifest for the Worker (B3, B8): dist/entries.json from the
 //    Astro endpoint, plus the stylesheet the admin pages link, moved under
 //    /_assets/ (the Worker never runs there) and removed from the root.
@@ -100,6 +117,7 @@ lines.push("", "/_assets/*");
 for (const line of assetHeaderLines(env)) lines.push(`  ${line}`);
 lines.push("", `${LARGE_DIR}*`);
 for (const line of largeHeaderLines()) lines.push(`  ${line}`);
+if (cv) for (const [path, rules] of cvHeaderRules()) lines.push("", path, ...rules.map((line) => `  ${line}`));
 
 writeFileSync(new URL("_headers", dist), `${lines.join("\n")}\n`);
 console.log(`postbuild: wrote dist/_headers and script-hashes.json (${scriptHashes.join(", ")}) for SITE_ENV=${env}`);

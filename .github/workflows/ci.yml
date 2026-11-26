@@ -242,7 +242,11 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist
-          path: dist/
+          # Without the CV: this repository is public, so anyone signed in to GitHub can download an artifact. The
+          # staging and preview deploys fetch it from R2 again (decision 0046).
+          path: |
+            dist/
+            !dist/cv/**
           include-hidden-files: true
           retention-days: 7
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -283,6 +287,13 @@ jobs:
         with:
           name: dist
           path: dist/
+      - name: Put the CV back (the artifact leaves it out)
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_ORIGINALS_BUCKET }}
+        run: node scripts/publish-cv.ts
       - name: Apply database migrations
         if: ${{ hashFiles('worker/migrations/*.sql') != '' }}
         env:
@@ -320,6 +331,13 @@ jobs:
         with:
           name: dist
           path: dist/
+      - name: Put the CV back (the artifact leaves it out)
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_ORIGINALS_BUCKET }}
+        run: node scripts/publish-cv.ts
       - name: Apply database migrations
         if: ${{ hashFiles('worker/migrations/*.sql') != '' }}
         env:

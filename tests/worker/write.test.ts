@@ -351,6 +351,12 @@ describe("drafts and publishing", () => {
     });
   });
 
+  test("the slug cv is taken, though the public manifest does not say so (decision 0046)", async () => {
+    expect((await siteManifest()).taken).not.toContain("cv");
+    const res = await adminFetch("/admin/write/reference?slug=cv&lang=en");
+    expect((await res.json<{ kind: string }>()).kind).toBe("taken");
+  });
+
   test("same slug, other language: the other-language version, originalLang from the existing file", async () => {
     const m = await siteManifest();
     const single = m.entries.find((e) => !m.entries.some((o) => o.slug === e.slug && o.lang !== e.lang));

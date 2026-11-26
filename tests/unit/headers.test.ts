@@ -4,6 +4,8 @@ import {
   assetHeaderLines,
   baseHeaders,
   contentSecurityPolicy,
+  CV_PDF,
+  cvHeaderRules,
   isIndexable,
   largeHeaderLines,
 } from "../../worker/src/headers.ts";
@@ -85,4 +87,12 @@ test("every response carries the security and TDM headers", () => {
   assert.equal(h["tdm-reservation"], "1");
   for (const feature of ["camera", "microphone", "geolocation", "payment"])
     assert.match(h["Permissions-Policy"] ?? "", new RegExp(String.raw`${feature}=\(\)`));
+});
+
+test("the CV: /cv and /cv/* are noindex, said once, and the PDF is a download (0046)", () => {
+  const rules = new Map(cvHeaderRules());
+  for (const env of ["production", "staging"])
+    for (const path of ["/cv", "/cv/*"])
+      assert.equal(served([siteRule(env), rules.get(path) ?? []]).get("x-robots-tag"), "noindex", `${env} ${path}`);
+  assert.deepEqual(rules.get(CV_PDF), ['Content-Disposition: attachment; filename="Filippo-Guanti-CV.pdf"']);
 });

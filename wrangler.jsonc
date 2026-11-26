@@ -25,6 +25,8 @@
       "!/feed.xml",
       "!/it/feed.xml",
       "!/favicon.ico",
+      // The CV's PDF, with its download headers in dist/_headers (decision 0046).
+      "!/cv/filippo-guanti-cv.pdf",
       "!/favicon.svg",
       "!/apple-touch-icon.png",
       "!/.well-known/*",

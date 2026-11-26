@@ -1,0 +1,36 @@
+---
+/** /cv (decision 0046): unlisted and noindex, with the head and grid of the other standalone pages (PageView). */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { CV_PAGE, CV_PDF } from "../../worker/src/headers.ts";
+import { CV_TEXT, fileSize } from "../lib/cv.ts";
+import { displayDate } from "../lib/dates.ts";
+
+interface Props {
+  size: number;
+  modified: string;
+}
+
+const { size, modified } = Astro.props;
+const date = new Date(modified);
+---
+
+<BaseLayout locale="en" path={CV_PAGE} title={CV_TEXT.title} description={CV_TEXT.line} hasTwin={false} noindex>
+  <article class="page">
+    <div class="g top top--intro">
+      <h1 class="title">{CV_TEXT.title}</h1>
+      <p class="lede">{CV_TEXT.line}</p>
+      <div class="con">
+        <div class="prose">
+          <p>
+            <a class="btn" href={CV_PDF} download>
+              {CV_TEXT.button}
+            </a>
+          </p>
+          <p class="updated">
+            {fileSize(size)} · {CV_TEXT.updated} {displayDate("en", date)}
+          </p>
+        </div>
+      </div>
+    </div>
+  </article>
+</BaseLayout>

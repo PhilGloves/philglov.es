@@ -8,7 +8,7 @@
  * the portrait uploaded to the wrong bucket, would have reached production that way. Without credentials (a fork, a
  * laptop without R2 keys) the script does nothing and the pages draw placeholders, as before.
  */
-import { getObject, type R2Config } from "./r2.ts";
+import { downloadObject, type R2Config } from "./r2.ts";
 
 export interface FetchReport {
   downloaded: string[];
@@ -20,7 +20,7 @@ export async function fetchOriginals(
   cfg: R2Config,
   keys: readonly string[],
   have: (key: string) => boolean,
-  save: (key: string, bytes: Uint8Array) => void,
+  save: (key: string, bytes: Uint8Array, modified?: Date) => void,
   force = false,
 ): Promise<FetchReport> {
   const report: FetchReport = { downloaded: [], cached: [], failed: [] };
@@ -32,7 +32,8 @@ export async function fetchOriginals(
   const download = async (): Promise<void> => {
     for (let key = todo[next++]; key !== undefined; key = todo[next++]) {
       try {
-        save(key, await getObject(cfg, key));
+        const { bytes, modified } = await downloadObject(cfg, key);
+        save(key, bytes, modified);
         report.downloaded.push(key);
       } catch (err) {
         report.failed.push(`${key}: ${(err as Error).message}`);

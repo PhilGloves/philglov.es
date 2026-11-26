@@ -110,7 +110,12 @@ export async function r2StandIn(bucketNames: string[], tokens: Record<string, To
     if (method === "GET" || method === "HEAD") {
       res.setHeader("content-length", String(object.body.length));
       calls.push({ method, bucket, key, token: akid, status: 200 });
-      res.writeHead(200, { "content-type": object.type, etag: `"${object.etag}"` });
+      // A fixed Last-Modified: R2 sends the date the object was stored (decision 0046).
+      res.writeHead(200, {
+        "content-type": object.type,
+        etag: `"${object.etag}"`,
+        "last-modified": "Sun, 01 Nov 2026 12:00:00 GMT",
+      });
       res.end(method === "HEAD" ? undefined : object.body);
       return;
     }

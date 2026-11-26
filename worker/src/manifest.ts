@@ -28,7 +28,12 @@ let cached: Promise<Manifest> | undefined;
 
 export function manifest(env: Env): Promise<Manifest> {
   cached ??= env.ASSETS.fetch(new Request("https://assets.local/_assets/entries.json"))
-    .then((r) => (r.ok ? (r.json() as Promise<Manifest>) : EMPTY))
+    // "cv" is taken too, but the public file does not say so (decision 0046).
+    .then(async (r) => {
+      if (!r.ok) return EMPTY;
+      const m = (await r.json()) as Manifest;
+      return { ...m, taken: [...m.taken, "cv"] };
+    })
     .catch(() => EMPTY)
     .then((m) => {
       // A failed read must not stick for the isolate's whole life.

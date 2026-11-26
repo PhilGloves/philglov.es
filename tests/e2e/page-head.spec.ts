@@ -28,6 +28,7 @@ const paths = [
   "/it/rights",
   "/privacy",
   "/it/privacy",
+  "/cv",
   "/lisbona",
   "/it/lisbona",
   "/no-such-page", // the 404
