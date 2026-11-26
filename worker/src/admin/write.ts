@@ -32,7 +32,6 @@ import {
   entryMarkdown,
   parseEntry,
   readEntry,
-  slugFromTitle,
   SLUG,
   splitPhotos,
   validateEntry,
@@ -58,6 +57,7 @@ import { required } from "../secrets.ts";
 import { csrfToken } from "../tokens.ts";
 import { clean } from "../validate.ts";
 import { adminPage, when } from "./layout.ts";
+import { NOTICES } from "./moderation.ts";
 import { MAX_PHOTO } from "./upload.ts";
 
 const LANG_NAME: Record<Lang, string> = { en: "English", it: "Italian" };
@@ -600,15 +600,25 @@ ${input.body}</textarea
                     ${d.base_sha ? "edit of a published entry · " : d.twin ? "other-language version · " : ""}saved
                     ${when(d.updated_at)} UTC
                   </p>
-                  <form method="post" action="/admin/action" class="actions">
-                    <input type="hidden" name="csrf" value="${csrf}" /><input
-                      type="hidden"
-                      name="id"
-                      value="${d.id}"
-                    /><button type="submit" name="action" value="delete-draft" class="btn btn--ghost">
-                      Delete draft
-                    </button>
-                  </form>
+                  <details>
+                    <summary>Delete draft</summary>
+                    <form method="post" action="/admin/action" class="form">
+                      <input type="hidden" name="csrf" value="${csrf}" /><input
+                        type="hidden"
+                        name="id"
+                        value="${d.id}"
+                      />
+                      <div class="field">
+                        <label
+                          ><input type="checkbox" name="confirm" value="yes" required /> Delete this draft. This cannot
+                          be undone.</label
+                        >
+                      </div>
+                      <div class="actions">
+                        <button type="submit" name="action" value="delete-draft" class="btn btn--danger">Delete</button>
+                      </div>
+                    </form>
+                  </details>
                 </li>`,
             )}
           </ol>`
@@ -661,6 +671,8 @@ export async function writeForm(env: Env, identity: Identity, url: URL): Promise
   };
   const draftId = url.searchParams.get("draft");
   const slug = (url.searchParams.get("slug") ?? "").trim().toLowerCase();
+  if (url.searchParams.get("done") === "delete-draft")
+    state.message = html`<p class="notice" role="status">${NOTICES["delete-draft"]}</p>`;
   if (draftId) {
     const d = await env.DB.prepare("SELECT * FROM drafts WHERE id = ?1").bind(draftId).first<DraftRow>();
     if (d) {
@@ -776,7 +788,7 @@ const stamp = (d: Date): string => d.toISOString().replace(/[-:T]/g, "").slice(0
  */
 const CLAIM_STALE = 2 * 60 * 1000;
 const CLAIM_WAIT = 20 * 1000;
-async function claim(env: Env, path: string): Promise<boolean> {
+export async function claim(env: Env, path: string, wait = CLAIM_WAIT): Promise<boolean> {
   for (const start = Date.now(); ; await new Promise((r) => setTimeout(r, 250))) {
     const now = Date.now();
     const row = await env.DB.prepare(
@@ -786,7 +798,7 @@ async function claim(env: Env, path: string): Promise<boolean> {
       .bind(path, now, now - CLAIM_STALE)
       .first();
     if (row) return true;
-    if (now - start > CLAIM_WAIT) return false;
+    if (now - start > wait) return false;
   }
 }
 
@@ -827,7 +839,6 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
   }
 
   if (form.get("intent") === "save") {
-    if (!input.slug && input.title) input.slug = slugFromTitle(input.title);
     const id = await saveDraft(env, input, draftId, baseSha, state.twin);
     // The first save of a new entry or of an entry's form moves the text from that form's browser copy to this
     // draft, which has its own; the draft page then removes the old copy, so it never comes back after Publish (SO-03).
@@ -882,6 +893,17 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
       </div>`;
       return writePage(env, identity, { ...state, message }, 409);
     }
+    // A new entry whose slug the other language is publishing right now would be a second original: each pull request
+    // passes on its own, and main then fails the content check (audit finding 7). It waits, as a language version does.
+    const open = await openPublications(env);
+    if (!isEdit && !state.twin && !twin && open.some((p) => branchFor(other(input.lang), input.slug).test(p.branch))) {
+      const message = html`<div class="alert" role="alert">
+        <strong>Not published yet.</strong> The ${LANG_NAME[other(input.lang)]} entry at
+        ${pathFor(input.slug, other(input.lang))} is still on its way. Save a draft, and once it is live, publish this
+        as its ${LANG_NAME[input.lang]} version: "Write the ${LANG_NAME[input.lang]} version" in the list.
+      </div>`;
+      return writePage(env, identity, { ...state, message }, 409);
+    }
     const missing = [];
     for (const photo of input.photos) if (!(await env.ORIGINALS.head(photo.key))) missing.push(photo.key);
     if (missing.length)
@@ -918,7 +940,7 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
     // This file already has a publisher pull request open (T2-03): the same text again is a resend (a double tap,
     // or the "Published" page reloaded), answered with that pull request; another text waits until it has merged.
     // Once it is merged or closed it is not open, and nothing here blocks the next Publish.
-    const waiting = (await openPublications(env)).filter((p) => branchFor(input.lang, input.slug).test(p.branch));
+    const waiting = open.filter((p) => branchFor(input.lang, input.slug).test(p.branch));
     if (waiting.length) {
       const sent = await Promise.all(waiting.map((p) => readFile(env, path, p.branch).catch(() => null)));
       const resent = waiting.find((_, i) => sent[i]?.text === text);
