@@ -4,8 +4,11 @@ Owner decision, 2026-11-25. Builds on [0005](0005-r2-photo-originals.md), [0019]
 [0028](0028-fix-round-2-frontend.md).
 
 **Decision.** A visitor can click a photograph to see it large: the photo on a series photo page (`PhotosView`, the
-single-photo page) and each photo inside a journal entry (`EntryView`). The About portrait and the thumbnails of the
-home page and the series pages are not linked: they already lead to a photo page.
+single-photo page), each photo inside a journal entry (`EntryView`) and the About portrait (`PageView`). The
+thumbnails of the home page and the series pages are not linked to it: they already lead to a photo page.
+
+_Extended 2026-11-25, owner's request: the About portrait is included, with the same link text, the same rights step,
+the same noindex folder and the same tests. Its link is as wide as the portrait (16rem), so its focus ring is too._
 
 - **What the click opens.** A "large version" of that photo, never the original: a JPEG, 2400 px on its long edge
   (smaller when the original is smaller; never enlarged), quality 78 like every other JPEG. Only this file carries a
@@ -52,5 +55,6 @@ this change regenerates the image cache.
 Tests: `tests/unit/photos.test.ts` (size rule, the mark's place, height and readability on light and dark, same bytes
 every time, no file in `dist` over 2400 px, every large link and its file, the mark in the large file only, nothing
 in the sitemap; tall entry photos), `tests/unit/headers.test.ts` and `tests/unit/build-output.test.ts` (noindex for
-`/_assets/large/*`), `tests/e2e/large-photo.spec.ts` (with JavaScript on and off: name, block, cursor, focus ring,
-Enter opens the JPEG in the same tab with noindex; no link on Home, a series page or About).
+`/_assets/large/*`), `tests/e2e/large-photo.spec.ts` (with JavaScript on and off, on a series photo, an entry photo
+and the About portrait in both languages: name, block, cursor, focus ring, Enter opens the JPEG in the same tab with
+noindex; no link on Home or a series page).

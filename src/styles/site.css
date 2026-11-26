@@ -2059,6 +2059,11 @@
     max-inline-size: 16rem;
   }
 
+  /* its link to the large version (0043) is as wide as the portrait, so is its focus ring */
+  .portrait .large {
+    max-inline-size: 16rem;
+  }
+
   .contact {
     margin: var(--sp-16) 0 0;
     padding: 0;

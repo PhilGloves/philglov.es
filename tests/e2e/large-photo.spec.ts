@@ -3,13 +3,15 @@ import { expect, test } from "@playwright/test";
 /**
  * A click on a photograph opens its large version (decision 0043): a plain link, no script, so it works the same with
  * JavaScript on and off (both projects run this file). The fixtures have a series photo and an entry photo in each
- * language (0033). Without originals in the build the pages draw placeholders, with no link, and these checks skip.
+ * language (0033), and the About portrait. Without originals in the build the pages draw placeholders, with no link, and these checks skip.
  */
 const PAGES = [
   { path: "/photos/lisbon/tram-28", text: "Open the large version" },
   { path: "/it/photos/lisbon/alfama", text: "Apri la foto" },
   { path: "/foto", text: "Open the large version" },
   { path: "/it/provafoto", text: "Apri la foto" },
+  { path: "/about", text: "Open the large version" },
+  { path: "/it/about", text: "Apri la foto" },
 ];
 
 for (const { path, text } of PAGES) {
@@ -49,8 +51,8 @@ for (const { path, text } of PAGES) {
   });
 }
 
-test("the home page, a series page and About link no photograph to a large version", async ({ page }) => {
-  for (const path of ["/", "/photos/lisbon", "/about", "/it/about"]) {
+test("the home page and a series page link no photograph to a large version", async ({ page }) => {
+  for (const path of ["/", "/photos/lisbon", "/it/photos/lisbon"]) {
     await page.goto(path);
     await expect(page.locator("a.large"), path).toHaveCount(0);
   }
