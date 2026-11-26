@@ -250,6 +250,10 @@ contatto]` …) and a bracket starting with "Placeholder"/"Segnaposto" on the bu
   edge with "© Filippo Guanti" burned into the corner (`src/lib/watermark.ts`, the image service's `watermark`
   option); the files live in `/_assets/large/` (noindex everywhere), get the rights step like every photo, and the
   originals stay private: no file in `dist` is longer than 2400 px. Link text "Open the large version" / "Apri la foto".
+- 2026-11-26: second audit ([0044](docs/decisions/0044-audit-fixes-two.md)): a phone copy typed against an older
+  version of a published file is shown, never restored over it; the page check follows nested SVGs; one notification
+  email per burst (none while an earlier item from the last hour waits); a broken photo store answers 503 so the page
+  retries; "index" is a reserved slug; backups are deleted at 12 weeks old by date; the image QA reads `large/`.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
