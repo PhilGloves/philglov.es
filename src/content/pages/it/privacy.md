@@ -8,7 +8,7 @@ tags: []
 comments: false
 ---
 
-Ultimo aggiornamento: 23 novembre 2026
+Ultimo aggiornamento: 26 novembre 2026
 
 **Chi è il titolare.** Filippo Guanti, Torino, Italia - phil@philglov.es. Questo è un sito personale senza pubblicità, senza statistiche e senza tracciamento.
 
@@ -23,7 +23,7 @@ Ultimo aggiornamento: 23 novembre 2026
 
 Inviare un modulo è facoltativo. Commenti e segnalazioni non vengono mai inviati a servizi di intelligenza artificiale.
 
-**Per quanto tempo li conservo.** I commenti pubblicati, con la relativa email, restano finché non mi chiedi di rimuoverli o finché non elimino la pagina. I commenti rifiutati vengono cancellati dopo 30 giorni, le segnalazioni entro 12 mesi e le copie di backup dopo 12 settimane.
+**Per quanto tempo li conservo.** I commenti pubblicati, con la relativa email, restano finché non mi chiedi di rimuoverli o finché non elimino la pagina. I commenti in attesa di essere letti rimangono tali finché non li pubblico, li rifiuto o li elimino. I commenti rifiutati vengono cancellati dopo 30 giorni, le segnalazioni entro 12 mesi e le copie di backup dopo 12 settimane.
 
 **Chi altro li tratta.** Cloudflare, Inc. ospita il sito e conserva questi dati per mio conto nella sua regione dati dell'Unione Europea, in base a un accordo sul trattamento dei dati. Cloudflare è un'azienda statunitense; quando i dati escono dall'UE, si basa sul Data Privacy Framework UE-USA e sulle clausole contrattuali standard. Se ti rispondo via email, quel messaggio passa dal mio fornitore di posta. Non condivido i tuoi dati con nessun altro.
 

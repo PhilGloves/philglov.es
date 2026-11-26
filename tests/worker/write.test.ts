@@ -239,6 +239,23 @@ describe("drafts and publishing", () => {
     expect(odd).toContain('data-moved=""');
   });
 
+  // Audit finding 8: Delete draft was one tap, for good, with no question, and its "Draft deleted." never showed.
+  test("Delete draft needs its box ticked, and the write page then says the draft is deleted", async () => {
+    await adminPost("/admin/write", { csrf: await csrf(), intent: "save", title: "Una bozza", lang: "it", body: "B." });
+    const id = String(await env.DB.prepare("SELECT id FROM drafts").first("id"));
+    const list = await (await adminFetch("/admin/write")).text();
+    expect(list).toContain('<input type="checkbox" name="confirm" value="yes" required /> Delete this draft.');
+    const unticked = await adminPost("/admin/action", { csrf: await csrf(), action: "delete-draft", id });
+    expect(unticked.headers.get("Location")).toBe("/admin/write");
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM drafts").first("n")).toBe(1);
+    const ticked = await adminPost("/admin/action", { csrf: await csrf(), action: "delete-draft", id, confirm: "yes" });
+    expect(ticked.headers.get("Location")).toBe("/admin/write?done=delete-draft");
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM drafts").first("n")).toBe(0);
+    expect(await (await adminFetch("/admin/write?done=delete-draft")).text()).toContain(
+      '<p class="notice" role="status">Draft deleted.</p>',
+    );
+  });
+
   test("BUG-4: Save draft skips the browser's checks (a half-written entry is a draft); Publish keeps them", async () => {
     const page = await (await adminFetch("/admin/write")).text();
     expect(page).toMatch(/<button type="submit" name="intent" value="save" class="btn btn--ghost" formnovalidate>/);
@@ -1211,6 +1228,49 @@ describe("one entry, one pull request (T2-03)", () => {
     expect(again).toContain('href="https://github.com/test/repo/pull/99"');
     // Whichever answer the browser shows, it removes the browser copy, as the "Published" page does.
     expect(again).toContain('id="published" data-clear="new"');
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM publishing").first("n")).toBe(0);
+  });
+
+  // Audit finding 9: the lock's two other paths. A row left by a Publish that died (older than two minutes) is taken
+  // over, and that Publish opens its pull request; a row still fresh holds the next one off until it gives up.
+  test("a Publish lock left over two minutes ago is taken over; a fresh one is waited for, then refused", async () => {
+    const { claim } = await import("../../worker/src/admin/write.ts");
+    const path = "src/content/journal/en/a-new-one.md";
+    const lock = (age: number) =>
+      env.DB.prepare("INSERT OR REPLACE INTO publishing (path, started_at) VALUES (?1, ?2)")
+        .bind(path, Date.now() - age)
+        .run();
+    await lock(3 * 60 * 1000);
+    expect((await adminPost("/admin/write", { csrf: await csrf(), ...newEntry })).status).toBe(200);
+    expect(await opened()).toHaveLength(1);
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM publishing").first("n")).toBe(0);
+    await lock(10 * 1000);
+    expect(await claim(env, path, 600)).toBe(false);
+    expect(await env.DB.prepare("SELECT started_at FROM publishing").first("started_at")).toBeLessThan(
+      Date.now() - 9_000,
+    );
+    await lock(3 * 60 * 1000);
+    expect(await claim(env, path, 600)).toBe(true);
+  });
+
+  // Audit finding 7: the English entry still on its way, the same slug written in Italian on the blank form would be
+  // a second original; both pull requests would pass and main would fail the content check. It waits instead.
+  test("a new entry whose slug the other language is still publishing waits, and opens nothing", async () => {
+    const token = await csrf();
+    expect((await adminPost("/admin/write", { csrf: token, ...newEntry })).status).toBe(200);
+    const res = await adminPost("/admin/write", {
+      csrf: token,
+      ...newEntry,
+      lang: "it",
+      title: "Una nuova",
+      description: "Una frase.",
+      body: "Ciao.",
+    });
+    expect(res.status).toBe(409);
+    const html = (await res.text()).replace(/\s+/g, " ");
+    expect(html).toContain("The English entry at /a-new-one is still on its way.");
+    expect(html).toContain('"Write the Italian version" in the list');
+    expect(await opened()).toHaveLength(1);
     expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM publishing").first("n")).toBe(0);
   });
 

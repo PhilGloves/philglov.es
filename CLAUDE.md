@@ -254,6 +254,10 @@ contatto]` …) and a bracket starting with "Placeholder"/"Segnaposto" on the bu
   version of a published file is shown, never restored over it; the page check follows nested SVGs; one notification
   email per burst (none while an earlier item from the last hour waits); a broken photo store answers 503 so the page
   retries; "index" is a reserved slug; backups are deleted at 12 weeks old by date; the image QA reads `large/`.
+- 2026-11-26: second audit, part two ([0045](docs/decisions/0045-audit-fixes-three.md)): a new entry waits while the
+  other language's pull request for its slug is open (no second original); Delete draft needs its box ticked and
+  says "Draft deleted."; the Publish lock's takeover and wait are tested; the page check reads `\`, tabs and `&` in a
+  loaded address as a browser does.
 - 2026-11-26: an unlisted `/cv` (English only) offers the CV from R2 ([0046](docs/decisions/0046-unlisted-cv.md)): never
   in git, never linked, noindex, left out of the public manifest and of the CI artifact. The owner uploads it and
   re-runs CI on `main` (playbook, "Updating the CV").
