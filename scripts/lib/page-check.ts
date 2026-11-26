@@ -10,7 +10,7 @@
  * - event handlers, `style`, `srcdoc`, `formaction`, `form`, `ping` and `http-equiv` attributes;
  * - addresses other than relative ones, http(s), mailto and tel; anything a page loads must come from this site;
  * - a form other than the comment form and the report form, or either of them twice;
- * - inside an <svg>, anything but drawing elements: the parser does not look inside SVG, and a browser lets <meta>
+ * - inside an <svg> (nested ones counted), anything but drawing elements: the parser does not look inside SVG, and a browser lets <meta>
  *   and other HTML elements break out of it, so the SVG's own text is read instead;
  * - a page the parser cannot read (a browser may read it differently).
  *
@@ -153,17 +153,26 @@ const validator = new HtmlValidate(
   ),
 );
 
-/** Inside each <svg>, read as text: only drawing elements, and no handler, link or style attribute. */
+/** One tag, its attributes read past quoted values, so a `>` or `</svg>` inside quotes does not end it. */
+const TAG = /<(\/?)([a-zA-Z][^\s/>]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g;
+/** Text a browser does not read as tags inside an SVG: comments and CDATA. */
+const NOT_TAGS = /<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>/g;
+
+/**
+ * Inside each <svg>, read as text: only drawing elements, and no handler, link or style attribute. The tags are
+ * walked in order and nested <svg>s counted, so an inner `</svg>` (or one in a quoted value) does not end the check
+ * where the browser has not ended the SVG.
+ */
 function svgProblems(html: string): string[] {
   const out: string[] = [];
-  for (const m of html.matchAll(/<svg\b[\s\S]*?(?:<\/svg\s*>|$)/gi)) {
-    const svg = m[0];
-    for (const t of svg.matchAll(/<\/?\s*([a-zA-Z][^\s/>]*)/g)) {
-      const name = (t[1] ?? "").toLowerCase();
-      if (!SVG_PARTS.has(name)) out.push(`an SVG holds <${name}>, which is not a drawing element`);
-    }
-    for (const a of svg.matchAll(/\s((?:on[a-z]+)|href|xlink:href|style)\s*=/gi))
+  let depth = 0;
+  for (const [, close, raw = "", attrs = ""] of html.replace(NOT_TAGS, "").matchAll(TAG)) {
+    const name = raw.toLowerCase();
+    if (depth === 0 && (name !== "svg" || close)) continue;
+    if (!SVG_PARTS.has(name)) out.push(`an SVG holds <${name}>, which is not a drawing element`);
+    for (const a of attrs.matchAll(/\s((?:on[a-z]+)|href|xlink:href|style)\s*=/gi))
       out.push(`an SVG holds a "${(a[1] ?? "").toLowerCase()}" attribute`);
+    if (name === "svg") depth += close ? -1 : attrs.trimEnd().endsWith("/") ? 0 : 1;
   }
   return out;
 }

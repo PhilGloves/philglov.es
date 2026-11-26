@@ -32,6 +32,8 @@ export const RESERVED_SLUGS: readonly string[] = [
   "sitemap.xml",
   "styleguide",
   "404",
+  // /index is built to index.html, the home page's own file (audit finding 5).
+  "index",
 ];
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;

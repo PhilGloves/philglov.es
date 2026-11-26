@@ -130,6 +130,7 @@ export const WRITE_SCRIPT = String.raw`"use strict";
     Array.prototype.forEach.call(li.querySelectorAll("[data-hint]"), function (n) { h[n.getAttribute("data-hint")] = n; });
   });
   var serverTime = Number(form.getAttribute("data-updated")) || 0;
+  var base = form.elements.namedItem("base_sha").value;
   var maxSize = Number(form.getAttribute("data-max"));
   var autoSlug = slug.value === "";
   var counter = 0;
@@ -175,7 +176,7 @@ export const WRITE_SCRIPT = String.raw`"use strict";
       var inputs = li.querySelectorAll("input");
       return { key: inputs[0].value, alt: inputs[1].value, caption: inputs[2].value };
     });
-    return { savedAt: Date.now(), title: title.value, slug: slug.value, lang: lang.value,
+    return { savedAt: Date.now(), base: base, title: title.value, slug: slug.value, lang: lang.value,
       description: form.elements.namedItem("description").value, body: body.value, photos: photos };
   }
   var timer = 0;
@@ -192,12 +193,21 @@ export const WRITE_SCRIPT = String.raw`"use strict";
     var saved;
     try { saved = JSON.parse(localStorage.getItem(key) || "null"); } catch (e) { saved = null; }
     if (!saved || saved.savedAt <= serverTime) return;
-    title.value = saved.title; slug.value = saved.slug; lang.value = saved.lang; body.value = saved.body;
-    form.elements.namedItem("description").value = saved.description;
-    while (list.firstChild) list.removeChild(list.firstChild);
-    saved.photos.forEach(function (p) { list.appendChild(photoItem(p.key, p.alt, p.caption)); });
-    autoSlug = false;
-    var note = el("p", { class: "notice", role: "status" }, "Restored what you typed in this browser at " + new Date(saved.savedAt).toLocaleTimeString() + ".");
+    var at = " in this browser at " + new Date(saved.savedAt).toLocaleTimeString();
+    // Typed against an older file: put back, it would undo the change made since.
+    if ((saved.base || "") !== base) {
+      var note = el("div", { class: "notice", role: "status" }, "Not restored: what you typed" + at + " was for an older version of this entry.");
+      var old = note.appendChild(el("details"));
+      old.appendChild(el("summary", null, "Show it"));
+      [saved.title, saved.description, saved.body].forEach(function (t) { old.appendChild(el("pre", null, t)); });
+    } else {
+      title.value = saved.title; slug.value = saved.slug; lang.value = saved.lang; body.value = saved.body;
+      form.elements.namedItem("description").value = saved.description;
+      while (list.firstChild) list.removeChild(list.firstChild);
+      saved.photos.forEach(function (p) { list.appendChild(photoItem(p.key, p.alt, p.caption)); });
+      autoSlug = false;
+      note = el("p", { class: "notice", role: "status" }, "Restored what you typed" + at + ".");
+    }
     form.parentNode.insertBefore(note, form);
   }
 

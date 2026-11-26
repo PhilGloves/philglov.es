@@ -4,7 +4,7 @@
  * thank-you on the page, or the same page again with the errors.
  */
 import { env, SELF } from "cloudflare:test";
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { Manifest } from "../../worker/src/manifest.ts";
 import type { FormReply } from "../../worker/src/page.ts";
 import { required } from "../../worker/src/secrets.ts";
@@ -201,6 +201,25 @@ describe("POST /api/comment", () => {
     expect((await post("/api/comment", { ...fields, comment: "And one more thing." })).status).toBe(303);
     const rows = await env.DB.prepare("SELECT body FROM comments ORDER BY id").all<{ body: string }>();
     expect(rows.results.map((r) => r.body)).toEqual([fields["comment"], "And one more thing."]);
+  });
+
+  // Audit finding 3: one address could have sent 720 emails a day. One email per burst: none while an earlier
+  // comment from the last hour still waits in /admin, from any address; once it is handled, the next one sends again.
+  test("a second comment within the hour, from another address, sends no email while the first still waits", async () => {
+    const { slug } = await twinEntry();
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const sent = () => info.mock.calls.filter(([event]) => event === "notification skipped").length;
+    const held = () => info.mock.calls.filter(([event]) => event === "notification held").length;
+    const from = (ip: string, comment: string) =>
+      commentFields(slug, "en", { comment }).then((f) => post("/api/comment", f, { "CF-Connecting-IP": ip }));
+    expect((await from("203.0.113.1", "The first comment.")).status).toBe(303);
+    expect([sent(), held()]).toEqual([1, 0]);
+    expect((await from("203.0.113.2", "A second one, soon after.")).status).toBe(303);
+    expect([sent(), held()]).toEqual([1, 1]);
+    await env.DB.prepare("UPDATE comments SET status = 'approved'").run();
+    expect((await from("203.0.113.3", "A third, after the others were handled.")).status).toBe(303);
+    expect([sent(), held()]).toEqual([2, 1]);
+    info.mockRestore();
   });
 });
 

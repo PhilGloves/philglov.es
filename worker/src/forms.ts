@@ -28,6 +28,8 @@ import { readComment, readReport, sitePath, validateComment, validateReport, typ
 
 /** Generous for a 5,000-character comment, even if every character is escaped as %XX%XX%XX. */
 const MAX_BODY = 64 * 1024;
+/** An hour: while an item stored in it still waits in /admin, the next of its kind sends no email (audit finding 3). */
+const NOTIFY_QUIET = 60 * 60 * 1000;
 
 const isLang = (value: string | null): value is Lang => value === "en" || value === "it";
 
@@ -141,6 +143,20 @@ async function checkSubmission(
   return hash;
 }
 
+/**
+ * One email per burst (audit finding 3): none while another item of the same kind, stored in the hour before this
+ * one, still waits in /admin. Only earlier items count, so of two stored at once at least one sends.
+ */
+async function firstWaiting(env: Env, table: "comments" | "reports", waiting: string, now: number): Promise<boolean> {
+  const earlier = await env.DB.prepare(
+    `SELECT 1 FROM ${table} WHERE status = ?1 AND created_at < ?2 AND created_at > ?3 LIMIT 1`,
+  )
+    .bind(waiting, now, now - NOTIFY_QUIET)
+    .first();
+  if (earlier) log("notification held");
+  return !earlier;
+}
+
 export async function handleComment(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   if (!env.FORM_HMAC_KEY || !env.IP_SALT) {
     log("config missing");
@@ -166,16 +182,17 @@ export async function handleComment(request: Request, env: Env, ctx: ExecutionCo
 
   // The same text from the same address in the last 10 minutes is a second tap on Send: answered as sent, stored
   // once, one email (audit, decision 0040). One statement, so two taps at once cannot both insert.
+  const now = Date.now();
   const stored = await env.DB.prepare(
     `INSERT INTO comments (slug, lang, name, email, body, status, created_at, ip_hash)
      SELECT ?1, ?2, ?3, ?4, ?5, 'pending', ?6, ?7
      WHERE NOT EXISTS (SELECT 1 FROM comments WHERE slug = ?1 AND ip_hash = ?7 AND body = ?5 AND created_at > ?8)`,
   )
-    .bind(entry.slug, entry.lang, input.name, input.email, input.comment, Date.now(), hash, Date.now() - RATE_WINDOW)
+    .bind(entry.slug, entry.lang, input.name, input.email, input.comment, now, hash, now - RATE_WINDOW)
     .run();
   if (stored.meta.changes) {
     log("comment stored");
-    ctx.waitUntil(notify(env, "comment", entry.title));
+    if (await firstWaiting(env, "comments", "pending", now)) ctx.waitUntil(notify(env, "comment", entry.title));
   } else log("form repeated");
   return done(request, env, form, path, "comment");
 }
@@ -205,16 +222,18 @@ export async function handleReport(request: Request, env: Env, ctx: ExecutionCon
   if (Object.keys(errors).length)
     return again(request, env, ctx, form, path, { form: "report", errors, values, url: pagePath });
 
+  const now = Date.now();
   const stored = await env.DB.prepare(
     `INSERT INTO reports (page_url, message, email, created_at, ip_hash, status)
      SELECT ?1, ?2, ?3, ?4, ?5, 'open'
      WHERE NOT EXISTS (SELECT 1 FROM reports WHERE page_url = ?1 AND ip_hash = ?5 AND message = ?2 AND created_at > ?6)`,
   )
-    .bind(pagePath, input.message, input.email || null, Date.now(), hash, Date.now() - RATE_WINDOW)
+    .bind(pagePath, input.message, input.email || null, now, hash, now - RATE_WINDOW)
     .run();
   if (stored.meta.changes) {
     log("report stored");
-    ctx.waitUntil(notify(env, "report", reportTitle(site, pagePath, known.ok)));
+    if (await firstWaiting(env, "reports", "open", now))
+      ctx.waitUntil(notify(env, "report", reportTitle(site, pagePath, known.ok)));
   } else log("form repeated");
   return done(request, env, form, path, "report");
 }

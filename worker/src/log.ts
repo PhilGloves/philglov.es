@@ -10,6 +10,7 @@ export type LogEvent =
   | "form repeated"
   | "notification sent"
   | "notification skipped"
+  | "notification held"
   | "notification failed"
   | "comments unavailable"
   | "rewrite failed"

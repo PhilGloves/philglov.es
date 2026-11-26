@@ -247,7 +247,7 @@ release so a rolled-back Worker still runs. Comments and reports come back from 
 
 ## Restoring comments and reports
 
-Every Monday at 04:00 UTC the Worker writes `backups/YYYY-MM-DD.json` to its backups bucket and keeps the newest 12. To
+Every Monday at 04:00 UTC the Worker writes `backups/YYYY-MM-DD.json` to its backups bucket and deletes each one once it is 12 weeks old. To
 put one back (decision 0030), use the names of the site you restore:
 
 | Site                     | Backups bucket             | Database flag      |
