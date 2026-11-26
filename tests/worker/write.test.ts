@@ -1205,6 +1205,28 @@ describe("one entry, one pull request (T2-03)", () => {
     expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM publishing").first("n")).toBe(0);
   });
 
+  // Audit finding 9: the lock's two other paths. A row left by a Publish that died (older than two minutes) is taken
+  // over, and that Publish opens its pull request; a row still fresh holds the next one off until it gives up.
+  test("a Publish lock left over two minutes ago is taken over; a fresh one is waited for, then refused", async () => {
+    const { claim } = await import("../../worker/src/admin/write.ts");
+    const path = "src/content/journal/en/a-new-one.md";
+    const lock = (age: number) =>
+      env.DB.prepare("INSERT OR REPLACE INTO publishing (path, started_at) VALUES (?1, ?2)")
+        .bind(path, Date.now() - age)
+        .run();
+    await lock(3 * 60 * 1000);
+    expect((await adminPost("/admin/write", { csrf: await csrf(), ...newEntry })).status).toBe(200);
+    expect(await opened()).toHaveLength(1);
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM publishing").first("n")).toBe(0);
+    await lock(10 * 1000);
+    expect(await claim(env, path, 600)).toBe(false);
+    expect(await env.DB.prepare("SELECT started_at FROM publishing").first("started_at")).toBeLessThan(
+      Date.now() - 9_000,
+    );
+    await lock(3 * 60 * 1000);
+    expect(await claim(env, path, 600)).toBe(true);
+  });
+
   // Audit finding 7: the English entry still on its way, the same slug written in Italian on the blank form would be
   // a second original; both pull requests would pass and main would fail the content check. It waits instead.
   test("a new entry whose slug the other language is still publishing waits, and opens nothing", async () => {

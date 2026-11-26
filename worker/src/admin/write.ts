@@ -789,7 +789,7 @@ const stamp = (d: Date): string => d.toISOString().replace(/[-:T]/g, "").slice(0
  */
 const CLAIM_STALE = 2 * 60 * 1000;
 const CLAIM_WAIT = 20 * 1000;
-async function claim(env: Env, path: string): Promise<boolean> {
+export async function claim(env: Env, path: string, wait = CLAIM_WAIT): Promise<boolean> {
   for (const start = Date.now(); ; await new Promise((r) => setTimeout(r, 250))) {
     const now = Date.now();
     const row = await env.DB.prepare(
@@ -799,7 +799,7 @@ async function claim(env: Env, path: string): Promise<boolean> {
       .bind(path, now, now - CLAIM_STALE)
       .first();
     if (row) return true;
-    if (now - start > CLAIM_WAIT) return false;
+    if (now - start > wait) return false;
   }
 }
 
