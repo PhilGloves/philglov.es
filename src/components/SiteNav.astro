@@ -22,7 +22,7 @@ const Nav = demo ? "div" : "nav";
 <Nav
   class:list={["nav", wide ? "nav--wide" : "nav--compact"]}
   hidden={wide}
-  aria-label={demo ? undefined : t(locale, wide ? "navWideLabel" : "navLabel")}
+  aria-label={demo ? undefined : t(locale, "navLabel")}
 >
   <ul>
     {links.map(({ key, label }) => (

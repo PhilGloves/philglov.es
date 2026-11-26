@@ -71,7 +71,7 @@ const shots = [
     <p class="lede">
       I'm Phil, and a good day for me is spent outside with friends and a camera. This is where the words and the photos
       end up. See what I’m focused on <a href="#sg-top">now</a>, read <a href="#sg-top">about me</a>, or start with the
-      <a href={`#sg-latest-${theme}`}>latest entry</a> below.
+      latest entry below.
     </p>
   </div>
 
@@ -108,7 +108,7 @@ const shots = [
       </p>
     </div>
     <div class="con">
-      <div class="latest" id={`sg-latest-${theme}`}>
+      <div class="latest">
         <p class="latest-meta">
           <span>No. 042</span>
           <span>2026-10-21</span>
@@ -125,7 +125,9 @@ const shots = [
             I had a plan when I arrived and none when I left. The plan was a list of viewpoints; what I actually did was
             walk until my feet chose the route.
           </p>
-          <span class="small muted">8 min</span>
+          <a class="go" href="#sg-top">
+            <Arrows text="Read · 8 min →" />
+          </a>
         </div>
       </div>
       <table class="idx">
