@@ -1188,6 +1188,27 @@ describe("one entry, one pull request (T2-03)", () => {
     expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM publishing").first("n")).toBe(0);
   });
 
+  // Audit finding 7: the English entry still on its way, the same slug written in Italian on the blank form would be
+  // a second original; both pull requests would pass and main would fail the content check. It waits instead.
+  test("a new entry whose slug the other language is still publishing waits, and opens nothing", async () => {
+    const token = await csrf();
+    expect((await adminPost("/admin/write", { csrf: token, ...newEntry })).status).toBe(200);
+    const res = await adminPost("/admin/write", {
+      csrf: token,
+      ...newEntry,
+      lang: "it",
+      title: "Una nuova",
+      description: "Una frase.",
+      body: "Ciao.",
+    });
+    expect(res.status).toBe(409);
+    const html = (await res.text()).replace(/\s+/g, " ");
+    expect(html).toContain("The English entry at /a-new-one is still on its way.");
+    expect(html).toContain('"Write the Italian version" in the list');
+    expect(await opened()).toHaveLength(1);
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM publishing").first("n")).toBe(0);
+  });
+
   test("reloading the Published page sends the same form again: nothing is opened twice", async () => {
     const token = await csrf();
     expect((await adminPost("/admin/write", { csrf: token, ...newEntry })).status).toBe(200);

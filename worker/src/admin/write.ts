@@ -882,6 +882,17 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
       </div>`;
       return writePage(env, identity, { ...state, message }, 409);
     }
+    // A new entry whose slug the other language is publishing right now would be a second original: each pull request
+    // passes on its own, and main then fails the content check (audit finding 7). It waits, as a language version does.
+    const open = await openPublications(env);
+    if (!isEdit && !state.twin && !twin && open.some((p) => branchFor(other(input.lang), input.slug).test(p.branch))) {
+      const message = html`<div class="alert" role="alert">
+        <strong>Not published yet.</strong> The ${LANG_NAME[other(input.lang)]} entry at
+        ${pathFor(input.slug, other(input.lang))} is still on its way. Save a draft, and once it is live, publish this
+        as its ${LANG_NAME[input.lang]} version: "Write the ${LANG_NAME[input.lang]} version" in the list.
+      </div>`;
+      return writePage(env, identity, { ...state, message }, 409);
+    }
     const missing = [];
     for (const photo of input.photos) if (!(await env.ORIGINALS.head(photo.key))) missing.push(photo.key);
     if (missing.length)
@@ -918,7 +929,7 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
     // This file already has a publisher pull request open (T2-03): the same text again is a resend (a double tap,
     // or the "Published" page reloaded), answered with that pull request; another text waits until it has merged.
     // Once it is merged or closed it is not open, and nothing here blocks the next Publish.
-    const waiting = (await openPublications(env)).filter((p) => branchFor(input.lang, input.slug).test(p.branch));
+    const waiting = open.filter((p) => branchFor(input.lang, input.slug).test(p.branch));
     if (waiting.length) {
       const sent = await Promise.all(waiting.map((p) => readFile(env, path, p.branch).catch(() => null)));
       const resent = waiting.find((_, i) => sent[i]?.text === text);
