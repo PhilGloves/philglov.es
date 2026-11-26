@@ -97,6 +97,17 @@ test("two lines under the text box say how to start a new line and write a link,
   await expect(sheet.locator("li", { hasText: "Link:" })).toHaveText("Link: [words](https://address)");
 });
 
+test("a field error is read with its field, without the × drawn before it", async ({ page }) => {
+  await page.goto(`${admin.origin}/admin/write`);
+  // Past the browser's own required check, so the Worker answers with its field errors.
+  await page.locator("#write-form").evaluate((form: HTMLFormElement) => (form.noValidate = true));
+  await page.getByRole("button", { name: "Publish" }).click();
+  await expect(page.locator("#w-title")).toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#w-title")).toHaveAccessibleDescription("Write a title.");
+  // The browser's own line for the 422 answer is expected (owner ruling O4); nothing else may be logged.
+  consoleNoise = consoleNoise.filter((l) => !/^error: Failed to load resource: .* 422 /.test(l));
+});
+
 test("the search finds entries by title, in either language", async ({ page }) => {
   await page.goto(`${admin.origin}/admin/write`);
   await page.fill("#e-q", "lisbona");

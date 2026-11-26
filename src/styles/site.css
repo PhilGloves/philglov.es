@@ -1904,8 +1904,10 @@
     font-weight: 600;
   }
 
+  /* the mark is seen, not read: the second line gives it empty alternative text where supported */
   .field-error::before {
     content: "× ";
+    content: "× " / "";
   }
 
   /* the Worker fills these slots only when a field has an error */

@@ -38,7 +38,9 @@ the buttons show they are busy.
 - `write.js` is 12.5 KB; the unit test's cap for the admin scripts is 13,000 bytes. The public JavaScript budget
   (1,536 bytes) does not include them and is unchanged.
 - An edit refused because the first is still open meets T2-04 (FINAL-REVIEW.md): a draft keeps the version it was
-  opened from, so once the first has merged, its Publish is refused as "changed on GitHub". Until T2-04 is settled,
-  make the second change after the first is live, from the entry's edit form.
+  opened from, so once the first has merged, its Publish is refused as "changed on GitHub". T2-04 is settled by that
+  message (2026-11-26), not by a new feature: it says to copy the text out of the form, not to save a draft, to
+  delete every draft of the edit, then to open the current version and make the change there again. A draft is never
+  moved onto the newer version.
 - Both GitHub stand-ins (`vitest.config.ts`, `tests/e2e/admin-worker.ts`) keep what the Worker writes on a branch and
   list the pull requests it opened as open, as GitHub does.

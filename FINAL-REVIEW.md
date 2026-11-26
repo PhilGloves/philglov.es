@@ -90,7 +90,12 @@ the fix pull request with a test that failed before the fix.
     typing the change again works. The second reviewer also read in the code, without trying it in a browser, that
     following the link without saving a draft can bring back the browser's copy and overwrite the laptop change.
     Options: open the draft on the current published version, with that version shown next to it; or say plainly
-    to delete the draft. **Until then: edit an entry in one place at a time.**
+    to delete the draft. **Settled by the message, not by the feature** (2026-11-26): the behaviour is unchanged, and
+    the refusal now gives the steps that work: copy the text out of the form, do not save a draft, delete every draft
+    of this edit under Drafts, open the current version and make the change there again
+    (`tests/worker/write.test.ts` follows them to a successful Publish). The browser's copy is no longer the risk the
+    second reviewer read: since commit `7e9fdff` a copy typed against an older version is not put back, only shown
+    under the form to copy from. **You:** nothing; editing an entry in one place at a time still saves the retyping.
 13. **Medium: `www.philglov.es` does not exist** (T4-05). The Worker answers the bare domain only. Your choice: a
     redirect (runbook step 6) or none.
 14. **Medium: two typed hyphens become a dash, and straight quotes curly ones, in Markdown** (T1B-02, T2-06). Today

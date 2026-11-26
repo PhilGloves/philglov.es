@@ -100,6 +100,10 @@ test.describe("JavaScript on: sent in the background", () => {
     await expect(page.locator("#comment-status")).toBeFocused();
     await expect(page.locator("#c-email-err")).toHaveText("Enter an address like name@example.com");
     await expect(page.locator("#c-email")).toHaveAttribute("aria-invalid", "true");
+    // The "×" before the error is seen, never read: it is not in what a screen reader says with the field.
+    await expect(page.locator("#c-email")).toHaveAccessibleDescription(
+      /^[^×]*Enter an address like name@example\.com$/,
+    );
     await expect(page.locator("#c-name")).toHaveAttribute("aria-invalid", "false");
     await expect(page.locator("#c-comment")).toHaveValue(/hills being a negotiation/);
     expect(navigations).toEqual([]);
