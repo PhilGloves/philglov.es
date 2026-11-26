@@ -8,7 +8,7 @@ tags: []
 comments: false
 ---
 
-Last updated: 23 November 2026
+Last updated: 26 November 2026
 
 **Who is responsible.** Filippo Guanti, Torino, Italy - phil@philglov.es. This is a personal site with no ads, no analytics and no tracking.
 
@@ -23,7 +23,7 @@ Last updated: 23 November 2026
 
 Sending a form is optional. Comments and reports are never sent to AI services.
 
-**How long I keep it.** Published comments, with their email, stay until you ask me to remove them or I delete the entry. Rejected comments are deleted after 30 days, error reports within 12 months, and backups after 12 weeks.
+**How long I keep it.** Published comments, with their email, stay until you ask me to remove them or I delete the entry. Comments waiting for me to read them stay until I publish, reject or delete them. Rejected comments are deleted after 30 days, error reports within 12 months, and backups after 12 weeks.
 
 **Who else handles it.** Cloudflare, Inc. hosts the site and stores this data for me in its European Union data region, under a data-processing agreement. Cloudflare is a US company; where data leaves the EU, it relies on the EU-US Data Privacy Framework and standard contractual clauses. If I reply to you by email, my email provider handles that message. I share your data with no one else.
 
