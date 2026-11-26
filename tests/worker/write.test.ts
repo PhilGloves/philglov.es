@@ -219,6 +219,23 @@ describe("drafts and publishing", () => {
     expect(odd).toContain('data-moved=""');
   });
 
+  // Audit finding 8: Delete draft was one tap, for good, with no question, and its "Draft deleted." never showed.
+  test("Delete draft needs its box ticked, and the write page then says the draft is deleted", async () => {
+    await adminPost("/admin/write", { csrf: await csrf(), intent: "save", title: "Una bozza", lang: "it", body: "B." });
+    const id = String(await env.DB.prepare("SELECT id FROM drafts").first("id"));
+    const list = await (await adminFetch("/admin/write")).text();
+    expect(list).toContain('<input type="checkbox" name="confirm" value="yes" required /> Delete this draft.');
+    const unticked = await adminPost("/admin/action", { csrf: await csrf(), action: "delete-draft", id });
+    expect(unticked.headers.get("Location")).toBe("/admin/write");
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM drafts").first("n")).toBe(1);
+    const ticked = await adminPost("/admin/action", { csrf: await csrf(), action: "delete-draft", id, confirm: "yes" });
+    expect(ticked.headers.get("Location")).toBe("/admin/write?done=delete-draft");
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM drafts").first("n")).toBe(0);
+    expect(await (await adminFetch("/admin/write?done=delete-draft")).text()).toContain(
+      '<p class="notice" role="status">Draft deleted.</p>',
+    );
+  });
+
   test("BUG-4: Save draft skips the browser's checks (a half-written entry is a draft); Publish keeps them", async () => {
     const page = await (await adminFetch("/admin/write")).text();
     expect(page).toMatch(/<button type="submit" name="intent" value="save" class="btn btn--ghost" formnovalidate>/);

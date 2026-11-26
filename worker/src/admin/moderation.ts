@@ -36,7 +36,7 @@ interface ReportRow {
 
 const COMMENT_COLUMNS = "id, slug, lang, name, email, body, status, created_at, reply_body";
 
-const NOTICES: Record<string, string> = {
+export const NOTICES: Record<string, string> = {
   approve: "Approved. The comment is live within a minute.",
   reject: "Rejected. It is deleted after 30 days.",
   reply: "Reply saved and the comment approved. Both are live within a minute.",
@@ -276,6 +276,8 @@ export async function moderationAction(
   }
 
   if (action === "delete-draft") {
+    // A draft is gone for good: deleted only with the box ticked, like a comment or a report (audit finding 8).
+    if (!confirmed) return back("/admin/write", "");
     await db
       .prepare("DELETE FROM drafts WHERE id = ?1")
       .bind(form.get("id") ?? "")

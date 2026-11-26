@@ -58,6 +58,7 @@ import { required } from "../secrets.ts";
 import { csrfToken } from "../tokens.ts";
 import { clean } from "../validate.ts";
 import { adminPage, when } from "./layout.ts";
+import { NOTICES } from "./moderation.ts";
 import { MAX_PHOTO } from "./upload.ts";
 
 const LANG_NAME: Record<Lang, string> = { en: "English", it: "Italian" };
@@ -600,15 +601,25 @@ ${input.body}</textarea
                     ${d.base_sha ? "edit of a published entry · " : d.twin ? "other-language version · " : ""}saved
                     ${when(d.updated_at)} UTC
                   </p>
-                  <form method="post" action="/admin/action" class="actions">
-                    <input type="hidden" name="csrf" value="${csrf}" /><input
-                      type="hidden"
-                      name="id"
-                      value="${d.id}"
-                    /><button type="submit" name="action" value="delete-draft" class="btn btn--ghost">
-                      Delete draft
-                    </button>
-                  </form>
+                  <details>
+                    <summary>Delete draft</summary>
+                    <form method="post" action="/admin/action" class="form">
+                      <input type="hidden" name="csrf" value="${csrf}" /><input
+                        type="hidden"
+                        name="id"
+                        value="${d.id}"
+                      />
+                      <div class="field">
+                        <label
+                          ><input type="checkbox" name="confirm" value="yes" required /> Delete this draft. This cannot
+                          be undone.</label
+                        >
+                      </div>
+                      <div class="actions">
+                        <button type="submit" name="action" value="delete-draft" class="btn btn--danger">Delete</button>
+                      </div>
+                    </form>
+                  </details>
                 </li>`,
             )}
           </ol>`
@@ -661,6 +672,8 @@ export async function writeForm(env: Env, identity: Identity, url: URL): Promise
   };
   const draftId = url.searchParams.get("draft");
   const slug = (url.searchParams.get("slug") ?? "").trim().toLowerCase();
+  if (url.searchParams.get("done") === "delete-draft")
+    state.message = html`<p class="notice" role="status">${NOTICES["delete-draft"]}</p>`;
   if (draftId) {
     const d = await env.DB.prepare("SELECT * FROM drafts WHERE id = ?1").bind(draftId).first<DraftRow>();
     if (d) {
