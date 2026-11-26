@@ -32,7 +32,6 @@ import {
   entryMarkdown,
   parseEntry,
   readEntry,
-  slugFromTitle,
   SLUG,
   splitPhotos,
   validateEntry,
@@ -840,7 +839,6 @@ export async function writeAction(env: Env, identity: Identity, form: URLSearchP
   }
 
   if (form.get("intent") === "save") {
-    if (!input.slug && input.title) input.slug = slugFromTitle(input.title);
     const id = await saveDraft(env, input, draftId, baseSha, state.twin);
     // The first save of a new entry or of an entry's form moves the text from that form's browser copy to this
     // draft, which has its own; the draft page then removes the old copy, so it never comes back after Publish (SO-03).
