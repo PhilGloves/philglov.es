@@ -736,6 +736,44 @@ describe("editing a published entry", () => {
     expect((await calls()).some((c) => c.method === "PUT" || c.path.endsWith("/pulls"))).toBe(false);
   });
 
+  // T2-04: the steps the message gives, from an edit kept as a draft, end in a Publish of the current version.
+  test("changed on GitHub while a draft was kept: the message's steps lead to a successful Publish", async () => {
+    const base = fields(await open());
+    await uploaded();
+    const edit = { title: "Città on foot", slug: SLUG, lang: "en", description: "A walk." };
+    const saved = await adminPost("/admin/write", { ...base, ...edit, intent: "save", body: "Rewritten." });
+    const draftId = /draft=([^&]+)/.exec(saved.headers.get("Location") ?? "")?.[1] ?? "";
+    const laptop = PUBLISHED.replace("First paragraph.", "First paragraph, from the laptop.");
+    await gh("/__set", { files: { [PATH]: laptop } });
+    const refused = await save(base, { ...edit, draft_id: draftId, body: "Rewritten." });
+    expect(refused.status).toBe(409);
+    const html = (await refused.text()).replace(/\s+/g, " ");
+    expect(html).toContain("Nothing was overwritten.");
+    // 1. The text is still in the form, to copy out.
+    expect(html).toContain("Rewritten.</textarea");
+    const link = `/admin/write?edit=1&slug=${SLUG}&lang=en`;
+    expect(html).toContain(`<a href="${link.replaceAll("&", "&amp;")}">Open the current version</a>`);
+    // While the draft is there, the link opens it on the old version: why step 2 deletes it.
+    expect(await (await adminFetch(link)).text()).toContain(`name="base_sha" value="${base.base_sha}"`);
+    // 2. Delete the draft.
+    const deleted = await adminPost("/admin/action", {
+      csrf: base.csrf,
+      action: "delete-draft",
+      id: draftId,
+      confirm: "yes",
+    });
+    expect(deleted.status).toBe(303);
+    // 3. Open the current version: the laptop's text on its version; make the change there again.
+    const current = await (await adminFetch(link)).text();
+    expect(current).toContain("First paragraph, from the laptop.");
+    const again = fields(current);
+    expect(again.base_sha).toBe(await blobSha(laptop));
+    const res = await save(again, { ...edit, body: "First paragraph, from the laptop, rewritten." });
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('<h2 class="admin-title">Saved</h2>');
+    expect((await calls()).filter((c) => c.method === "PUT")).toHaveLength(1);
+  });
+
   test("changed between the check and the write: GitHub's 409 gives the same message", async () => {
     const base = fields(await open());
     await uploaded();

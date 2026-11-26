@@ -804,12 +804,22 @@ export async function claim(env: Env, path: string, wait = CLAIM_WAIT): Promise<
 
 const BLOB_SHA = /^[0-9a-f]{40}$/;
 
-/** The entry was changed on GitHub (or by another Publish) after it was opened here. */
+/**
+ * The entry was changed on GitHub (or by another Publish) after it was opened here. A draft keeps the version it was
+ * opened from, and the edit link opens the newest draft, so the way out is: copy, delete the drafts, open, redo (T2-04).
+ */
 function conflict(slug: string, lang: Lang): Safe {
   return html`<div class="alert" role="alert">
     <strong>Not saved: ${pathFor(slug, lang)} changed on GitHub since you opened it.</strong> Nothing was overwritten.
-    Save a draft to keep your text, then <a href="${editLink(slug, lang)}">open the current version</a> and make your
-    changes there.
+    Your text is still in the form below. To make your change on the current version:
+    <ol>
+      <li>Copy your text out of the form. Do not save a draft: a draft keeps the old version and is refused again.</li>
+      <li>Under Drafts, delete every draft of this edit.</li>
+      <li>
+        <a href="${editLink(slug, lang)}">Open the current version</a> and make your change there again. Paste back
+        only what you changed, or the change made on GitHub is lost.
+      </li>
+    </ol>
   </div>`;
 }
 
