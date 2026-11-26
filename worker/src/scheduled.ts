@@ -3,7 +3,7 @@
  * IP hashes after 30 days, rejected comments after 30 days, every error report
  * 12 months after it arrived (open or done, as the privacy notice says;
  * owner decision O3, 2026-11-12), finished rate-limit windows, and the comments of an entry no longer on the site.
- * Weekly backup: comments and reports as JSON in the backups bucket, 12 kept.
+ * Weekly backup: comments and reports as JSON in the backups bucket, each deleted once 12 weeks old.
  */
 import { log } from "./log.ts";
 import { manifest } from "./manifest.ts";
@@ -13,7 +13,7 @@ const DAY = 24 * 60 * 60 * 1000;
 export const IP_HASH_DAYS = 30;
 export const REJECTED_DAYS = 30;
 export const REPORT_DAYS = 365;
-export const BACKUPS_KEPT = 12;
+export const BACKUP_WEEKS = 12;
 export const WEEKLY = "0 4 * * 1";
 
 export async function retention(db: D1Database, now = Date.now()): Promise<void> {
@@ -57,10 +57,13 @@ export async function backup(env: Env, now = new Date()): Promise<string> {
   });
   await env.BACKUPS.put(key, body, { httpMetadata: { contentType: "application/json" } });
 
-  // Keep the newest 12 (names sort by date).
+  // Delete each backup once it is 12 weeks old, by the date in its name, as the privacy notice says: by age, not
+  // by count, so weeks without a backup never keep an older one (audit finding 6).
+  const cutoff = new Date(now.getTime() - BACKUP_WEEKS * 7 * DAY).toISOString().slice(0, 10);
   const listed = await env.BACKUPS.list({ prefix: "backups/" });
-  const names = listed.objects.map((o) => o.key).sort();
-  const old = names.slice(0, Math.max(0, names.length - BACKUPS_KEPT));
+  const old = listed.objects
+    .map((o) => o.key)
+    .filter((name) => (/^backups\/(\d{4}-\d{2}-\d{2})\.json$/.exec(name)?.[1] ?? "9999") <= cutoff);
   if (old.length) await env.BACKUPS.delete(old);
   return key;
 }

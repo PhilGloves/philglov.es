@@ -120,20 +120,22 @@ describe("comments of an entry no longer on the site (0040)", () => {
 });
 
 describe("backups", () => {
-  test("weekly JSON export of comments and reports, without IP hashes, newest 12 kept", async () => {
+  // Audit finding 6: deleted by age, as the privacy notice says ("backups after 12 weeks"), not the newest 12 kept:
+  // weeks without a backup (8 and 9 here) must not keep one older than 12 weeks.
+  test("weekly JSON export of comments and reports, without IP hashes, each deleted at 12 weeks old", async () => {
     const { slug } = await twinEntry();
     await insertComment({ slug, name: "Marta", ip_hash: "secret-hash" });
-    for (let i = 1; i <= 13; i++)
-      await env.BACKUPS.put(`backups/2026-0${Math.ceil(i / 4)}-${String(i).padStart(2, "0")}.json`, "{}");
+    const weeksAgo = (n: number) => `backups/${new Date(NOW - n * 7 * DAY).toISOString().slice(0, 10)}.json`;
+    for (const n of [1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 16]) await env.BACKUPS.put(weeksAgo(n), "{}");
     const key = await backup(env, new Date(NOW));
     expect(key).toBe("backups/2026-11-12.json");
     const data = await (await env.BACKUPS.get(key))?.json<{ comments: Record<string, unknown>[] }>();
     expect(data?.comments[0]).toMatchObject({ name: "Marta", email: "luca@example.com" });
     expect(JSON.stringify(data)).not.toContain("secret-hash");
     const listed = await env.BACKUPS.list({ prefix: "backups/" });
-    expect(listed.objects.length).toBe(12);
-    expect(listed.objects.map((o) => o.key)).toContain(key);
-    expect(listed.objects.map((o) => o.key)).not.toContain("backups/2026-01-01.json");
+    expect(listed.objects.map((o) => o.key).sort()).toEqual(
+      [key, ...[1, 2, 3, 4, 5, 6, 7, 10, 11].map(weeksAgo)].sort(),
+    );
   });
 
   // Security audit, check 9 (decision 0030): a backup is only as good as its restore. Last week's export goes back
