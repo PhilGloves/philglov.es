@@ -19,17 +19,19 @@
  *   text on bg (body text)                17.77     15.46    7    (AAA)
  *   text on surface                       16.36     14.17    7
  *   muted on bg (sign-off, footnotes, facts) 7.11    7.29    7    (AAA)
+ *     (also a disabled button's label)
  *   muted on surface                       6.55      6.68    4.5
  *   accent on bg (links, markers)          7.03      9.08    7
  *   accent on surface                      6.47      8.33    4.5
  *   accent on 7% row hover tint            6.36      8.08    4.5
  *   muted on 7% row hover tint             6.43      6.49    4.5
- *   accent-ink on accent (button label)    7.03      9.08    4.5
  *   band-text on band (Now paragraph)      7.04     12.00    7    (AAA)
  *   band-muted on band (Now label)         5.13      7.21    4.5
  *   error on bg                            7.11      9.26    4.5
  *   error on surface                       6.55      8.49    4.5
- *   bg on text (skip link)                17.77     15.46    7
+ *   bg on text (skip link, button hover)  17.77     15.46    7
+ *   text on 8% text tint (ghost hover)    15.14     12.83    4.5
+ *   error on 12% error tint (danger hover) 5.80      7.44    4.5
  *   muted on bg as input border (UI, 3:1) 7.11      7.29    3
  *   focus on bg (UI, 3:1)                  7.03      9.08    3
  *   band-text on band as focus ring (3:1)  7.04     12.00    3
@@ -49,7 +51,6 @@
     --muted: #565652;
     --rule: #e0dfd9;
     --accent: #4a5d23;
-    --accent-ink: #fbfbf8;
     --focus: #4a5d23;
     --band: #4a5d23;
     --band-text: #fafcf4;
@@ -74,7 +75,6 @@
       --muted: #a3a49d;
       --rule: #2d2f2a;
       --accent: #a9bf78;
-      --accent-ink: #141513;
       --focus: #a9bf78;
       --band: #232c17;
       --band-text: #e6ecd6;
@@ -91,7 +91,6 @@
     --muted: #a3a49d;
     --rule: #2d2f2a;
     --accent: #a9bf78;
-    --accent-ink: #141513;
     --focus: #a9bf78;
     --band: #232c17;
     --band-text: #e6ecd6;
@@ -227,11 +226,7 @@
     --touch: 2.75rem; /* 44 px */
 
     /* ---------- radius ---------- */
-    --radius-pill: 999px;
-    --radius-input: 5px;
-    --radius-box: 6px;
-    --radius-tag: 4px;
-    --radius-photo: 0;
+    --radius: 2px; /* one corner for everything: fields, boxes, tags, photos, buttons, header controls (0047) */
 
     /* ---------- motion ---------- */
     --dur-fast: 150ms;

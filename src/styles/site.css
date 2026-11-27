@@ -500,7 +500,7 @@
     block-size: var(--box);
     padding: 0;
     border: 1px solid transparent;
-    border-radius: 50%;
+    border-radius: var(--radius);
     background: none;
     color: var(--text);
     font-size: var(--fs-16);
@@ -601,7 +601,7 @@
     }
   }
 
-  /* ===== buttons ===== */
+  /* ===== buttons (0047): an ink outline, no fill, the label in capitals from CSS (the markup keeps its words) ===== */
   .btn {
     display: inline-flex;
     align-items: center;
@@ -609,49 +609,52 @@
     gap: var(--sp-8);
     min-block-size: 2.875rem;
     padding-inline: var(--sp-24);
-    border: 1px solid transparent;
-    border-radius: var(--radius-pill);
-    background: var(--accent);
-    color: var(--accent-ink);
-    font-size: var(--fs-17);
+    border: 2px solid var(--text);
+    border-radius: var(--radius);
+    background: none;
+    color: var(--text);
+    font-size: var(--fs-15);
     font-weight: 600;
+    letter-spacing: 0.08em;
     text-align: center;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: background-color var(--dur-fast) var(--ease);
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease);
   }
 
-  .btn:hover {
-    background: color-mix(in srgb, var(--accent) 82%, var(--text));
-    color: var(--accent-ink);
+  /* .sg-hover draws the hover state on /styleguide */
+  .btn:is(:hover, .sg-hover) {
+    background: var(--text);
+    color: var(--bg);
   }
 
   .btn--ghost {
-    border-color: var(--text);
-    background: none;
-    color: var(--text);
+    border-width: 1px;
   }
 
-  .btn--ghost:hover {
+  .btn--ghost:is(:hover, .sg-hover) {
     background: color-mix(in srgb, var(--text) 8%, transparent);
     color: var(--text);
   }
 
   .btn--danger {
+    border-width: 1px;
     border-color: var(--error);
-    background: none;
     color: var(--error);
   }
 
-  .btn--danger:hover {
+  .btn--danger:is(:hover, .sg-hover) {
     background: color-mix(in srgb, var(--error) 12%, transparent);
     color: var(--error);
   }
 
   .btn[disabled],
   .btn[aria-disabled="true"] {
-    border-color: var(--muted);
-    background: var(--muted);
-    color: var(--bg);
+    border: 1px dashed var(--muted);
+    background: none;
+    color: var(--muted);
     cursor: not-allowed;
   }
 
@@ -777,13 +780,13 @@
     place-items: center;
     inline-size: 100%;
     overflow: hidden;
-    border-radius: var(--radius-photo);
+    border-radius: var(--radius);
     background: var(--tone-2);
   }
 
   .frame > span {
     padding: var(--sp-6) var(--sp-10);
-    border-radius: var(--radius-tag);
+    border-radius: var(--radius);
     background: var(--bg);
     color: var(--text);
     font-size: var(--fs-15);
@@ -1144,7 +1147,7 @@
     min-block-size: 2.25rem;
     padding-inline: var(--sp-14);
     border: 1px solid var(--muted);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius);
     font-size: var(--fs-17);
     font-weight: 400;
   }
@@ -1372,7 +1375,7 @@
   .marker {
     padding: 1px var(--sp-6) 1px 0.4375rem;
     border: 1px solid currentcolor;
-    border-radius: var(--radius-tag);
+    border-radius: var(--radius);
     color: var(--accent);
     font-size: var(--fs-14);
     font-weight: 600;
@@ -1550,7 +1553,7 @@
 
   .prose code {
     padding: 0.1em 0.35em;
-    border-radius: var(--radius-tag);
+    border-radius: var(--radius);
     background: var(--surface);
     font-size: 0.8em;
   }
@@ -1558,7 +1561,7 @@
   .prose pre {
     padding: var(--sp-16) var(--sp-20);
     overflow-x: auto;
-    border-radius: var(--radius-box);
+    border-radius: var(--radius);
     background: var(--surface);
     font-size: var(--fs-14);
     line-height: 1.55;
@@ -1596,7 +1599,7 @@
   .prose kbd {
     padding: 0 var(--sp-4);
     border: 1px solid var(--muted);
-    border-radius: var(--radius-tag);
+    border-radius: var(--radius);
     font-size: 0.8em;
   }
 
@@ -1805,7 +1808,7 @@
     max-inline-size: var(--measure);
     margin-block-start: var(--sp-14);
     padding: var(--sp-12) var(--sp-16);
-    border-radius: var(--radius-box);
+    border-radius: var(--radius);
     background: var(--surface);
   }
 
@@ -1870,7 +1873,7 @@
     inline-size: 100%;
     padding: 0.6875rem var(--sp-12);
     border: 1px solid var(--muted);
-    border-radius: var(--radius-input);
+    border-radius: var(--radius);
     background: var(--bg);
     color: var(--text);
     font-size: var(--fs-19);
@@ -1919,7 +1922,7 @@
   .notice {
     max-inline-size: var(--measure-form);
     padding: var(--sp-16) var(--sp-18);
-    border-radius: var(--radius-box);
+    border-radius: var(--radius);
     background: var(--surface);
     font-weight: 600;
   }
@@ -2120,7 +2123,7 @@
     min-block-size: 3rem;
     padding-inline: var(--sp-18);
     border: 2px solid var(--text);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius);
     font-weight: 600;
   }
 
@@ -2162,7 +2165,7 @@
   .card {
     padding: var(--sp-18);
     border: 2px solid var(--text);
-    border-radius: var(--radius-box);
+    border-radius: var(--radius);
   }
 
   .card > * + * {
@@ -2184,7 +2187,7 @@
     display: inline-block;
     padding: 0 var(--sp-10);
     border: 2px solid currentcolor;
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius);
     font-size: var(--fs-15);
     font-weight: 600;
     letter-spacing: 0.01em;
@@ -2207,12 +2210,6 @@
   .admin .btn {
     min-block-size: 3.5rem;
     padding-inline: var(--sp-24);
-    font-size: var(--fs-19);
-  }
-
-  .admin .btn--ghost,
-  .admin .btn--danger {
-    border-width: 2px;
   }
 
   .admin :is(input:not([type="checkbox"], [type="radio"], [type="file"]), textarea, select) {
@@ -2273,7 +2270,7 @@
     margin-inline-end: var(--sp-16);
     padding-inline: var(--sp-20);
     border: 2px solid var(--text);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius);
     background: none;
     color: var(--text);
     font-weight: 600;
@@ -2291,7 +2288,7 @@
     gap: var(--sp-6);
     padding: var(--sp-12) var(--sp-16);
     border: 2px solid var(--rule);
-    border-radius: var(--radius-box);
+    border-radius: var(--radius);
   }
 
   .admin .notice,
@@ -2352,7 +2349,7 @@
     gap: var(--sp-2);
     padding: var(--sp-12);
     border: 1px solid var(--rule);
-    border-radius: var(--radius-box);
+    border-radius: var(--radius);
     font-size: var(--fs-15);
   }
 
@@ -2360,7 +2357,7 @@
     display: block;
     block-size: 2.5rem;
     border: 1px solid var(--rule);
-    border-radius: var(--radius-tag);
+    border-radius: var(--radius);
   }
 
   .sg-swatches .s-bg {

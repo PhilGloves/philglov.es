@@ -40,7 +40,7 @@ test("the measured ratios in the tokens.css comment match the real ones", () => 
 test("both themes define the same colour tokens, and the two dark blocks agree", () => {
   const light = Object.keys(readTheme(css, "light")).sort();
   const dark = Object.keys(readTheme(css, "dark")).sort();
-  assert.ok(light.length >= 12, `the colour tokens were found (${light.join(", ")})`);
+  assert.ok(light.length >= 11, `the colour tokens were found (${light.join(", ")})`);
   assert.deepEqual(
     light.filter((name) => !dark.includes(name)),
     [],
