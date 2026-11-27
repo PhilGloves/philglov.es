@@ -170,8 +170,9 @@ test("transitionsDone waits for a running colour transition, and the colour read
   await page.goto("/lisbona");
   await transitionsDone(page);
   const send = page.locator("#comment-form button[type=submit]");
-  const colour = () => send.evaluate((el) => getComputedStyle(el).backgroundColor);
-  expect(await colour()).toBe("rgb(74, 93, 35)"); // --accent, light
+  // The button has no fill since 0047: its label colour (--text) eases instead.
+  const colour = () => send.evaluate((el) => getComputedStyle(el).color);
+  expect(await colour()).toBe("rgb(20, 20, 20)"); // --text, light
   // Start the ease and read in the same turn: no frame has passed, but the transition is registered.
   const started = await page.evaluate(() => {
     document.documentElement.dataset["theme"] = "dark";
@@ -179,7 +180,7 @@ test("transitionsDone waits for a running colour transition, and the colour read
   });
   expect(started, "a transition started").toBeGreaterThan(0);
   await transitionsDone(page);
-  expect(await colour(), "after the wait: --accent, dark").toBe("rgb(169, 191, 120)");
+  expect(await colour(), "after the wait: --text, dark").toBe("rgb(236, 236, 231)");
 });
 
 // BUG-8, the `/404` half, closed as ACCEPTED by the owner (round 3, decision 0022): a request for `/404` itself answers
