@@ -24,7 +24,9 @@ test("the language switch shows IT or EN; its accessible name starts with that a
   await expect(toEn).toHaveAttribute("hreflang", "en");
 });
 
-test("both header controls are round, and at least 44 px on phones", async ({ page }) => {
+test("both header controls have the site's one 2 px corner (0047), and are at least 44 px on phones", async ({
+  page,
+}) => {
   for (const [width, least] of [
     [390, 44],
     [320, 44],
@@ -37,7 +39,7 @@ test("both header controls are round, and at least 44 px on phones", async ({ pa
       const box = await control.boundingBox();
       expect(box?.width, `${width}px`).toBeGreaterThanOrEqual(least);
       expect(box?.height, `${width}px`).toBeGreaterThanOrEqual(least);
-      expect(await control.evaluate((el) => getComputedStyle(el).borderRadius)).toBe("50%");
+      expect(await control.evaluate((el) => getComputedStyle(el).borderRadius)).toBe("2px");
     }
   }
 });
