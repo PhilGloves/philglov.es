@@ -261,6 +261,10 @@ contatto]` …) and a bracket starting with "Placeholder"/"Segnaposto" on the bu
 - 2026-11-26: an unlisted `/cv` (English only) offers the CV from R2 ([0046](docs/decisions/0046-unlisted-cv.md)): never
   in git, never linked, noindex, left out of the public manifest and of the CI artifact. The owner uploads it and
   re-runs CI on `main` (playbook, "Updating the CV").
+- 2026-11-27: ink outline buttons, one corner ([0047](docs/decisions/0047-ink-outline-buttons-one-corner.md)): one
+  radius token, `--radius: 2px`, for fields, boxes, tags, photos, buttons and the header controls; `.btn` has no fill,
+  a 2 px `--text` line (ghost 1 px, danger 1 px `--error`, disabled 1 px dashed `--muted`) and a label in capitals from
+  CSS only; olive is on no button; `--accent-ink` is gone.
 - Open owner questions are listed at the top of `TICKETS.md`. Do not guess them.
 
 ## Folder map
@@ -380,6 +384,9 @@ components, utilities`; every colour, size and space comes from `tokens.css`; no
   the header's padding or links change, update `--menu-gap`. A page title is always a direct child of the `.g` grid, never
   inside a `.con` (its `cqi` would measure the column and the title would shrink); the intro sentence is `.lede`; the
   text starts `--head-end` (52/68/80 px) under it. Do not add a role line, a standfirst or another intro style.
+- Buttons and corners (0047): every corner is `var(--radius)` (2 px); do not add another radius token. `.btn` is an ink
+  outline with no fill; its capitals come from `text-transform` only, never typed into the markup. Hover rules list
+  `.sg-hover` beside `:hover` so /styleguide draws the state. Olive never fills or outlines a button.
 - Header controls: `.rbtn` (no visible ring: a transparent 1px border that forced-colours mode still draws; 44 px on phones, 40 px from tablet up; no gap between the two; the group is pulled out so the icon ends at the header line). The theme toggle holds both inline SVG icons
   and two visually hidden labels (`.to-dark`, `.to-light`); the same CSS that swaps the moon and the sun shows one, so
   the button's name says what it will do and follows a change of the system theme with no script. It has no
