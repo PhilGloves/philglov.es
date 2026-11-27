@@ -32,4 +32,28 @@ import SiteHeader from "../SiteHeader.astro";
       Keyboard focus
     </button>
   </p>
+  <p class="sg-note">Hover: the main button fills with ink, the other two take a light tint.</p>
+  <p class="ffoot">
+    <button type="button" class="btn sg-hover">
+      Send
+    </button>
+    <button type="button" class="btn btn--ghost sg-hover">
+      Reply
+    </button>
+    <button type="button" class="btn btn--danger sg-hover">
+      Reject
+    </button>
+  </p>
+  <p class="sg-note">Disabled, every variant the same: a dashed grey line.</p>
+  <p class="ffoot">
+    <button type="button" class="btn" disabled>
+      Send
+    </button>
+    <button type="button" class="btn btn--ghost" disabled>
+      Reply
+    </button>
+    <button type="button" class="btn btn--danger" aria-disabled="true">
+      Reject
+    </button>
+  </p>
 </div>
